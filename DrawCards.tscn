@@ -1,0 +1,135 @@
+[gd_scene format=3 uid="uid://bxpm4olbqj4ge"]
+
+[ext_resource type="Script" uid="uid://bfc4bo2gw3kf6" path="res://drawcards.gd" id="1_psmj0"]
+
+[node name="DrawCards" type="VBoxContainer" unique_id=1841845220]
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_psmj0")
+
+[node name="Placements" type="HBoxContainer" parent="." unique_id=1441249503]
+layout_mode = 2
+
+[node name="Slot1" type="MarginContainer" parent="Placements" unique_id=42908544]
+layout_mode = 2
+mouse_filter = 0
+
+[node name="Control" type="Control" parent="Placements/Slot1" unique_id=1950908672]
+custom_minimum_size = Vector2(148, 210)
+layout_mode = 2
+mouse_filter = 1
+
+[node name="Card1" type="TextureRect" parent="Placements/Slot1/Control" unique_id=2033297727]
+custom_minimum_size = Vector2(148, 210)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 3
+stretch_mode = 5
+
+[node name="RemoveButton1" type="Button" parent="Placements/Slot1/Control" unique_id=1139071327]
+visible = false
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Sell player"
+
+[node name="Slot2" type="MarginContainer" parent="Placements" unique_id=1052524310]
+layout_mode = 2
+mouse_filter = 0
+
+[node name="Control" type="Control" parent="Placements/Slot2" unique_id=1723065219]
+custom_minimum_size = Vector2(148, 210)
+layout_mode = 2
+mouse_filter = 1
+
+[node name="Card2" type="TextureRect" parent="Placements/Slot2/Control" unique_id=1458483804]
+custom_minimum_size = Vector2(148, 210)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 3
+stretch_mode = 5
+
+[node name="RemoveButton2" type="Button" parent="Placements/Slot2/Control" unique_id=1185059970]
+visible = false
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Sell player"
+
+[node name="Slot3" type="MarginContainer" parent="Placements" unique_id=1585131392]
+layout_mode = 2
+mouse_filter = 0
+
+[node name="Control" type="Control" parent="Placements/Slot3" unique_id=1733350673]
+custom_minimum_size = Vector2(148, 210)
+layout_mode = 2
+mouse_filter = 1
+
+[node name="Card3" type="TextureRect" parent="Placements/Slot3/Control" unique_id=288571420]
+custom_minimum_size = Vector2(148, 210)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 3
+stretch_mode = 5
+
+[node name="RemoveButton3" type="Button" parent="Placements/Slot3/Control" unique_id=1422220596]
+visible = false
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Sell player"
+
+[node name="GenerateTeam" type="Button" parent="." unique_id=1054239591]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+text = "Get player"
+
+[node name="Reset" type="Button" parent="." unique_id=2025112506]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+text = "Reset Squad"
+
+[connection signal="mouse_entered" from="Placements/Slot1" to="." method="_on_slot_1_mouse_entered"]
+[connection signal="mouse_exited" from="Placements/Slot1" to="." method="_on_slot_1_mouse_exited"]
+[connection signal="mouse_entered" from="Placements/Slot1/Control/RemoveButton1" to="." method="_on_remove_button_1_mouse_entered"]
+[connection signal="mouse_exited" from="Placements/Slot1/Control/RemoveButton1" to="." method="_on_remove_button_1_mouse_exited"]
+[connection signal="pressed" from="Placements/Slot1/Control/RemoveButton1" to="." method="_on_remove_button_1_pressed"]
+[connection signal="mouse_entered" from="Placements/Slot2" to="." method="_on_slot_2_mouse_entered"]
+[connection signal="mouse_exited" from="Placements/Slot2" to="." method="_on_slot_2_mouse_exited"]
+[connection signal="mouse_entered" from="Placements/Slot2/Control/RemoveButton2" to="." method="_on_remove_button_2_mouse_entered"]
+[connection signal="mouse_exited" from="Placements/Slot2/Control/RemoveButton2" to="." method="_on_remove_button_2_mouse_exited"]
+[connection signal="pressed" from="Placements/Slot2/Control/RemoveButton2" to="." method="_on_remove_button_2_pressed"]
+[connection signal="mouse_entered" from="Placements/Slot3" to="." method="_on_slot_3_mouse_entered"]
+[connection signal="mouse_exited" from="Placements/Slot3" to="." method="_on_slot_3_mouse_exited"]
+[connection signal="mouse_entered" from="Placements/Slot3/Control/RemoveButton3" to="." method="_on_remove_button_3_mouse_entered"]
+[connection signal="mouse_exited" from="Placements/Slot3/Control/RemoveButton3" to="." method="_on_remove_button_3_mouse_exited"]
+[connection signal="pressed" from="Placements/Slot3/Control/RemoveButton3" to="." method="_on_remove_button_3_pressed"]
+[connection signal="pressed" from="GenerateTeam" to="." method="_on_generate_team_pressed"]
+[connection signal="pressed" from="Reset" to="." method="_on_reset_pressed"]

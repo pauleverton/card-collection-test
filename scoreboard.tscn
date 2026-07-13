@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://d4eo26x7cnudu"]
+
+[ext_resource type="Script" uid="uid://bq4pgae26kr7u" path="res://scoreboard.gd" id="1_jeshg"]
+
+[node name="ScoreBoard" type="VBoxContainer" unique_id=1091831419]
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_jeshg")
+
+[node name="CoinsLabel" type="Label" parent="." unique_id=116873597]
+layout_mode = 2
+
+[node name="ScoreLabel" type="Label" parent="." unique_id=2103793683]
+layout_mode = 2

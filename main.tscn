@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://ceoyuxeqqgyph"]
+
+[ext_resource type="Script" uid="uid://cgbc38cehha6q" path="res://main.gd" id="1_0xm2m"]
+[ext_resource type="PackedScene" uid="uid://bxpm4olbqj4ge" path="res://DrawCards.tscn" id="2_h2yge"]
+[ext_resource type="PackedScene" uid="uid://d4eo26x7cnudu" path="res://scoreboard.tscn" id="3_h2yge"]
+
+[node name="Main" type="Node" unique_id=484527703]
+script = ExtResource("1_0xm2m")
+
+[node name="DrawCards" parent="." unique_id=1841845220 instance=ExtResource("2_h2yge")]
+
+[node name="ScoreBoard" parent="." unique_id=1091831419 instance=ExtResource("3_h2yge")]

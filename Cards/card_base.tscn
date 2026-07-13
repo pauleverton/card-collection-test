@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://b2e3in6xu8rj4"]
+
+[ext_resource type="Script" uid="uid://3worpa1kn0y6" path="res://card_base.gd" id="1_gxr5w"]
+
+[node name="DrawCardBase" type="VBoxContainer" unique_id=483209984]
+offset_right = 250.0
+offset_bottom = 350.0
+pivot_offset = Vector2(125, 175)
+script = ExtResource("1_gxr5w")
+
+[node name="CardBase" type="MarginContainer" parent="." unique_id=1719730790]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="CardBase" unique_id=860010882]
+custom_minimum_size = Vector2(250, 365)
+layout_mode = 2
+
+[node name="Button" type="Button" parent="." unique_id=328512491]
+layout_mode = 2
+text = "Draw card"
+
+[connection signal="pressed" from="Button" to="." method="_on_button_pressed"]
