@@ -13,70 +13,73 @@ extends VBoxContainer
 ]
 
 var available_cards = []
-
-
-const CARDS = [
-	"james_garner_bronze",
-	"jake_obrien_bronze",
-	"iliman_ndiaye_silver",
-	"jordan_pickford_gold"
-]
+var current_slot_ids = ["", "", ""]  # tracks which card id sits in each slot
 
 func _ready() -> void:
 	print("script loaded")
-	print(slots)
-	print(remove_buttons)
 	reset_deck()
 
 func reset_deck() -> void:
-	available_cards = CARDS.duplicate()
+	# CardDatabase is an autoload singleton, loaded once at game start.
+	available_cards = CardDatabase.get_all_ids()
 	available_cards.shuffle()
 
-func load_card(card_name: String, slot: TextureRect) -> void:
-	var texture = load("res://Cards/" + card_name + ".png")
-	slot.texture = texture
+func load_card(card_id: String, slot: TextureRect) -> void:
+	var card = CardDatabase.get_card(card_id)
+	if card == null:
+		push_warning("drawcards: no CardData found for id '%s'" % card_id)
+		return
+	slot.texture = card.texture
+	var slot_index = slots.find(slot)
+	if slot_index != -1:
+		current_slot_ids[slot_index] = card_id
 
 func _on_generate_team_pressed() -> void:
-	print("draw pressed")
 	var next_slot = get_next_empty_slot()
 	if next_slot == -1:
 		return
 	if available_cards.is_empty():
 		return
-	var card = available_cards.pop_back()
-	load_card(card, slots[next_slot])
+	var card_id = available_cards.pop_back()
+	load_card(card_id, slots[next_slot])
 
 func _on_reset_pressed() -> void:
-	print("reset pressed")
 	for slot in slots:
 		slot.texture = null
 	for btn in remove_buttons:
 		btn.visible = false
+		btn.text = "Sell player"
 	reset_deck()
 
 func show_remove_button(slot_index: int) -> void:
 	if slots[slot_index].texture != null:
+		var card_id = current_slot_ids[slot_index]
+		var sell_value = CardDatabase.get_sell_value(card_id)
+		remove_buttons[slot_index].text = "Sell for %d" % sell_value
 		remove_buttons[slot_index].visible = true
 
 func hide_remove_button(slot_index: int) -> void:
 	remove_buttons[slot_index].visible = false
 
 func remove_card(slot_index: int) -> void:
-	print("removing card from slot ", slot_index)
-	var removed_card = slots[slot_index].texture.resource_path
-	removed_card = removed_card.replace("res://Cards/", "").replace(".png", "")
-	available_cards.append(removed_card)
+	var card_id = current_slot_ids[slot_index]
+	var sell_value = CardDatabase.get_sell_value(card_id)
+
+	available_cards.append(card_id)
 	available_cards.shuffle()
 	slots[slot_index].texture = null
+	current_slot_ids[slot_index] = ""
 	remove_buttons[slot_index].visible = false
-	get_tree().get_first_node_in_group("main").add_coins(10)
-	
+	remove_buttons[slot_index].text = "Sell player"
+
+	get_tree().get_first_node_in_group("main").add_coins(sell_value)
+
 func get_next_empty_slot() -> int:
 	for i in range(slots.size()):
 		if slots[i].texture == null:
 			return i
 	return -1  # no empty slots
-	
+
 func _on_slot_1_mouse_entered() -> void:
 	show_remove_button(0)
 func _on_slot_1_mouse_exited() -> void:
@@ -98,7 +101,6 @@ func _on_slot_3_mouse_exited() -> void:
 func _on_remove_button_3_pressed() -> void:
 	remove_card(2)
 
-
 func _on_remove_button_1_mouse_entered() -> void:
 	show_remove_button(0)
 func _on_remove_button_1_mouse_exited() -> void:
@@ -114,7 +116,6 @@ func _on_remove_button_3_mouse_entered() -> void:
 func _on_remove_button_3_mouse_exited() -> void:
 	hide_remove_button(2)
 
-
 func get_displayed_cards() -> Array:
 	var displayed = []
 	for slot in slots:
@@ -124,19 +125,13 @@ func get_displayed_cards() -> Array:
 
 func _on_draw_button_pressed() -> void:
 	var next_slot = get_next_empty_slot()
-	print("next empty slot: ", next_slot)
-	print("available cards: ", available_cards)
 	if next_slot == -1:
-		print("no empty slots")
 		return
 	if available_cards.is_empty():
-		print("reshuffling")
 		reset_deck()
-	var card = available_cards.pop_back()
-	print("drawing: ", card)
-	load_card(card, slots[next_slot])
+	var card_id = available_cards.pop_back()
+	load_card(card_id, slots[next_slot])
 	check_squad_complete()
-
 
 func check_squad_complete() -> void:
 	for slot in slots:
