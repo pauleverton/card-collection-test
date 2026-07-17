@@ -1,5 +1,5 @@
 extends VBoxContainer
-
+@onready var message_label = $MessageLabel
 @onready var slots = [
 	$Placements/Slot1/Control/Card1,
 	$Placements/Slot2/Control/Card2,
@@ -40,6 +40,12 @@ func _on_generate_team_pressed() -> void:
 		return
 	if available_cards.is_empty():
 		return
+
+	var main = get_tree().get_first_node_in_group("main")
+	if not main.spin_player(30):
+		show_message("Not enough coins")
+		return
+
 	var card_id = available_cards.pop_back()
 	load_card(card_id, slots[next_slot])
 
@@ -138,3 +144,9 @@ func check_squad_complete() -> void:
 		if slot.texture == null:
 			return
 	get_parent().add_score(50)
+
+func show_message(text: String) -> void:
+	message_label.text = text
+	message_label.visible = true
+	await get_tree().create_timer(1.5).timeout
+	message_label.visible = false

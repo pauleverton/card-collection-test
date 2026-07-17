@@ -19,6 +19,13 @@ func deduct_coins(amount: int) -> void:
 func add_score(amount: int) -> void:
 	score += amount
 	update_scoreboard()
+	
+func spin_player(amount: int) -> bool:
+	if coins < amount:
+		return false
+	coins -= amount
+	update_scoreboard()
+	return true
 
 func update_scoreboard() -> void:
 	if $ScoreBoard == null:

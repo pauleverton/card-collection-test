@@ -7,6 +7,13 @@ offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("1_psmj0")
 
+[node name="MessageLabel" type="Label" parent="." unique_id=90605351]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.1254902, 0.16862746, 1)
+text = "Not enough coins!"
+horizontal_alignment = 2
+
 [node name="Placements" type="HBoxContainer" parent="." unique_id=1441249503]
 layout_mode = 2
 
@@ -35,11 +42,13 @@ stretch_mode = 5
 visible = false
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = 12
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = -31.0
 grow_horizontal = 2
-grow_vertical = 2
+grow_vertical = 0
 text = "Sell player"
 
 [node name="Slot2" type="MarginContainer" parent="Placements" unique_id=1052524310]
@@ -109,7 +118,7 @@ text = "Sell player"
 [node name="GenerateTeam" type="Button" parent="." unique_id=1054239591]
 custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
-text = "Get player"
+text = "Get player (30 coins)"
 
 [node name="Reset" type="Button" parent="." unique_id=2025112506]
 custom_minimum_size = Vector2(50, 50)
