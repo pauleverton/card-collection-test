@@ -1,5 +1,5 @@
 extends VBoxContainer
-@onready var message_label = $MessageLabel
+@onready var generate_button = $GenerateTeam
 @onready var slots = [
 	$Placements/Slot1/Control/Card1,
 	$Placements/Slot2/Control/Card2,
@@ -18,6 +18,9 @@ var current_slot_ids = ["", "", ""]  # tracks which card id sits in each slot
 func _ready() -> void:
 	print("script loaded")
 	reset_deck()
+	var main = get_tree().get_first_node_in_group("main")
+	main.coins_changed.connect(_on_coins_changed)
+	_on_coins_changed(main.coins)
 
 func reset_deck() -> void:
 	# CardDatabase is an autoload singleton, loaded once at game start.
@@ -43,7 +46,6 @@ func _on_generate_team_pressed() -> void:
 
 	var main = get_tree().get_first_node_in_group("main")
 	if not main.spin_player(30):
-		show_message("Not enough coins")
 		return
 
 	var card_id = available_cards.pop_back()
@@ -145,8 +147,6 @@ func check_squad_complete() -> void:
 			return
 	get_parent().add_score(50)
 
-func show_message(text: String) -> void:
-	message_label.text = text
-	message_label.visible = true
-	await get_tree().create_timer(1.5).timeout
-	message_label.visible = false
+
+func _on_coins_changed(new_amount: int) -> void:
+	generate_button.disabled = new_amount < 30

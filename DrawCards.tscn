@@ -7,13 +7,6 @@ offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("1_psmj0")
 
-[node name="MessageLabel" type="Label" parent="." unique_id=90605351]
-visible = false
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.1254902, 0.16862746, 1)
-text = "Not enough coins!"
-horizontal_alignment = 2
-
 [node name="Placements" type="HBoxContainer" parent="." unique_id=1441249503]
 layout_mode = 2
 
