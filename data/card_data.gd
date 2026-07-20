@@ -19,7 +19,17 @@ extends Resource
 
 ## --- Future roguelike expansion ---
 ## Uncomment / extend as your stat system grows. Keeping these here now
+## Shooting/finishing ability, used when this card is the attacker in a match.
+@export_range(1, 99) var attack: int = 50
+ 
+## Tackling/goalkeeping ability, used when this card is the defender in a match.
+@export_range(1, 99) var defense: int = 50
+ 
+## Used by boss MatchConditions to target specific positions (e.g.
+## "midfield attack halved this match").
+@export_enum("GK", "DEF", "MID", "FWD") var position: String = "MID"
+ 
+## --- Future roguelike expansion ---
+## Uncomment / extend as your stat system grows. Keeping these here now
 ## means the schema doesn't need to change shape later, just get used.
-#@export var base_rating: int = 50
-#@export var position: String = ""
 #@export var modifiers: Array[CardModifier] = []

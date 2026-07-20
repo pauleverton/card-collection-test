@@ -1,11 +1,11 @@
 [gd_resource type="Resource" script_class="CardDatabaseResource" format=3 uid="uid://exvxpboyojaw"]
 
 [ext_resource type="Script" uid="uid://byw4wa812jf65" path="res://data/card_data.gd" id="1_0apoi"]
-[ext_resource type="Texture2D" uid="uid://f4rgivh2uush" path="res://Cards/iliman_ndiaye_silver.png" id="2_koinq"]
+[ext_resource type="Texture2D" uid="uid://cyyayncl728e7" path="res://Cards/iliman_ndiaye_silver.png" id="2_koinq"]
 [ext_resource type="Script" uid="uid://k3mcdls2aqgh" path="res://data/card_database_resource.gd" id="2_w0kwd"]
-[ext_resource type="Texture2D" uid="uid://di25bxhunsf7" path="res://Cards/jake_obrien_bronze.png" id="3_4rb3r"]
-[ext_resource type="Texture2D" uid="uid://crq433j8kpvqr" path="res://Cards/james_garner_bronze.png" id="4_ygkdt"]
-[ext_resource type="Texture2D" uid="uid://cljfwl7erk7w2" path="res://Cards/jordan_pickford_gold.png" id="5_jfmu1"]
+[ext_resource type="Texture2D" uid="uid://cvbhyb7kelc4l" path="res://Cards/jake_obrien_bronze.png" id="3_4rb3r"]
+[ext_resource type="Texture2D" uid="uid://cs43lhknqc12v" path="res://Cards/james_garner_bronze.png" id="4_ygkdt"]
+[ext_resource type="Texture2D" uid="uid://cm7sclgu2e4qd" path="res://Cards/jordan_pickford_gold.png" id="5_jfmu1"]
 
 [sub_resource type="Resource" id="Resource_ygkdt"]
 script = ExtResource("1_0apoi")
@@ -14,22 +14,30 @@ display_name = "Iliman Ndiaye"
 rarity = "silver"
 sell_value = 22
 texture = ExtResource("2_koinq")
+attack = 82
+defense = 26
+position = "FWD"
 metadata/_custom_type_script = "uid://byw4wa812jf65"
 
-[sub_resource type="Resource" id="Resource_0apoi"]
+[sub_resource type="Resource" id="Resource_koinq"]
 script = ExtResource("1_0apoi")
 id = "jake_obrien"
 display_name = "Jake O'Brien"
 sell_value = 13
 texture = ExtResource("3_4rb3r")
+attack = 12
+defense = 63
+position = "DEF"
 metadata/_custom_type_script = "uid://byw4wa812jf65"
 
-[sub_resource type="Resource" id="Resource_w0kwd"]
+[sub_resource type="Resource" id="Resource_4rb3r"]
 script = ExtResource("1_0apoi")
 id = "james_garner"
 display_name = "James Garner"
 sell_value = 15
 texture = ExtResource("4_ygkdt")
+attack = 59
+defense = 46
 metadata/_custom_type_script = "uid://byw4wa812jf65"
 
 [sub_resource type="Resource" id="Resource_ebfpy"]
@@ -39,9 +47,11 @@ display_name = "Jordan Pickford"
 rarity = "gold"
 sell_value = 33
 texture = ExtResource("5_jfmu1")
+attack = 8
+position = "GK"
 metadata/_custom_type_script = "uid://byw4wa812jf65"
 
 [resource]
 script = ExtResource("2_w0kwd")
-cards = Array[ExtResource("1_0apoi")]([SubResource("Resource_ygkdt"), SubResource("Resource_0apoi"), SubResource("Resource_w0kwd"), SubResource("Resource_ebfpy")])
+cards = Array[ExtResource("1_0apoi")]([SubResource("Resource_ygkdt"), SubResource("Resource_koinq"), SubResource("Resource_4rb3r"), SubResource("Resource_ebfpy")])
 metadata/_custom_type_script = "uid://k3mcdls2aqgh"

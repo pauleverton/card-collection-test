@@ -1,0 +1,49 @@
+[gd_scene format=3 uid="uid://ca5168em5ixjp"]
+
+[ext_resource type="Script" uid="uid://c00ojgl6swjge" path="res://Battle/battle.gd" id="1_ksnli"]
+[ext_resource type="Script" uid="uid://ii18dxs1v73g" path="res://Battle/battle_manager.gd" id="2_o5tja"]
+
+[node name="Battle" type="Control" unique_id=1547259862]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ksnli")
+
+[node name="BattleManager" type="Node" parent="." unique_id=124604989]
+script = ExtResource("2_o5tja")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1106887997]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="RoundLabel" type="Label" parent="VBoxContainer" unique_id=960568979]
+layout_mode = 2
+
+[node name="ScoreLabel" type="Label" parent="VBoxContainer" unique_id=740790442]
+layout_mode = 2
+
+[node name="ResultLabel" type="Label" parent="VBoxContainer" unique_id=114881174]
+layout_mode = 2
+
+[node name="OpponentRow" type="HBoxContainer" parent="VBoxContainer" unique_id=1983047333]
+layout_mode = 2
+
+[node name="Button1" type="Button" parent="VBoxContainer/OpponentRow" unique_id=1323121494]
+layout_mode = 2
+
+[node name="Button2" type="Button" parent="VBoxContainer/OpponentRow" unique_id=539652163]
+layout_mode = 2
+
+[node name="Button3" type="Button" parent="VBoxContainer/OpponentRow" unique_id=862150399]
+layout_mode = 2
+
+[node name="StartButton" type="Button" parent="VBoxContainer" unique_id=1699378708]
+layout_mode = 2
+text = "Start test match"
