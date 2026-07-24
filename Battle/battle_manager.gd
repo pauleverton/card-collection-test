@@ -1,21 +1,31 @@
 extends Node
 class_name BattleManager
 
-## Turn-based match logic: player picks a target each round, a dice roll
-## decides whether a goal is scored based on attacker vs defender stats.
+## Turn-based match logic using an opposed d20 check, D&D-style: both the
+## attacker and defender roll a die and add their own modifier. Whoever's
+## total is higher wins that exchange. This gives jeopardy on both sides
+## (a strong attacker can still miss on a bad roll; a weak defender can
+## still make a save on a good one) and leaves room for future cards to
+## add bonuses/rerolls to either roll without changing the core structure.
 ##
-## Drop this script onto a Node in your Battle scene (or make it an Autoload
-## if you want match state to persist across scene changes). Hook your UI
-## buttons up to `player_take_shot(defender_id)` and listen to the signals
-## below to update labels/animations.
+## Flow for one round, driven by the UI (see battle.gd):
+##   1. preview_chance(defender_id)      -- true probability, no roll yet
+##   2. resolve_player_shot(defender_id) -- rolls + resolves the player's shot
+##   3. resolve_opponent_shot()          -- rolls + resolves the opponent's shot
+##   4. advance_round()                  -- moves to next round / ends match
 
-# --- Signals for UI to hook into ---
-signal shot_resolved(attacker_id: String, defender_id: String, roll: int, chance: int, scored: bool)
+signal shot_resolved(
+	attacker_id: String, defender_id: String,
+	attacker_roll: int, attacker_modifier: int,
+	defender_roll: int, defender_modifier: int,
+	scored: bool, is_player_shot: bool
+)
 signal round_started(round_number: int)
 signal match_ended(player_goals: int, opponent_goals: int, player_won: bool)
 
 # --- Config ---
 @export var total_rounds: int = 5
+const DICE_SIDES := 20
 
 # --- Match state ---
 var player_squad: Array[String] = []      # card ids
@@ -44,38 +54,67 @@ func start_match(p_squad: Array[String], o_squad: Array[String], conditions: Arr
 	player_shooter_index = 0
 	opponent_shooter_index = 0
 	match_over = false
-	_start_next_round()
+	_begin_round()
 
 
-func _start_next_round() -> void:
+func _begin_round() -> void:
 	current_round += 1
 	round_started.emit(current_round)
-	# Waits here for player_take_shot() to be called from UI.
 
 
-## Call this from your UI when the player picks which opponent card to target.
-## Uses the current cycling player shooter as the attacker.
-func player_take_shot(defender_id: String) -> void:
+## Whichever of the player's cards is up to shoot this round.
+func get_current_player_shooter() -> String:
+	return player_squad[player_shooter_index]
+
+
+## Whichever of the opponent's cards is up to shoot this round.
+func get_current_opponent_shooter() -> String:
+	return opponent_squad[opponent_shooter_index]
+
+
+## Lets the UI reveal who the AI is about to target BEFORE rolling, mirroring
+## preview_chance() for the player. As targeting difficulty scales up later,
+## swap the logic in _opponent_pick_target() — this (and resolve_opponent_shot)
+## will automatically reflect whatever it decides.
+func preview_opponent_target() -> String:
+	return _opponent_pick_target()
+
+
+func preview_opponent_chance() -> int:
+	return calculate_goal_chance(get_current_opponent_shooter(), preview_opponent_target())
+
+
+## Lets the UI show a chance % BEFORE committing to the roll. Doesn't touch
+## any state — safe to call repeatedly if the player changes their target.
+func preview_chance(defender_id: String) -> int:
+	return calculate_goal_chance(get_current_player_shooter(), defender_id)
+
+
+## Resolves ONLY the player's shot (rolls both dice, updates score, emits
+## shot_resolved). Does NOT trigger the opponent's turn — call
+## resolve_opponent_shot() separately once the UI has shown this result.
+func resolve_player_shot(defender_id: String) -> bool:
 	if match_over:
 		push_warning("BattleManager: match already over, ignoring shot")
-		return
+		return false
 
-	var attacker_id: String = player_squad[player_shooter_index]
+	var attacker_id := get_current_player_shooter()
 	var scored := _resolve_shot(attacker_id, defender_id, true)
 
 	if scored:
 		player_goals += 1
 
-	# Advance to next player shooter for next round (cycle through squad).
 	player_shooter_index = (player_shooter_index + 1) % player_squad.size()
-
-	# Opponent immediately takes their mirrored turn (auto target selection).
-	_opponent_take_shot()
-
-	_check_match_end()
+	return scored
 
 
-func _opponent_take_shot() -> void:
+## Resolves the opponent's mirrored turn (auto target selection). Call this
+## after resolve_player_shot(), once the UI is ready to show it.
+func resolve_opponent_shot() -> bool:
+	if match_over:
+		push_warning("BattleManager: match already over, ignoring shot")
+		return false
+
 	var attacker_id: String = opponent_squad[opponent_shooter_index]
 	var defender_id: String = _opponent_pick_target()
 
@@ -84,16 +123,28 @@ func _opponent_take_shot() -> void:
 		opponent_goals += 1
 
 	opponent_shooter_index = (opponent_shooter_index + 1) % opponent_squad.size()
+	return scored
+
+
+## Call once both shots for the round have been shown to the player, to move
+## on to the next round (or end the match if this was the last one).
+func advance_round() -> void:
+	if current_round >= total_rounds:
+		match_over = true
+		var player_won := player_goals > opponent_goals
+		match_ended.emit(player_goals, opponent_goals, player_won)
+	else:
+		_begin_round()
 
 
 ## Simple AI: opponent targets whichever of your cards has the lowest defense.
 ## Swap this out for something smarter later (e.g. weighted by rarity).
 func _opponent_pick_target() -> String:
 	var weakest_id: String = player_squad[0]
-	var weakest_defense: int = _get_defense(weakest_id)
+	var weakest_defense: int = _get_defense_modifier(weakest_id)
 
 	for id in player_squad:
-		var d := _get_defense(id)
+		var d := _get_defense_modifier(id)
 		if d < weakest_defense:
 			weakest_defense = d
 			weakest_id = id
@@ -101,60 +152,72 @@ func _opponent_pick_target() -> String:
 	return weakest_id
 
 
-## Core resolution: works out goal chance, rolls the dice, emits the result.
+## Core resolution: both sides roll a d20 and add their modifier. Higher
+## total wins the exchange — a genuine opposed check, not a single roll
+## against a fixed percentage.
 func _resolve_shot(attacker_id: String, defender_id: String, is_player_shot: bool) -> bool:
-	var chance := calculate_goal_chance(attacker_id, defender_id)
-	var roll := roll_dice()
-	var scored := roll <= chance
+	var attacker_mod := _get_attack_modifier(attacker_id)
+	var defender_mod := _get_defense_modifier(defender_id)
 
-	shot_resolved.emit(attacker_id, defender_id, roll, chance, scored)
+	var attacker_roll := roll_die()
+	var defender_roll := roll_die()
+
+	var attacker_total := attacker_roll + attacker_mod
+	var defender_total := defender_roll + defender_mod
+	var scored := attacker_total > defender_total
+
+	shot_resolved.emit(
+		attacker_id, defender_id,
+		attacker_roll, attacker_mod,
+		defender_roll, defender_mod,
+		scored, is_player_shot
+	)
 	return scored
 
 
-## chance = 50 + (attacker.attack - defender.defense), clamped 5-95.
-## Even matchup = 50/50. Stat gaps push the odds, but never guarantee
-## a result either way.
+func roll_die() -> int:
+	return randi_range(1, DICE_SIDES)
+
+
+## True probability of the attacker beating the defender given both sides'
+## current modifiers — computed by checking every one of the 400 possible
+## d20-vs-d20 outcomes, so it's always accurate rather than hand-tuned.
 func calculate_goal_chance(attacker_id: String, defender_id: String) -> int:
-	var attack := _get_attack(attacker_id)
-	var defense := _get_defense(defender_id)
-	var chance := 50 + (attack - defense)
-	return clampi(chance, 5, 95)
+	var attacker_mod := _get_attack_modifier(attacker_id)
+	var defender_mod := _get_defense_modifier(defender_id)
+
+	var favorable := 0
+	var total := 0
+	for a in range(1, DICE_SIDES + 1):
+		for d in range(1, DICE_SIDES + 1):
+			total += 1
+			if (a + attacker_mod) > (d + defender_mod):
+				favorable += 1
+
+	return int(round(100.0 * favorable / total))
 
 
-func roll_dice() -> int:
-	return randi_range(1, 100)
-
-
-func _get_attack(card_id: String) -> int:
+func _get_attack_modifier(card_id: String) -> int:
 	var card: CardData = CardDatabase.get_card(card_id)
 	if card == null:
-		push_warning("BattleManager: no card data for '%s', using default attack 50" % card_id)
-		return 50
+		push_warning("BattleManager: no card data for '%s', using default modifier" % card_id)
+		return 5
 
 	var attack := float(card.attack)
 	for condition in active_conditions:
 		if condition.applies_to(card.position):
 			attack *= condition.attack_multiplier
-	return int(round(attack))
+	return int(round(attack / 10.0))
 
 
-func _get_defense(card_id: String) -> int:
+func _get_defense_modifier(card_id: String) -> int:
 	var card: CardData = CardDatabase.get_card(card_id)
 	if card == null:
-		push_warning("BattleManager: no card data for '%s', using default defense 50" % card_id)
-		return 50
+		push_warning("BattleManager: no card data for '%s', using default modifier" % card_id)
+		return 5
 
 	var defense := float(card.defense)
 	for condition in active_conditions:
 		if condition.applies_to(card.position):
 			defense *= condition.defense_multiplier
-	return int(round(defense))
-
-
-func _check_match_end() -> void:
-	if current_round >= total_rounds:
-		match_over = true
-		var player_won := player_goals > opponent_goals
-		match_ended.emit(player_goals, opponent_goals, player_won)
-	else:
-		_start_next_round()
+	return int(round(defense / 10.0))

@@ -29,9 +29,6 @@ layout_mode = 2
 [node name="ScoreLabel" type="Label" parent="VBoxContainer" unique_id=740790442]
 layout_mode = 2
 
-[node name="ResultLabel" type="Label" parent="VBoxContainer" unique_id=114881174]
-layout_mode = 2
-
 [node name="OpponentRow" type="HBoxContainer" parent="VBoxContainer" unique_id=1983047333]
 layout_mode = 2
 
@@ -43,6 +40,51 @@ layout_mode = 2
 
 [node name="Button3" type="Button" parent="VBoxContainer/OpponentRow" unique_id=862150399]
 layout_mode = 2
+
+[node name="MatchupPanel" type="HBoxContainer" parent="VBoxContainer" unique_id=757753365]
+layout_mode = 2
+
+[node name="AttackerColumn" type="VBoxContainer" parent="VBoxContainer/MatchupPanel" unique_id=70945801]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AttackerNameLabel" type="Label" parent="VBoxContainer/MatchupPanel/AttackerColumn" unique_id=1437465090]
+layout_mode = 2
+
+[node name="AttackerRollLabel" type="Label" parent="VBoxContainer/MatchupPanel/AttackerColumn" unique_id=989555525]
+layout_mode = 2
+
+[node name="VsColumn" type="VBoxContainer" parent="VBoxContainer/MatchupPanel" unique_id=1197413604]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ChanceLabel" type="Label" parent="VBoxContainer/MatchupPanel/VsColumn" unique_id=996607441]
+layout_mode = 2
+
+[node name="DefenderColumn" type="VBoxContainer" parent="VBoxContainer/MatchupPanel" unique_id=1898477958]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DefenderNameLabel" type="Label" parent="VBoxContainer/MatchupPanel/DefenderColumn" unique_id=1752182652]
+layout_mode = 2
+
+[node name="DefenderRollLabel" type="Label" parent="VBoxContainer/MatchupPanel/DefenderColumn" unique_id=1998700132]
+layout_mode = 2
+
+[node name="ResultLabel" type="Label" parent="VBoxContainer" unique_id=114881174]
+layout_mode = 2
+
+[node name="TakeShotButton" type="Button" parent="VBoxContainer" unique_id=1495490249]
+layout_mode = 2
+text = "Take shot!"
+
+[node name="NextRoundButton" type="Button" parent="VBoxContainer" unique_id=1991968521]
+layout_mode = 2
+text = "Next Round ▶"
+
+[node name="OpponentTurnButton" type="Button" parent="VBoxContainer" unique_id=309880007]
+layout_mode = 2
+text = "Opponent's Turn ▶"
 
 [node name="StartButton" type="Button" parent="VBoxContainer" unique_id=1699378708]
 layout_mode = 2

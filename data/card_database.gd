@@ -53,3 +53,14 @@ func get_sell_value(id: String, fallback: int = 10) -> int:
 ## Returns a copy of all known card ids (safe to shuffle without mutating the source).
 func get_all_ids() -> Array:
 	return all_ids.duplicate()
+
+## Registers a card at runtime without touching card_database.tres — useful
+## for temporary debug/test cards while building a system. Not persisted;
+## cleared the next time _load_database() runs (e.g. on scene reload).
+func register_debug_card(card: CardData) -> void:
+	if card == null or card.id.is_empty():
+		push_warning("CardDatabase: cannot register debug card with empty id")
+		return
+	_cards_by_id[card.id] = card
+	if not all_ids.has(card.id):
+		all_ids.append(card.id)
