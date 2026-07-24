@@ -33,8 +33,7 @@ var opponent_squad: Array[String] = []    # card ids
 var player_goals: int = 0
 var opponent_goals: int = 0
 var current_round: int = 0
-var player_shooter_index: int = 0         # cycles through player_squad
-var opponent_shooter_index: int = 0       # cycles through opponent_squad
+var opponent_shooter_index: int = 0       # opponent still auto-cycles (AI-controlled)
 var match_over: bool = false
 
 ## Boss-fight rules for this match, e.g. "midfield attack halved". Empty for
@@ -51,7 +50,6 @@ func start_match(p_squad: Array[String], o_squad: Array[String], conditions: Arr
 	player_goals = 0
 	opponent_goals = 0
 	current_round = 0
-	player_shooter_index = 0
 	opponent_shooter_index = 0
 	match_over = false
 	_begin_round()
@@ -62,20 +60,15 @@ func _begin_round() -> void:
 	round_started.emit(current_round)
 
 
-## Whichever of the player's cards is up to shoot this round.
-func get_current_player_shooter() -> String:
-	return player_squad[player_shooter_index]
-
-
 ## Whichever of the opponent's cards is up to shoot this round.
 func get_current_opponent_shooter() -> String:
 	return opponent_squad[opponent_shooter_index]
 
 
 ## Lets the UI reveal who the AI is about to target BEFORE rolling, mirroring
-## preview_chance() for the player. As targeting difficulty scales up later,
-## swap the logic in _opponent_pick_target() — this (and resolve_opponent_shot)
-## will automatically reflect whatever it decides.
+## the player's own target-preview step. As targeting difficulty scales up
+## later, swap the logic in _opponent_pick_target() — this (and
+## resolve_opponent_shot) will automatically reflect whatever it decides.
 func preview_opponent_target() -> String:
 	return _opponent_pick_target()
 
@@ -84,27 +77,19 @@ func preview_opponent_chance() -> int:
 	return calculate_goal_chance(get_current_opponent_shooter(), preview_opponent_target())
 
 
-## Lets the UI show a chance % BEFORE committing to the roll. Doesn't touch
-## any state — safe to call repeatedly if the player changes their target.
-func preview_chance(defender_id: String) -> int:
-	return calculate_goal_chance(get_current_player_shooter(), defender_id)
-
-
-## Resolves ONLY the player's shot (rolls both dice, updates score, emits
-## shot_resolved). Does NOT trigger the opponent's turn — call
-## resolve_opponent_shot() separately once the UI has shown this result.
-func resolve_player_shot(defender_id: String) -> bool:
+## Resolves the player's shot: attacker_id is whichever of the player's cards
+## THEY chose to attack with, defender_id is whichever opponent card they
+## chose to target. Rolls both dice, updates score, emits shot_resolved.
+## Does NOT trigger the opponent's turn — call resolve_opponent_shot()
+## separately once the UI has shown this result.
+func resolve_player_shot(attacker_id: String, defender_id: String) -> bool:
 	if match_over:
 		push_warning("BattleManager: match already over, ignoring shot")
 		return false
 
-	var attacker_id := get_current_player_shooter()
 	var scored := _resolve_shot(attacker_id, defender_id, true)
-
 	if scored:
 		player_goals += 1
-
-	player_shooter_index = (player_shooter_index + 1) % player_squad.size()
 	return scored
 
 

@@ -1,24 +1,27 @@
 extends Control
 
-## Test harness for BattleManager, with a home vs away layout: YOUR squad
-## always sits in the left column, the OPPONENT always in the right —
-## regardless of who's attacking or defending in a given exchange. Each
-## column shows its card's role ("Attacking"/"Defending") for that exchange
-## instead of names swapping sides.
-##
-## Round flow, player-paced:
-##   1. See the full opponent squad (name + stats) and pick a target
-##   2. Matchup panel fills in: your card (left) vs their card (right),
-##      each labelled with its role this exchange, chance in the middle
-##   3. Press "Take Shot!" -> both dice spin in their own column -> settle
-##   4. Press "Opponent's Turn" -> same panel, roles reversed -> dice -> settle
+## Test harness for BattleManager, with full player control over both
+## selections each round:
+##   1. Pick one of YOUR cards to attack with (PlayerRow)
+##   2. Pick one of THEIR cards to target (OpponentRow)
+##   3. Matchup panel fills in (home vs away, fixed columns), Take Shot
+##      spins both dice and reveals
+##   4. Press "Opponent's Turn" for their (AI-controlled) mirrored reply
 ##   5. Press "Next Round" to continue
 ##
-## DEBUG_MODE registers a small set of clearly-named Home/Away test cards at
-## runtime (not saved to card_database.tres) so squads are easy to tell apart
-## while testing. Set DEBUG_MODE = false and this reverts to real squads.
+## DEBUG_MODE registers clearly-named fake AWAY (opponent) cards at runtime
+## so the two squads are easy to tell apart while testing — your squad
+## (player_squad) stays your real cards throughout. Set DEBUG_MODE = false
+## once real opponent squad generation is ready.
 
 const DEBUG_MODE := true
+
+# Your real squad — swap for actual squad-builder output once that's ready.
+const REAL_PLAYER_SQUAD: Array[String] = [
+	"james_garner_bronze",
+	"jake_obrien_bronze",
+	"iliman_ndiaye_silver"
+]
 
 @onready var battle_manager: BattleManager = $BattleManager
 @onready var round_label: Label = $VBoxContainer/RoundLabel
@@ -28,6 +31,11 @@ const DEBUG_MODE := true
 @onready var take_shot_button: Button = $VBoxContainer/TakeShotButton
 @onready var opponent_turn_button: Button = $VBoxContainer/OpponentTurnButton
 @onready var next_round_button: Button = $VBoxContainer/NextRoundButton
+@onready var player_buttons: Array[Button] = [
+	$VBoxContainer/PlayerRow/Button1,
+	$VBoxContainer/PlayerRow/Button2,
+	$VBoxContainer/PlayerRow/Button3
+]
 @onready var opponent_buttons: Array[Button] = [
 	$VBoxContainer/OpponentRow/Button1,
 	$VBoxContainer/OpponentRow/Button2,
@@ -49,12 +57,14 @@ const TARGET_REVEAL_PAUSE := 1.5
 
 var player_squad: Array[String] = []
 var opponent_squad: Array[String] = []
+var selected_attacker_id: String = ""
 var selected_defender_id: String = ""
 var _last_shot: Dictionary = {}
 
 
 func _ready() -> void:
-	_setup_debug_cards()
+	player_squad = REAL_PLAYER_SQUAD.duplicate()
+	_setup_debug_opponent_cards()
 
 	battle_manager.shot_resolved.connect(_on_shot_resolved)
 	battle_manager.round_started.connect(_on_round_started)
@@ -65,6 +75,8 @@ func _ready() -> void:
 	opponent_turn_button.pressed.connect(_on_opponent_turn_pressed)
 	next_round_button.pressed.connect(_on_next_round_pressed)
 
+	for i in range(player_buttons.size()):
+		player_buttons[i].pressed.connect(_on_player_button_pressed.bind(i))
 	for i in range(opponent_buttons.size()):
 		opponent_buttons[i].pressed.connect(_on_opponent_button_pressed.bind(i))
 
@@ -77,28 +89,20 @@ func _ready() -> void:
 	next_round_button.visible = false
 
 
-## Registers clearly-named, clearly-different Home/Away test cards at
-## runtime so the two squads are never confusingly similar while debugging.
-## Doesn't touch card_database.tres — safe to delete this whole function
-## (and DEBUG_MODE) once real squad-building is wired up.
-func _setup_debug_cards() -> void:
+## Registers clearly-named fake AWAY test cards at runtime so the opposition
+## is obviously distinct from your real squad while debugging. Doesn't touch
+## card_database.tres, and doesn't affect player_squad at all — that stays
+## your real cards. Safe to delete this function (and DEBUG_MODE) once real
+## opponent squad generation is wired up.
+func _setup_debug_opponent_cards() -> void:
 	if not DEBUG_MODE:
 		return
 
-	var home_data := [
-		{"id": "debug_home_striker", "name": "Test Striker (Home)", "position": "FWD", "attack": 80, "defense": 30},
-		{"id": "debug_home_mid", "name": "Test Midfielder (Home)", "position": "MID", "attack": 55, "defense": 55},
-		{"id": "debug_home_keeper", "name": "Test Keeper (Home)", "position": "GK", "attack": 10, "defense": 85},
-	]
 	var away_data := [
 		{"id": "debug_away_striker", "name": "Test Striker (Away)", "position": "FWD", "attack": 70, "defense": 25},
 		{"id": "debug_away_mid", "name": "Test Midfielder (Away)", "position": "MID", "attack": 50, "defense": 50},
 		{"id": "debug_away_keeper", "name": "Test Keeper (Away)", "position": "GK", "attack": 15, "defense": 90},
 	]
-
-	player_squad.clear()
-	for data in home_data:
-		player_squad.append(_register_debug_card(data))
 
 	opponent_squad.clear()
 	for data in away_data:
@@ -128,14 +132,26 @@ func _on_start_pressed() -> void:
 	if not DEBUG_MODE:
 		opponent_squad = SquadGenerator.generate_random_squad(3)
 
+	selected_attacker_id = ""
+	selected_defender_id = ""
+	_refresh_player_buttons()
 	_refresh_opponent_buttons()
 	_clear_matchup_panel()
-	result_label.text = "Match started! Pick a target."
+	result_label.text = "Select one of your players to attack with."
 	score_label.text = "You: 0   Opponent: 0"
 	take_shot_button.visible = false
 	opponent_turn_button.visible = false
 	next_round_button.visible = false
 	battle_manager.start_match(player_squad, opponent_squad)
+
+
+func _refresh_player_buttons() -> void:
+	for i in range(player_buttons.size()):
+		if i < player_squad.size():
+			player_buttons[i].text = _card_display_text(player_squad[i])
+			player_buttons[i].disabled = false
+		else:
+			player_buttons[i].disabled = true
 
 
 ## Shows each opponent card's name and stats right on the button, so you can
@@ -157,18 +173,33 @@ func _card_display_text(card_id: String) -> String:
 	return "%s\n(%s)  ATK %d / DEF %d" % [name, card.position, card.attack, card.defense]
 
 
-# --- Player's turn ---
+# --- Player's turn: pick attacker, then pick target ---
+
+func _on_player_button_pressed(index: int) -> void:
+	if index >= player_squad.size():
+		return
+
+	selected_attacker_id = player_squad[index]
+	selected_defender_id = ""
+	take_shot_button.visible = false
+	chance_label.text = ""
+	result_label.text = "%s selected. Now choose who to attack." % _display_name(selected_attacker_id)
+
 
 func _on_opponent_button_pressed(index: int) -> void:
+	if selected_attacker_id == "":
+		result_label.text = "Choose one of your players first!"
+		return
 	if index >= opponent_squad.size():
 		return
 
 	selected_defender_id = opponent_squad[index]
+	for btn in player_buttons:
+		btn.disabled = true
 	for btn in opponent_buttons:
 		btn.disabled = true
 
-	var attacker_id := battle_manager.get_current_player_shooter()
-	_show_matchup(attacker_id, "Attacking", selected_defender_id, "Defending")
+	_show_matchup(selected_attacker_id, "Attacking", selected_defender_id, "Defending")
 
 	result_label.text = ""
 	take_shot_button.visible = true
@@ -179,7 +210,7 @@ func _on_take_shot_pressed() -> void:
 	take_shot_button.disabled = true
 	take_shot_button.visible = false
 
-	battle_manager.resolve_player_shot(selected_defender_id)
+	battle_manager.resolve_player_shot(selected_attacker_id, selected_defender_id)
 	await _animate_dual_roll()
 	_reveal_last_shot()
 
@@ -189,7 +220,7 @@ func _on_take_shot_pressed() -> void:
 	opponent_turn_button.disabled = false
 
 
-# --- Opponent's turn (separate phase, player-initiated) ---
+# --- Opponent's turn (separate phase, AI-controlled, player-initiated) ---
 
 func _on_opponent_turn_pressed() -> void:
 	opponent_turn_button.disabled = true
@@ -214,9 +245,12 @@ func _on_opponent_turn_pressed() -> void:
 func _on_next_round_pressed() -> void:
 	next_round_button.disabled = true
 	next_round_button.visible = false
+	selected_attacker_id = ""
+	selected_defender_id = ""
 	_clear_matchup_panel()
-	result_label.text = ""
+	result_label.text = "Select one of your players to attack with."
 	battle_manager.advance_round()
+	_refresh_player_buttons()
 	_refresh_opponent_buttons()
 
 
@@ -320,8 +354,17 @@ func _on_shot_resolved(
 
 
 func _on_match_ended(player_goals: int, opponent_goals: int, player_won: bool) -> void:
-	var verdict := "You win!" if player_won else "You lose."
+	var verdict: String
+	if player_goals == opponent_goals:
+		verdict = "It's a draw."
+	elif player_won:
+		verdict = "You win!"
+	else:
+		verdict = "You lose."
+
 	result_label.text += "\n\nMATCH OVER — %s (%d-%d)" % [verdict, player_goals, opponent_goals]
+	for btn in player_buttons:
+		btn.disabled = true
 	for btn in opponent_buttons:
 		btn.disabled = true
 	take_shot_button.visible = false

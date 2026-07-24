@@ -29,6 +29,18 @@ layout_mode = 2
 [node name="ScoreLabel" type="Label" parent="VBoxContainer" unique_id=740790442]
 layout_mode = 2
 
+[node name="PlayerRow" type="HBoxContainer" parent="VBoxContainer" unique_id=2125730493]
+layout_mode = 2
+
+[node name="Button1" type="Button" parent="VBoxContainer/PlayerRow" unique_id=1448181461]
+layout_mode = 2
+
+[node name="Button2" type="Button" parent="VBoxContainer/PlayerRow" unique_id=2022956677]
+layout_mode = 2
+
+[node name="Button3" type="Button" parent="VBoxContainer/PlayerRow" unique_id=896357034]
+layout_mode = 2
+
 [node name="OpponentRow" type="HBoxContainer" parent="VBoxContainer" unique_id=1983047333]
 layout_mode = 2
 
