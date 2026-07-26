@@ -16,8 +16,8 @@ class_name BattleManager
 
 signal shot_resolved(
 	attacker_id: String, defender_id: String,
-	attacker_roll: int, attacker_modifier: int,
-	defender_roll: int, defender_modifier: int,
+	attacker_roll: int, attacker_modifier: int, attacker_dice_sides: int,
+	defender_roll: int, defender_modifier: int, defender_dice_sides: int,
 	scored: bool, is_player_shot: bool
 )
 signal round_started(round_number: int)
@@ -39,6 +39,12 @@ var match_over: bool = false
 ## Boss-fight rules for this match, e.g. "midfield attack halved". Empty for
 ## normal matches. Set via start_match()'s conditions argument.
 var active_conditions: Array[MatchCondition] = []
+
+## One-shot override for the player's NEXT attacking roll only (e.g. a
+## consumable card that widens the die for a single shot). -1 means "no
+## override, use the standard die". Automatically consumed and reset back
+## to -1 the moment resolve_player_shot() is called.
+var _player_attacker_dice_override: int = -1
 
 
 ## conditions is optional — pass a boss's MatchCondition list for boss fights,
@@ -87,10 +93,27 @@ func resolve_player_shot(attacker_id: String, defender_id: String) -> bool:
 		push_warning("BattleManager: match already over, ignoring shot")
 		return false
 
-	var scored := _resolve_shot(attacker_id, defender_id, true)
+	var attacker_dice_sides := get_pending_player_dice_sides()
+	_player_attacker_dice_override = -1  # consumed — one-shot only
+
+	var scored := _resolve_shot(attacker_id, defender_id, true, attacker_dice_sides, DICE_SIDES)
 	if scored:
 		player_goals += 1
 	return scored
+
+
+## Applies a one-shot dice override for the player's NEXT attacking roll
+## only — e.g. a consumable card that widens the die from d20 to d30 for a
+## single shot. Automatically reverts to the standard die afterwards.
+func apply_player_dice_boost(sides: int) -> void:
+	_player_attacker_dice_override = sides
+
+
+## What the player's next attacking roll will actually use — the standard
+## die, unless a boost is currently pending. Lets the UI preview the
+## boosted odds before the shot is taken.
+func get_pending_player_dice_sides() -> int:
+	return _player_attacker_dice_override if _player_attacker_dice_override > 0 else DICE_SIDES
 
 
 ## Resolves the opponent's mirrored turn (auto target selection). Call this
@@ -137,15 +160,14 @@ func _opponent_pick_target() -> String:
 	return weakest_id
 
 
-## Core resolution: both sides roll a d20 and add their modifier. Higher
-## total wins the exchange — a genuine opposed check, not a single roll
-## against a fixed percentage.
-func _resolve_shot(attacker_id: String, defender_id: String, is_player_shot: bool) -> bool:
+## Core resolution: both sides roll a die (standard d20 unless overridden)
+## and add their modifier. Higher total wins the exchange.
+func _resolve_shot(attacker_id: String, defender_id: String, is_player_shot: bool, attacker_dice_sides: int = DICE_SIDES, defender_dice_sides: int = DICE_SIDES) -> bool:
 	var attacker_mod := _get_attack_modifier(attacker_id)
 	var defender_mod := _get_defense_modifier(defender_id)
 
-	var attacker_roll := roll_die()
-	var defender_roll := roll_die()
+	var attacker_roll := roll_die(attacker_dice_sides)
+	var defender_roll := roll_die(defender_dice_sides)
 
 	var attacker_total := attacker_roll + attacker_mod
 	var defender_total := defender_roll + defender_mod
@@ -153,28 +175,29 @@ func _resolve_shot(attacker_id: String, defender_id: String, is_player_shot: boo
 
 	shot_resolved.emit(
 		attacker_id, defender_id,
-		attacker_roll, attacker_mod,
-		defender_roll, defender_mod,
+		attacker_roll, attacker_mod, attacker_dice_sides,
+		defender_roll, defender_mod, defender_dice_sides,
 		scored, is_player_shot
 	)
 	return scored
 
 
-func roll_die() -> int:
-	return randi_range(1, DICE_SIDES)
+func roll_die(sides: int = DICE_SIDES) -> int:
+	return randi_range(1, sides)
 
 
 ## True probability of the attacker beating the defender given both sides'
-## current modifiers — computed by checking every one of the 400 possible
-## d20-vs-d20 outcomes, so it's always accurate rather than hand-tuned.
-func calculate_goal_chance(attacker_id: String, defender_id: String) -> int:
+## current modifiers and dice sizes — computed by checking every possible
+## outcome, so it's always accurate rather than hand-tuned. Pass a
+## non-default dice_sides to preview the effect of a boosted die.
+func calculate_goal_chance(attacker_id: String, defender_id: String, attacker_dice_sides: int = DICE_SIDES, defender_dice_sides: int = DICE_SIDES) -> int:
 	var attacker_mod := _get_attack_modifier(attacker_id)
 	var defender_mod := _get_defense_modifier(defender_id)
 
 	var favorable := 0
 	var total := 0
-	for a in range(1, DICE_SIDES + 1):
-		for d in range(1, DICE_SIDES + 1):
+	for a in range(1, attacker_dice_sides + 1):
+		for d in range(1, defender_dice_sides + 1):
 			total += 1
 			if (a + attacker_mod) > (d + defender_mod):
 				favorable += 1

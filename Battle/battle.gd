@@ -17,10 +17,12 @@ extends Control
 const DEBUG_MODE := true
 
 # Your real squad — swap for actual squad-builder output once that's ready.
+# NOTE: these must exactly match the "id" field in card_database.tres,
+# not the texture filenames (e.g. "james_garner", not "james_garner_bronze").
 const REAL_PLAYER_SQUAD: Array[String] = [
-	"james_garner_bronze",
-	"jake_obrien_bronze",
-	"iliman_ndiaye_silver"
+	"james_garner",
+	"jake_obrien",
+	"Iliman_Ndiaye"
 ]
 
 @onready var battle_manager: BattleManager = $BattleManager
@@ -29,6 +31,7 @@ const REAL_PLAYER_SQUAD: Array[String] = [
 @onready var result_label: Label = $VBoxContainer/ResultLabel
 @onready var start_button: Button = $VBoxContainer/StartButton
 @onready var take_shot_button: Button = $VBoxContainer/TakeShotButton
+@onready var consumable_button: Button = $VBoxContainer/ConsumableButton
 @onready var opponent_turn_button: Button = $VBoxContainer/OpponentTurnButton
 @onready var next_round_button: Button = $VBoxContainer/NextRoundButton
 @onready var player_buttons: Array[Button] = [
@@ -61,10 +64,23 @@ var selected_attacker_id: String = ""
 var selected_defender_id: String = ""
 var _last_shot: Dictionary = {}
 
+# Temporary in-code test consumable — swap for a .tres resource loaded from
+# res://data/consumables/ once you have a proper item/inventory system.
+var _lucky_boots: ConsumableCard
+
 
 func _ready() -> void:
 	player_squad = REAL_PLAYER_SQUAD.duplicate()
 	_setup_debug_opponent_cards()
+
+	_lucky_boots = ConsumableCard.new()
+	_lucky_boots.id = "lucky_boots"
+	_lucky_boots.display_name = "Lucky Boots"
+	_lucky_boots.description = "Your next shot rolls a d30 instead of a d20."
+	_lucky_boots.max_uses = 1
+	var boost := DiceBoostEffect.new()
+	boost.dice_sides = 30
+	_lucky_boots.effect = boost
 
 	battle_manager.shot_resolved.connect(_on_shot_resolved)
 	battle_manager.round_started.connect(_on_round_started)
@@ -72,6 +88,7 @@ func _ready() -> void:
 
 	start_button.pressed.connect(_on_start_pressed)
 	take_shot_button.pressed.connect(_on_take_shot_pressed)
+	consumable_button.pressed.connect(_on_consumable_pressed)
 	opponent_turn_button.pressed.connect(_on_opponent_turn_pressed)
 	next_round_button.pressed.connect(_on_next_round_pressed)
 
@@ -85,6 +102,7 @@ func _ready() -> void:
 	score_label.text = ""
 	round_label.text = ""
 	take_shot_button.visible = false
+	consumable_button.visible = false
 	opponent_turn_button.visible = false
 	next_round_button.visible = false
 
@@ -140,6 +158,8 @@ func _on_start_pressed() -> void:
 	result_label.text = "Select one of your players to attack with."
 	score_label.text = "You: 0   Opponent: 0"
 	take_shot_button.visible = false
+	consumable_button.visible = false
+	_lucky_boots.reset_uses()
 	opponent_turn_button.visible = false
 	next_round_button.visible = false
 	battle_manager.start_match(player_squad, opponent_squad)
@@ -204,11 +224,15 @@ func _on_opponent_button_pressed(index: int) -> void:
 	result_label.text = ""
 	take_shot_button.visible = true
 	take_shot_button.disabled = false
+	consumable_button.visible = _lucky_boots.can_use()
+	consumable_button.disabled = false
+	consumable_button.text = "%s (%d/%d)" % [_lucky_boots.display_name, _lucky_boots.uses_remaining, _lucky_boots.max_uses]
 
 
 func _on_take_shot_pressed() -> void:
 	take_shot_button.disabled = true
 	take_shot_button.visible = false
+	consumable_button.visible = false
 
 	battle_manager.resolve_player_shot(selected_attacker_id, selected_defender_id)
 	await _animate_dual_roll()
@@ -218,6 +242,20 @@ func _on_take_shot_pressed() -> void:
 	# nothing happens until the player chooses to continue.
 	opponent_turn_button.visible = true
 	opponent_turn_button.disabled = false
+
+
+func _on_consumable_pressed() -> void:
+	if not _lucky_boots.use(battle_manager):
+		return
+
+	consumable_button.visible = false
+
+	# Refresh the chance preview using the boosted dice size so the effect
+	# is visible before committing to Take Shot.
+	var boosted_sides := battle_manager.get_pending_player_dice_sides()
+	var chance := battle_manager.calculate_goal_chance(selected_attacker_id, selected_defender_id, boosted_sides, battle_manager.DICE_SIDES)
+	chance_label.text = "Chance to\nscore: %d%%" % chance
+	result_label.text = "%s used! Rolling a d%d this shot." % [_lucky_boots.display_name, boosted_sides]
 
 
 # --- Opponent's turn (separate phase, AI-controlled, player-initiated) ---
@@ -282,30 +320,36 @@ func _animate_dual_roll() -> void:
 	var shot := _last_shot
 	var final_player_roll: int
 	var player_mod: int
+	var player_sides: int
 	var final_opponent_roll: int
 	var opponent_mod: int
+	var opponent_sides: int
 
 	if shot.is_player:
 		final_player_roll = shot.attacker_roll
 		player_mod = shot.attacker_modifier
+		player_sides = shot.attacker_dice_sides
 		final_opponent_roll = shot.defender_roll
 		opponent_mod = shot.defender_modifier
+		opponent_sides = shot.defender_dice_sides
 	else:
 		final_player_roll = shot.defender_roll
 		player_mod = shot.defender_modifier
+		player_sides = shot.defender_dice_sides
 		final_opponent_roll = shot.attacker_roll
 		opponent_mod = shot.attacker_modifier
+		opponent_sides = shot.attacker_dice_sides
 
 	for i in range(ROLL_ANIMATION_STEPS):
-		player_roll_label.text = "d20: %d" % randi_range(1, 20)
-		opponent_roll_label.text = "d20: %d" % randi_range(1, 20)
+		player_roll_label.text = "d%d: %d" % [player_sides, randi_range(1, player_sides)]
+		opponent_roll_label.text = "d%d: %d" % [opponent_sides, randi_range(1, opponent_sides)]
 		await get_tree().create_timer(ROLL_ANIMATION_STEP_DELAY).timeout
 
-	player_roll_label.text = "d20: %d  %s  = %d" % [
-		final_player_roll, _format_modifier(player_mod), final_player_roll + player_mod
+	player_roll_label.text = "d%d: %d  %s  = %d" % [
+		player_sides, final_player_roll, _format_modifier(player_mod), final_player_roll + player_mod
 	]
-	opponent_roll_label.text = "d20: %d  %s  = %d" % [
-		final_opponent_roll, _format_modifier(opponent_mod), final_opponent_roll + opponent_mod
+	opponent_roll_label.text = "d%d: %d  %s  = %d" % [
+		opponent_sides, final_opponent_roll, _format_modifier(opponent_mod), final_opponent_roll + opponent_mod
 	]
 	await get_tree().create_timer(1.0).timeout
 
@@ -337,8 +381,8 @@ func _on_round_started(round_number: int) -> void:
 
 func _on_shot_resolved(
 	attacker_id: String, defender_id: String,
-	attacker_roll: int, attacker_modifier: int,
-	defender_roll: int, defender_modifier: int,
+	attacker_roll: int, attacker_modifier: int, attacker_dice_sides: int,
+	defender_roll: int, defender_modifier: int, defender_dice_sides: int,
 	scored: bool, is_player_shot: bool
 ) -> void:
 	_last_shot = {
@@ -346,8 +390,10 @@ func _on_shot_resolved(
 		"defender": defender_id,
 		"attacker_roll": attacker_roll,
 		"attacker_modifier": attacker_modifier,
+		"attacker_dice_sides": attacker_dice_sides,
 		"defender_roll": defender_roll,
 		"defender_modifier": defender_modifier,
+		"defender_dice_sides": defender_dice_sides,
 		"scored": scored,
 		"is_player": is_player_shot
 	}
@@ -355,14 +401,25 @@ func _on_shot_resolved(
 
 func _on_match_ended(player_goals: int, opponent_goals: int, player_won: bool) -> void:
 	var verdict: String
+	var coins_awarded: int
+
 	if player_goals == opponent_goals:
 		verdict = "It's a draw."
+		coins_awarded = 40
 	elif player_won:
 		verdict = "You win!"
+		coins_awarded = 100
 	else:
 		verdict = "You lose."
+		coins_awarded = 10
 
-	result_label.text += "\n\nMATCH OVER — %s (%d-%d)" % [verdict, player_goals, opponent_goals]
+	var main_node := get_tree().get_first_node_in_group("main")
+	if main_node != null:
+		main_node.add_coins(coins_awarded)
+	else:
+		push_warning("Battle: couldn't find 'main' group node, coins not awarded")
+
+	result_label.text += "\n\nMATCH OVER — %s (%d-%d)\n+%d coins" % [verdict, player_goals, opponent_goals, coins_awarded]
 	for btn in player_buttons:
 		btn.disabled = true
 	for btn in opponent_buttons:

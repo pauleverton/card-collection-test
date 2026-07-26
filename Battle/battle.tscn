@@ -86,6 +86,10 @@ layout_mode = 2
 [node name="ResultLabel" type="Label" parent="VBoxContainer" unique_id=114881174]
 layout_mode = 2
 
+[node name="ConsumableButton" type="Button" parent="VBoxContainer" unique_id=1217872852]
+layout_mode = 2
+text = "Wear lucky boots"
+
 [node name="TakeShotButton" type="Button" parent="VBoxContainer" unique_id=1495490249]
 layout_mode = 2
 text = "Take shot!"
