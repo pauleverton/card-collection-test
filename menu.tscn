@@ -1,8 +1,10 @@
 [gd_scene format=3 uid="uid://c1ikq7hlp47qr"]
 
 [ext_resource type="Texture2D" uid="uid://cpjk38edhrfh2" path="res://data/background.jpg" id="1_lti8b"]
+[ext_resource type="Script" uid="uid://ch7jx5j3yub7a" path="res://menu.gd" id="1_ouk20"]
 
 [node name="Node2D" type="Node2D" unique_id=149288371]
+script = ExtResource("1_ouk20")
 
 [node name="TextureRect" type="TextureRect" parent="." unique_id=341127537]
 offset_right = 1153.0
@@ -68,3 +70,5 @@ offset_bottom = 106.5
 grow_horizontal = 2
 grow_vertical = 2
 text = "View progress"
+
+[connection signal="pressed" from="TextureRect/StartGame" to="." method="_on_start_game_pressed"]
