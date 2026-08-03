@@ -1,11 +1,11 @@
-[gd_scene format=3 uid="uid://bxpm4olbqj4ge"]
+[gd_scene format=3 uid="uid://djgg2tpdxr3jy"]
 
-[ext_resource type="Script" uid="uid://bfc4bo2gw3kf6" path="res://drawcards.gd" id="1_psmj0"]
+[ext_resource type="Script" uid="uid://bfc4bo2gw3kf6" path="res://drawcards.gd" id="1_jcew3"]
 
 [node name="DrawCards" type="VBoxContainer" unique_id=1841845220]
 offset_right = 40.0
 offset_bottom = 40.0
-script = ExtResource("1_psmj0")
+script = ExtResource("1_jcew3")
 
 [node name="Placements" type="HBoxContainer" parent="." unique_id=1441249503]
 layout_mode = 2

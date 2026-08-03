@@ -1,0 +1,62 @@
+[gd_scene format=3 uid="uid://w7cwpixdj5rm"]
+
+[ext_resource type="Script" uid="uid://cgbc38cehha6q" path="res://main.gd" id="1_c88c7"]
+[ext_resource type="Texture2D" uid="uid://cqemq3igx7spa" path="res://data/dressingroom2.png" id="2_kg7mx"]
+
+[node name="LockerRoom" type="Node" unique_id=484527703]
+script = ExtResource("1_c88c7")
+
+[node name="Background" type="TextureRect" parent="." unique_id=1591914814]
+offset_left = -7.0
+offset_right = 1157.0
+offset_bottom = 719.0
+texture = ExtResource("2_kg7mx")
+
+[node name="Player1" type="HBoxContainer" parent="Background" unique_id=1214566389]
+layout_mode = 0
+offset_left = 85.0
+offset_top = 374.0
+offset_right = 203.0
+offset_bottom = 524.0
+
+[node name="Player2" type="HBoxContainer" parent="Background" unique_id=622211297]
+layout_mode = 0
+offset_left = 238.0
+offset_top = 374.0
+offset_right = 356.0
+offset_bottom = 524.0
+
+[node name="Player3" type="HBoxContainer" parent="Background" unique_id=1790040727]
+layout_mode = 0
+offset_left = 385.0
+offset_top = 374.0
+offset_right = 503.0
+offset_bottom = 524.0
+
+[node name="Player4" type="HBoxContainer" parent="Background" unique_id=1187102626]
+layout_mode = 0
+offset_left = 524.0
+offset_top = 374.0
+offset_right = 642.0
+offset_bottom = 524.0
+
+[node name="Player5" type="HBoxContainer" parent="Background" unique_id=136846741]
+layout_mode = 0
+offset_left = 675.0
+offset_top = 374.0
+offset_right = 793.0
+offset_bottom = 524.0
+
+[node name="Player6" type="HBoxContainer" parent="Background" unique_id=963311479]
+layout_mode = 0
+offset_left = 822.0
+offset_top = 374.0
+offset_right = 940.0
+offset_bottom = 524.0
+
+[node name="Player7" type="HBoxContainer" parent="Background" unique_id=1081255556]
+layout_mode = 0
+offset_left = 978.0
+offset_top = 374.0
+offset_right = 1096.0
+offset_bottom = 524.0
