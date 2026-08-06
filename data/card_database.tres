@@ -10,9 +10,10 @@
 [ext_resource type="Texture2D" uid="uid://bc63kev1k87rv" path="res://Cards/dan_burn.png" id="7_drnnn"]
 [ext_resource type="Texture2D" uid="uid://lh4m037asd1d" path="res://Cards/harvey_barnes.png" id="8_bfeo7"]
 [ext_resource type="Texture2D" uid="uid://bodq2tdrtw3md" path="res://Cards/isak.png" id="9_oiboo"]
+[ext_resource type="Texture2D" uid="uid://xtj57bk6wvkq" path="res://Cards/trippier.png" id="10_drnnn"]
 [ext_resource type="Texture2D" uid="uid://dkh41j1haqhr2" path="res://Cards/guimares.png" id="10_ioanc"]
 
-[sub_resource type="Resource" id="Resource_ygkdt"]
+[sub_resource type="Resource" id="Resource_bfeo7"]
 script = ExtResource("1_0apoi")
 id = "Iliman_Ndiaye"
 display_name = "Iliman Ndiaye"
@@ -104,6 +105,7 @@ script = ExtResource("1_0apoi")
 id = "Kieran_trippier"
 display_name = "Kieran Trippier"
 sell_value = 15
+texture = ExtResource("10_drnnn")
 attack = 42
 defense = 67
 position = "DEF"
@@ -122,5 +124,5 @@ metadata/_custom_type_script = "uid://byw4wa812jf65"
 
 [resource]
 script = ExtResource("2_w0kwd")
-cards = Array[ExtResource("1_0apoi")]([SubResource("Resource_ygkdt"), SubResource("Resource_koinq"), SubResource("Resource_4rb3r"), SubResource("Resource_ebfpy"), SubResource("Resource_mekwt"), SubResource("Resource_yh2ng"), SubResource("Resource_1m8q3"), SubResource("Resource_jfmu1"), SubResource("Resource_uacuh"), SubResource("Resource_drnnn")])
+cards = Array[ExtResource("1_0apoi")]([SubResource("Resource_bfeo7"), SubResource("Resource_koinq"), SubResource("Resource_4rb3r"), SubResource("Resource_ebfpy"), SubResource("Resource_mekwt"), SubResource("Resource_yh2ng"), SubResource("Resource_1m8q3"), SubResource("Resource_jfmu1"), SubResource("Resource_uacuh"), SubResource("Resource_drnnn")])
 metadata/_custom_type_script = "uid://k3mcdls2aqgh"

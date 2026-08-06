@@ -18,3 +18,13 @@ offset_bottom = 40.0
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 23.0
+
+[node name="GoToLockerRoomButton" type="Button" parent="." unique_id=1985787725]
+layout_mode = 0
+offset_left = 429.0
+offset_top = 19.0
+offset_right = 1112.0
+offset_bottom = 122.0
+text = "Go to locker room"
+
+[connection signal="pressed" from="GoToLockerRoomButton" to="." method="_on_go_to_locker_room_button_pressed"]

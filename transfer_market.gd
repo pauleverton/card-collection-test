@@ -90,3 +90,7 @@ func update_squad_debug_label() -> void:
 			names.append(card.display_name)
 	squad_debug_label.text = "Squad: " + ", ".join(names)
 	
+
+
+func _on_go_to_locker_room_button_pressed() -> void:
+	get_tree().change_scene_to_file("res://lockerroom.tscn")
