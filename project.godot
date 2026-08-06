@@ -17,6 +17,7 @@ config/features=PackedStringArray("4.7", "Forward Plus")
 [autoload]
 
 CardDatabase="*uid://bfvlo21pwnmj5"
+SquadState="*uid://b8xuu3kdbwvnp"
 
 [display]
 

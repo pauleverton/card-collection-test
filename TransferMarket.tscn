@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://cagvjhwmmrcjf"]
+
+[ext_resource type="Script" uid="uid://d1u21ua5158ky" path="res://transfer_market.gd" id="1_vgjs7"]
+
+[node name="Control" type="Control" unique_id=1953986803]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_vgjs7")
+
+[node name="MarketList" type="VBoxContainer" parent="." unique_id=1891526919]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="SquadDebugLabel" type="Label" parent="." unique_id=633888572]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
