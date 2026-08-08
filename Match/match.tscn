@@ -1,0 +1,275 @@
+[gd_scene format=3 uid="uid://cvs877fbjbw4c"]
+
+[ext_resource type="Script" uid="uid://c26hvkc4ruw2c" path="res://Match/match.gd" id="1_dijnt"]
+[ext_resource type="Script" uid="uid://bdl0nyner1afx" path="res://Match/match_logic.gd" id="2_idi16"]
+
+[node name="Match" type="Control" unique_id=1547259862]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_dijnt")
+
+[node name="MatchLogic" type="Node" parent="." unique_id=80824678]
+script = ExtResource("2_idi16")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=755659114]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TopBar" type="HBoxContainer" parent="VBoxContainer" unique_id=966279152]
+layout_mode = 2
+
+[node name="RoundLabel" type="Label" parent="VBoxContainer/TopBar" unique_id=1414542422]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ScoreLabel" type="Label" parent="VBoxContainer/TopBar" unique_id=1810400431]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 2
+
+[node name="ResultLabel" type="Label" parent="VBoxContainer" unique_id=773299974]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="MatchupPanel" type="HBoxContainer" parent="VBoxContainer" unique_id=1711597486]
+layout_mode = 2
+
+[node name="AttackerColumn" type="VBoxContainer" parent="VBoxContainer/MatchupPanel" unique_id=1290730051]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AttackerNameLabel" type="Label" parent="VBoxContainer/MatchupPanel/AttackerColumn" unique_id=1106571232]
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="AttackerRollLabel" type="Label" parent="VBoxContainer/MatchupPanel/AttackerColumn" unique_id=1455426634]
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="VsColumn" type="VBoxContainer" parent="VBoxContainer/MatchupPanel" unique_id=620651020]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ChanceLabel" type="Label" parent="VBoxContainer/MatchupPanel/VsColumn" unique_id=1655796966]
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="DefenderColumn" type="VBoxContainer" parent="VBoxContainer/MatchupPanel" unique_id=650065315]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DefenderNameLabel" type="Label" parent="VBoxContainer/MatchupPanel/DefenderColumn" unique_id=760010682]
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="DefenderRollLabel" type="Label" parent="VBoxContainer/MatchupPanel/DefenderColumn" unique_id=1622031014]
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="Arena" type="HBoxContainer" parent="VBoxContainer" unique_id=1103065408]
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+
+[node name="PlayerColumn" type="VBoxContainer" parent="VBoxContainer/Arena" unique_id=1880124196]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+alignment = 1
+
+[node name="PlayerSlot1" type="PanelContainer" parent="VBoxContainer/Arena/PlayerColumn" unique_id=1684764051]
+custom_minimum_size = Vector2(150, 190)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="VBoxContainer/Arena/PlayerColumn/PlayerSlot1" unique_id=30903461]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="VBox" type="VBoxContainer" parent="VBoxContainer/Arena/PlayerColumn/PlayerSlot1/Margin" unique_id=1041620488]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="VBoxContainer/Arena/PlayerColumn/PlayerSlot1/Margin/VBox" unique_id=638380453]
+custom_minimum_size = Vector2(120, 140)
+layout_mode = 2
+expand_mode = 3
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="VBoxContainer/Arena/PlayerColumn/PlayerSlot1/Margin/VBox" unique_id=2721833]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="PlayerSlot2" type="PanelContainer" parent="VBoxContainer/Arena/PlayerColumn" unique_id=228822720]
+custom_minimum_size = Vector2(150, 190)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="VBoxContainer/Arena/PlayerColumn/PlayerSlot2" unique_id=554141612]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="VBox" type="VBoxContainer" parent="VBoxContainer/Arena/PlayerColumn/PlayerSlot2/Margin" unique_id=183408531]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="VBoxContainer/Arena/PlayerColumn/PlayerSlot2/Margin/VBox" unique_id=1870346366]
+custom_minimum_size = Vector2(120, 140)
+layout_mode = 2
+expand_mode = 3
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="VBoxContainer/Arena/PlayerColumn/PlayerSlot2/Margin/VBox" unique_id=1362512898]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="PlayerSlot3" type="PanelContainer" parent="VBoxContainer/Arena/PlayerColumn" unique_id=733092169]
+custom_minimum_size = Vector2(150, 190)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="VBoxContainer/Arena/PlayerColumn/PlayerSlot3" unique_id=1959437186]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="VBox" type="VBoxContainer" parent="VBoxContainer/Arena/PlayerColumn/PlayerSlot3/Margin" unique_id=1165448723]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="VBoxContainer/Arena/PlayerColumn/PlayerSlot3/Margin/VBox" unique_id=847689443]
+custom_minimum_size = Vector2(120, 140)
+layout_mode = 2
+expand_mode = 3
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="VBoxContainer/Arena/PlayerColumn/PlayerSlot3/Margin/VBox" unique_id=1775830518]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="VsLabel" type="Label" parent="VBoxContainer/Arena" unique_id=51554654]
+layout_mode = 2
+text = "VS"
+horizontal_alignment = 1
+
+[node name="OpponentColumn" type="VBoxContainer" parent="VBoxContainer/Arena" unique_id=1323328852]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+alignment = 1
+
+[node name="OpponentSlot1" type="PanelContainer" parent="VBoxContainer/Arena/OpponentColumn" unique_id=1672785069]
+custom_minimum_size = Vector2(150, 190)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot1" unique_id=1185603143]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="VBox" type="VBoxContainer" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot1/Margin" unique_id=1381401157]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot1/Margin/VBox" unique_id=1805971425]
+custom_minimum_size = Vector2(120, 140)
+layout_mode = 2
+expand_mode = 3
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot1/Margin/VBox" unique_id=1795926858]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="OpponentSlot2" type="PanelContainer" parent="VBoxContainer/Arena/OpponentColumn" unique_id=1225153066]
+custom_minimum_size = Vector2(150, 190)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot2" unique_id=798838554]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="VBox" type="VBoxContainer" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot2/Margin" unique_id=546223236]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot2/Margin/VBox" unique_id=381462545]
+custom_minimum_size = Vector2(120, 140)
+layout_mode = 2
+expand_mode = 3
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot2/Margin/VBox" unique_id=317039566]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="OpponentSlot3" type="PanelContainer" parent="VBoxContainer/Arena/OpponentColumn" unique_id=1834872697]
+custom_minimum_size = Vector2(150, 190)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot3" unique_id=1435002605]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="VBox" type="VBoxContainer" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot3/Margin" unique_id=228922684]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot3/Margin/VBox" unique_id=972978487]
+custom_minimum_size = Vector2(120, 140)
+layout_mode = 2
+expand_mode = 3
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot3/Margin/VBox" unique_id=1463204590]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="ConsumableRow" type="HBoxContainer" parent="VBoxContainer" unique_id=1339644510]
+layout_mode = 2
+alignment = 1
+
+[node name="ConsumableSlot" type="PanelContainer" parent="VBoxContainer/ConsumableRow" unique_id=547760065]
+custom_minimum_size = Vector2(120, 60)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="VBoxContainer/ConsumableRow/ConsumableSlot" unique_id=41042746]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 4
+
+[node name="VBox" type="VBoxContainer" parent="VBoxContainer/ConsumableRow/ConsumableSlot/Margin" unique_id=1306186696]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="VBoxContainer/ConsumableRow/ConsumableSlot/Margin/VBox" unique_id=1662496537]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="UsesLabel" type="Label" parent="VBoxContainer/ConsumableRow/ConsumableSlot/Margin/VBox" unique_id=795015254]
+layout_mode = 2
+horizontal_alignment = 1
