@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://cagvjhwmmrcjf"]
 
 [ext_resource type="Script" uid="uid://d1u21ua5158ky" path="res://transfer_market.gd" id="1_vgjs7"]
+[ext_resource type="PackedScene" uid="uid://cm0uxlpxa8un1" path="res://hud.tscn" id="2_wo1vq"]
 
 [node name="Control" type="Control" unique_id=1953986803]
 layout_mode = 3
@@ -15,12 +16,16 @@ offset_right = 40.0
 offset_bottom = 23.0
 text = "Your Squad"
 
-[node name="SquadList" type="GridContainer" parent="." unique_id=1880946370]
-layout_mode = 0
+[node name="SquadScroll" type="ScrollContainer" parent="." unique_id=316602609]
+layout_mode = 1
+anchors_preset = -1
 offset_left = 3.0
 offset_top = 50.0
 offset_right = 387.0
 offset_bottom = 535.0
+
+[node name="SquadList" type="GridContainer" parent="SquadScroll" unique_id=1880946370]
+layout_mode = 2
 columns = 3
 
 [node name="TransferList" type="Label" parent="." unique_id=1897671587]
@@ -48,10 +53,22 @@ offset_bottom = 23.0
 
 [node name="GoToLockerRoomButton" type="Button" parent="." unique_id=1985787725]
 layout_mode = 0
-offset_left = 979.0
-offset_top = 58.0
-offset_right = 1127.0
-offset_bottom = 551.0
+offset_left = 1004.0
+offset_top = 106.0
+offset_right = 1152.0
+offset_bottom = 599.0
 text = "Go to locker room"
+
+[node name="PanelContainer" parent="." unique_id=811184455 instance=ExtResource("2_wo1vq")]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 0.275
+anchor_bottom = 0.5
+offset_left = 851.0
+offset_top = 2.0
+offset_right = 1141.0
+offset_bottom = 59.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [connection signal="pressed" from="GoToLockerRoomButton" to="." method="_on_go_to_locker_room_button_pressed"]

@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://c00ojgl6swjge" path="res://Battle/battle.gd" id="1_ksnli"]
 [ext_resource type="Script" uid="uid://ii18dxs1v73g" path="res://Battle/battle_manager.gd" id="2_o5tja"]
+[ext_resource type="PackedScene" uid="uid://cm0uxlpxa8un1" path="res://hud.tscn" id="3_o5tja"]
 
 [node name="Battle" type="Control" unique_id=1547259862]
 layout_mode = 3
@@ -105,3 +106,12 @@ text = "Opponent's Turn ▶"
 [node name="StartButton" type="Button" parent="VBoxContainer" unique_id=1699378708]
 layout_mode = 2
 text = "Start test match"
+
+[node name="PanelContainer" parent="." unique_id=811184455 instance=ExtResource("3_o5tja")]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -272.0
+offset_right = 0.0
+grow_horizontal = 0

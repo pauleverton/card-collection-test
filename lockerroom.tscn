@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://blqvgi8nird8i" path="res://locker_room.gd" id="1_sdc8g"]
 [ext_resource type="Texture2D" uid="uid://cqemq3igx7spa" path="res://data/dressingroom2.png" id="2_kg7mx"]
+[ext_resource type="PackedScene" uid="uid://cm0uxlpxa8un1" path="res://hud.tscn" id="3_fapkl"]
 
 [node name="LockerRoom" type="Node" unique_id=484527703]
 script = ExtResource("1_sdc8g")
@@ -83,6 +84,8 @@ offset_left = 336.0
 offset_right = 427.0
 offset_bottom = 31.0
 text = "View Table"
+
+[node name="PanelContainer" parent="." unique_id=811184455 instance=ExtResource("3_fapkl")]
 
 [connection signal="pressed" from="Gototransfermarket" to="." method="_on_gototransfermarket_pressed"]
 [connection signal="pressed" from="Gotomatch" to="." method="_on_gotomatch_pressed"]

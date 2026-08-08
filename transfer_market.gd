@@ -1,7 +1,7 @@
 extends Control
 
 @onready var market_list: GridContainer = $MarketList
-@onready var squad_list: GridContainer = $SquadList
+@onready var squad_list: GridContainer = $SquadScroll/SquadList
 
 const MARKET_SIZE := 5
 const PRICE_MULTIPLIER := 3
@@ -61,9 +61,8 @@ func get_price(card: CardData) -> int:
 func _on_buy_pressed(card_id: String, row_nodes: Array) -> void:
 	var card: CardData = CardDatabase.get_card(card_id)
 	var price := get_price(card)
-	var main_node := get_tree().get_first_node_in_group("main")
 
-	if main_node != null and main_node.coins < price:
+	if not CoinState.can_afford(price):
 		print("Not enough coins to buy ", card.display_name)
 		return
 
@@ -71,8 +70,7 @@ func _on_buy_pressed(card_id: String, row_nodes: Array) -> void:
 		print("Squad is full")
 		return
 
-	if main_node != null:
-		main_node.deduct_coins(price)
+	CoinState.deduct_coins(price)
 
 	current_pool.erase(card_id)
 	for node in row_nodes:
@@ -109,9 +107,7 @@ func _on_sell_pressed(card_id: String) -> void:
 	SquadState.remove_from_squad(card_id)
 	MatchSquadState.remove(card_id)
 
-	var main_node := get_tree().get_first_node_in_group("main")
-	if main_node != null:
-		main_node.add_coins(card.sell_value)
+	CoinState.add_coins(card.sell_value)
 
 	refresh_squad_display()
 # --- shared ---
@@ -135,4 +131,3 @@ func _build_row_nodes(card: CardData) -> Array:
 
 func _on_go_to_locker_room_button_pressed() -> void:
 	get_tree().change_scene_to_file("res://lockerroom.tscn")
-	

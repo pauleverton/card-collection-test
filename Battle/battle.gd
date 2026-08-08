@@ -414,11 +414,7 @@ func _on_match_ended(player_goals: int, opponent_goals: int, player_won: bool) -
 		verdict = "You lose."
 		coins_awarded = 10
 
-	var main_node := get_tree().get_first_node_in_group("main")
-	if main_node != null:
-		main_node.add_coins(coins_awarded)
-	else:
-		push_warning("Battle: couldn't find 'main' group node, coins not awarded")
+	CoinState.add_coins(coins_awarded)
 
 	result_label.text += "\n\nMATCH OVER — %s (%d-%d)\n+%d coins" % [verdict, player_goals, opponent_goals, coins_awarded]
 	for btn in player_buttons:

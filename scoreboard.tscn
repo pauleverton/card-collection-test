@@ -1,11 +1,21 @@
 [gd_scene format=3 uid="uid://d4eo26x7cnudu"]
 
-[ext_resource type="Script" uid="uid://bq4pgae26kr7u" path="res://scoreboard.gd" id="1_jeshg"]
+[sub_resource type="GDScript" id="GDScript_akwwr"]
+script/source = "# scoreboard.gd
+extends VBoxContainer
+
+@onready var coins_label = $CoinsLabel
+@onready var score_label = $ScoreLabel
+
+func update_display(coins: int, score: int) -> void:
+	coins_label.text = \"Coins: \" + str(coins)
+	score_label.text = \"Score: \" + str(score)
+"
 
 [node name="ScoreBoard" type="VBoxContainer" unique_id=1091831419]
 offset_right = 40.0
 offset_bottom = 40.0
-script = ExtResource("1_jeshg")
+script = SubResource("GDScript_akwwr")
 
 [node name="CoinsLabel" type="Label" parent="." unique_id=116873597]
 layout_mode = 2

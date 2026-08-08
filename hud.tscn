@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://cm0uxlpxa8un1"]
+
+[ext_resource type="Script" uid="uid://dvph205vxhq23" path="res://hud.gd" id="1_37p78"]
+
+[node name="PanelContainer" type="PanelContainer" unique_id=811184455]
+offset_left = 880.0
+offset_right = 1152.0
+offset_bottom = 77.0
+script = ExtResource("1_37p78")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1515952664]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1066083750]
+layout_mode = 2
+
+[node name="CoinsLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1807588497]
+layout_mode = 2
+horizontal_alignment = 2
+
+[node name="LeagueLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1610775065]
+layout_mode = 2
+horizontal_alignment = 2
+
+[node name="PointsLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1237983880]
+layout_mode = 2
+horizontal_alignment = 2
