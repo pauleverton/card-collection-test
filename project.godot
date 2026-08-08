@@ -18,6 +18,9 @@ config/features=PackedStringArray("4.7", "Forward Plus")
 
 CardDatabase="*uid://bfvlo21pwnmj5"
 SquadState="*uid://b8xuu3kdbwvnp"
+MatchSquadState="*uid://b36baagfnap4k"
+LeagueState="*uid://drh3b45cteav5"
+CareerState="*uid://bdal6ushgnda6"
 
 [display]
 

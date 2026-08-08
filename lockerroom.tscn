@@ -60,3 +60,29 @@ offset_left = 978.0
 offset_top = 374.0
 offset_right = 1096.0
 offset_bottom = 524.0
+
+[node name="Gototransfermarket" type="Button" parent="." unique_id=1613632708]
+offset_right = 8.0
+offset_bottom = 8.0
+text = "Go to transfer market"
+
+[node name="Gotomatch" type="Button" parent="." unique_id=1279484326]
+offset_left = 450.0
+offset_right = 587.0
+offset_bottom = 31.0
+text = "Play next match!"
+
+[node name="ViewFixtures" type="Button" parent="." unique_id=470136446]
+offset_left = 207.0
+offset_right = 319.0
+offset_bottom = 31.0
+text = "View Fixtures"
+
+[node name="ViewTable" type="Button" parent="." unique_id=41158876]
+offset_left = 336.0
+offset_right = 427.0
+offset_bottom = 31.0
+text = "View Table"
+
+[connection signal="pressed" from="Gototransfermarket" to="." method="_on_gototransfermarket_pressed"]
+[connection signal="pressed" from="Gotomatch" to="." method="_on_gotomatch_pressed"]

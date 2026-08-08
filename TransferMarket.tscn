@@ -9,10 +9,37 @@ offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("1_vgjs7")
 
-[node name="MarketList" type="VBoxContainer" parent="." unique_id=1891526919]
+[node name="YourSquad" type="Label" parent="." unique_id=1189669029]
 layout_mode = 0
 offset_right = 40.0
-offset_bottom = 40.0
+offset_bottom = 23.0
+text = "Your Squad"
+
+[node name="SquadList" type="GridContainer" parent="." unique_id=1880946370]
+layout_mode = 0
+offset_left = 3.0
+offset_top = 50.0
+offset_right = 387.0
+offset_bottom = 535.0
+columns = 3
+
+[node name="TransferList" type="Label" parent="." unique_id=1897671587]
+layout_mode = 0
+offset_left = 431.0
+offset_top = 4.0
+offset_right = 602.0
+offset_bottom = 27.0
+text = "Transfer List"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MarketList" type="GridContainer" parent="." unique_id=120075456]
+layout_mode = 0
+offset_left = 471.0
+offset_top = 50.0
+offset_right = 855.0
+offset_bottom = 535.0
+columns = 4
 
 [node name="SquadDebugLabel" type="Label" parent="." unique_id=633888572]
 layout_mode = 0
@@ -21,10 +48,10 @@ offset_bottom = 23.0
 
 [node name="GoToLockerRoomButton" type="Button" parent="." unique_id=1985787725]
 layout_mode = 0
-offset_left = 429.0
-offset_top = 19.0
-offset_right = 1112.0
-offset_bottom = 122.0
+offset_left = 979.0
+offset_top = 58.0
+offset_right = 1127.0
+offset_bottom = 551.0
 text = "Go to locker room"
 
 [connection signal="pressed" from="GoToLockerRoomButton" to="." method="_on_go_to_locker_room_button_pressed"]

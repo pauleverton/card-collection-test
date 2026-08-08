@@ -19,11 +19,6 @@ const DEBUG_MODE := true
 # Your real squad — swap for actual squad-builder output once that's ready.
 # NOTE: these must exactly match the "id" field in card_database.tres,
 # not the texture filenames (e.g. "james_garner", not "james_garner_bronze").
-const REAL_PLAYER_SQUAD: Array[String] = [
-	"james_garner",
-	"jake_obrien",
-	"Iliman_Ndiaye"
-]
 
 @onready var battle_manager: BattleManager = $BattleManager
 @onready var round_label: Label = $VBoxContainer/RoundLabel
@@ -44,7 +39,6 @@ const REAL_PLAYER_SQUAD: Array[String] = [
 	$VBoxContainer/OpponentRow/Button2,
 	$VBoxContainer/OpponentRow/Button3
 ]
-
 # Matchup panel. Node names are historical (AttackerColumn/DefenderColumn
 # from an earlier layout) but are now used as fixed HOME (you) / AWAY
 # (opponent) columns — left is always yours, right is always theirs.
@@ -70,7 +64,7 @@ var _lucky_boots: ConsumableCard
 
 
 func _ready() -> void:
-	player_squad = REAL_PLAYER_SQUAD.duplicate()
+	player_squad = _get_player_squad()
 	_setup_debug_opponent_cards()
 
 	_lucky_boots = ConsumableCard.new()
@@ -112,6 +106,13 @@ func _ready() -> void:
 ## card_database.tres, and doesn't affect player_squad at all — that stays
 ## your real cards. Safe to delete this function (and DEBUG_MODE) once real
 ## opponent squad generation is wired up.
+
+func _get_player_squad() -> Array[String]:
+	var squad: Array[String] = []
+	for id in MatchSquadState.get_ordered_selection():
+		squad.append(id)
+	return squad
+	
 func _setup_debug_opponent_cards() -> void:
 	if not DEBUG_MODE:
 		return
