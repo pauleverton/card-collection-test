@@ -16,14 +16,6 @@ script = ExtResource("1_yjup1")
 [node name="MatchLogic" type="Node" parent="." unique_id=2058562356]
 script = ExtResource("2_yjup1")
 
-[node name="AttackLine" type="Line2D" parent="." unique_id=1605648112]
-visible = false
-width = 4.0
-
-[node name="ArrowHead" type="Polygon2D" parent="." unique_id=313180641]
-visible = false
-polygon = PackedVector2Array(-10, -7, 10, 0, -10, 7)
-
 [node name="TextureRect" type="TextureRect" parent="." unique_id=1522997756]
 layout_mode = 0
 offset_right = 1147.0
@@ -268,3 +260,11 @@ layout_mode = 2
 
 [node name="UsesLabel" type="Label" parent="ConsumableRow/ConsumableSlot/Margin/VBox" unique_id=1570792838]
 layout_mode = 2
+
+[node name="AttackLine" type="Line2D" parent="." unique_id=1605648112]
+visible = false
+width = 4.0
+
+[node name="ArrowHead" type="Polygon2D" parent="." unique_id=313180641]
+visible = false
+polygon = PackedVector2Array(-10, -7, 10, 0, -10, 7)
