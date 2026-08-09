@@ -3,7 +3,7 @@ class_name BattleCardSlot
 
 ## One card slot in the battle arena. The SAME script is used for both the
 ## player's column and the opponent's column — `side` (set per-node in
-## battle.tscn) decides the behaviour:
+## match.tscn) decides the behaviour:
 ##
 ##   side == "player"   -> drag SOURCE (pick this card up to attack with it)
 ##                          also a drop TARGET for the consumable icon
@@ -11,7 +11,7 @@ class_name BattleCardSlot
 ##   side == "opponent" -> drop TARGET only (drop a player card here to
 ##                          attack this opponent)
 ##
-## battle.gd listens to attack_dropped / consumable_dropped and drives the
+## match.gd listens to attack_dropped / consumable_dropped and drives the
 ## actual match logic — this script only handles the drag gesture + visuals.
 
 signal attack_dropped(attacker_id: String, target_slot: BattleCardSlot)

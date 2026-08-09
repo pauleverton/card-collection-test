@@ -1,0 +1,124 @@
+[gd_scene format=3 uid="uid://c8x8i2frx3w1q"]
+
+[ext_resource type="Texture2D" uid="uid://cpjk38edhrfh2" path="res://data/background.jpg" id="1_qpqsg"]
+[ext_resource type="Script" uid="uid://dj6dwkak3wb6p" path="res://Match/match_attempt.gd" id="1_yjup1"]
+[ext_resource type="Script" uid="uid://bfoqewsgcb1a7" path="res://Match/card_slot.gd" id="2_bg1ev"]
+
+[node name="Match" type="Control" unique_id=1313111324]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_yjup1")
+
+[node name="MatchLogic" type="Node" parent="." unique_id=2058562356]
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1522997756]
+layout_mode = 0
+offset_right = 1147.0
+offset_bottom = 647.0
+texture = ExtResource("1_qpqsg")
+
+[node name="TopBar" type="HBoxContainer" parent="." unique_id=869050776]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="RoundLabel" type="Label" parent="TopBar" unique_id=525387351]
+layout_mode = 2
+
+[node name="ScoreLabel" type="Label" parent="TopBar" unique_id=1472538011]
+layout_mode = 2
+
+[node name="ResultLabel" type="Label" parent="." unique_id=1686453698]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = 11.0
+offset_bottom = 31.0
+
+[node name="MatchupPanel" type="HBoxContainer" parent="." unique_id=1652944751]
+layout_mode = 0
+offset_left = 212.0
+offset_top = 173.0
+offset_right = 328.0
+offset_bottom = 314.0
+
+[node name="AttackerColumn" type="VBoxContainer" parent="MatchupPanel" unique_id=1928982873]
+layout_mode = 2
+
+[node name="AttackerNameLabel" type="Label" parent="MatchupPanel/AttackerColumn" unique_id=204891180]
+layout_mode = 2
+
+[node name="AttackerRollLabel" type="Label" parent="MatchupPanel/AttackerColumn" unique_id=806200445]
+layout_mode = 2
+
+[node name="VsColumn" type="VBoxContainer" parent="MatchupPanel" unique_id=1438709061]
+layout_mode = 2
+
+[node name="ChanceLabel" type="Label" parent="MatchupPanel/VsColumn" unique_id=472041328]
+layout_mode = 2
+
+[node name="DefenderColumn" type="VBoxContainer" parent="MatchupPanel" unique_id=265037464]
+layout_mode = 2
+
+[node name="DefenderNameLabel" type="Label" parent="MatchupPanel/DefenderColumn" unique_id=220448859]
+layout_mode = 2
+
+[node name="DefenderRollLabel" type="Label" parent="MatchupPanel/DefenderColumn" unique_id=1756942833]
+layout_mode = 2
+
+[node name="PlayerSlot1" type="PanelContainer" parent="." unique_id=1277202383]
+self_modulate = Color(0.8039216, 0.07058824, 0.7294118, 1)
+layout_mode = 0
+offset_left = 212.0
+offset_top = 173.0
+offset_right = 328.0
+offset_bottom = 314.0
+script = ExtResource("2_bg1ev")
+metadata/_custom_type_script = "uid://bfoqewsgcb1a7"
+
+[node name="PlayerSlot2" type="PanelContainer" parent="." unique_id=220454288]
+layout_mode = 0
+offset_left = 212.0
+offset_top = 359.0
+offset_right = 324.0
+offset_bottom = 493.0
+script = ExtResource("2_bg1ev")
+metadata/_custom_type_script = "uid://bfoqewsgcb1a7"
+
+[node name="PlayerSlot3" type="PanelContainer" parent="." unique_id=1177279264]
+layout_mode = 0
+offset_left = 375.0
+offset_top = 263.0
+offset_right = 490.0
+offset_bottom = 398.0
+script = ExtResource("2_bg1ev")
+metadata/_custom_type_script = "uid://bfoqewsgcb1a7"
+
+[node name="OpponentSlot1" type="PanelContainer" parent="." unique_id=41675249]
+layout_mode = 0
+offset_left = 829.0
+offset_top = 175.0
+offset_right = 943.0
+offset_bottom = 317.0
+script = ExtResource("2_bg1ev")
+metadata/_custom_type_script = "uid://bfoqewsgcb1a7"
+
+[node name="OpponentSlot2" type="PanelContainer" parent="." unique_id=311591951]
+layout_mode = 0
+offset_left = 826.0
+offset_top = 348.0
+offset_right = 947.0
+offset_bottom = 489.0
+script = ExtResource("2_bg1ev")
+metadata/_custom_type_script = "uid://bfoqewsgcb1a7"
+
+[node name="OppontentSlot3" type="PanelContainer" parent="." unique_id=437377758]
+layout_mode = 0
+offset_left = 661.0
+offset_top = 263.0
+offset_right = 778.0
+offset_bottom = 395.0
+script = ExtResource("2_bg1ev")
+metadata/_custom_type_script = "uid://bfoqewsgcb1a7"

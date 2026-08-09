@@ -1,7 +1,9 @@
-[gd_scene format=3 uid="uid://cvs877fbjbw4c"]
+[gd_scene format=3 uid="uid://c2uoc0e0qfq7v"]
 
 [ext_resource type="Script" uid="uid://c26hvkc4ruw2c" path="res://Match/match.gd" id="1_dijnt"]
 [ext_resource type="Script" uid="uid://bdl0nyner1afx" path="res://Match/match_logic.gd" id="2_idi16"]
+[ext_resource type="Script" uid="uid://bfoqewsgcb1a7" path="res://Match/card_slot.gd" id="3_14xqh"]
+[ext_resource type="Script" uid="uid://cj7tsbo24pwr5" path="res://data/consumable_slot.gd" id="3_idi16"]
 
 [node name="Match" type="Control" unique_id=1547259862]
 layout_mode = 3
@@ -82,13 +84,13 @@ alignment = 1
 
 [node name="PlayerColumn" type="VBoxContainer" parent="VBoxContainer/Arena" unique_id=1880124196]
 layout_mode = 2
-size_flags_horizontal = 3
 size_flags_vertical = 3
 alignment = 1
 
 [node name="PlayerSlot1" type="PanelContainer" parent="VBoxContainer/Arena/PlayerColumn" unique_id=1684764051]
 custom_minimum_size = Vector2(150, 190)
 layout_mode = 2
+script = ExtResource("3_14xqh")
 
 [node name="Margin" type="MarginContainer" parent="VBoxContainer/Arena/PlayerColumn/PlayerSlot1" unique_id=30903461]
 layout_mode = 2
@@ -114,6 +116,7 @@ autowrap_mode = 2
 [node name="PlayerSlot2" type="PanelContainer" parent="VBoxContainer/Arena/PlayerColumn" unique_id=228822720]
 custom_minimum_size = Vector2(150, 190)
 layout_mode = 2
+script = ExtResource("3_14xqh")
 
 [node name="Margin" type="MarginContainer" parent="VBoxContainer/Arena/PlayerColumn/PlayerSlot2" unique_id=554141612]
 layout_mode = 2
@@ -139,6 +142,7 @@ autowrap_mode = 2
 [node name="PlayerSlot3" type="PanelContainer" parent="VBoxContainer/Arena/PlayerColumn" unique_id=733092169]
 custom_minimum_size = Vector2(150, 190)
 layout_mode = 2
+script = ExtResource("3_14xqh")
 
 [node name="Margin" type="MarginContainer" parent="VBoxContainer/Arena/PlayerColumn/PlayerSlot3" unique_id=1959437186]
 layout_mode = 2
@@ -168,13 +172,13 @@ horizontal_alignment = 1
 
 [node name="OpponentColumn" type="VBoxContainer" parent="VBoxContainer/Arena" unique_id=1323328852]
 layout_mode = 2
-size_flags_horizontal = 3
 size_flags_vertical = 3
 alignment = 1
 
 [node name="OpponentSlot1" type="PanelContainer" parent="VBoxContainer/Arena/OpponentColumn" unique_id=1672785069]
 custom_minimum_size = Vector2(150, 190)
 layout_mode = 2
+script = ExtResource("3_14xqh")
 
 [node name="Margin" type="MarginContainer" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot1" unique_id=1185603143]
 layout_mode = 2
@@ -189,7 +193,6 @@ layout_mode = 2
 [node name="TextureRect" type="TextureRect" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot1/Margin/VBox" unique_id=1805971425]
 custom_minimum_size = Vector2(120, 140)
 layout_mode = 2
-expand_mode = 3
 stretch_mode = 5
 
 [node name="NameLabel" type="Label" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot1/Margin/VBox" unique_id=1795926858]
@@ -200,6 +203,7 @@ autowrap_mode = 2
 [node name="OpponentSlot2" type="PanelContainer" parent="VBoxContainer/Arena/OpponentColumn" unique_id=1225153066]
 custom_minimum_size = Vector2(150, 190)
 layout_mode = 2
+script = ExtResource("3_14xqh")
 
 [node name="Margin" type="MarginContainer" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot2" unique_id=798838554]
 layout_mode = 2
@@ -214,7 +218,6 @@ layout_mode = 2
 [node name="TextureRect" type="TextureRect" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot2/Margin/VBox" unique_id=381462545]
 custom_minimum_size = Vector2(120, 140)
 layout_mode = 2
-expand_mode = 3
 stretch_mode = 5
 
 [node name="NameLabel" type="Label" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot2/Margin/VBox" unique_id=317039566]
@@ -225,6 +228,7 @@ autowrap_mode = 2
 [node name="OpponentSlot3" type="PanelContainer" parent="VBoxContainer/Arena/OpponentColumn" unique_id=1834872697]
 custom_minimum_size = Vector2(150, 190)
 layout_mode = 2
+script = ExtResource("3_14xqh")
 
 [node name="Margin" type="MarginContainer" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot3" unique_id=1435002605]
 layout_mode = 2
@@ -239,7 +243,6 @@ layout_mode = 2
 [node name="TextureRect" type="TextureRect" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot3/Margin/VBox" unique_id=972978487]
 custom_minimum_size = Vector2(120, 140)
 layout_mode = 2
-expand_mode = 3
 stretch_mode = 5
 
 [node name="NameLabel" type="Label" parent="VBoxContainer/Arena/OpponentColumn/OpponentSlot3/Margin/VBox" unique_id=1463204590]
@@ -254,6 +257,7 @@ alignment = 1
 [node name="ConsumableSlot" type="PanelContainer" parent="VBoxContainer/ConsumableRow" unique_id=547760065]
 custom_minimum_size = Vector2(120, 60)
 layout_mode = 2
+script = ExtResource("3_idi16")
 
 [node name="Margin" type="MarginContainer" parent="VBoxContainer/ConsumableRow/ConsumableSlot" unique_id=41042746]
 layout_mode = 2

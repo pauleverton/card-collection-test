@@ -1,13 +1,18 @@
 extends Control
 
-## Test harness for BattleManager, with full player control over both
-## selections each round:
-##   1. Pick one of YOUR cards to attack with (PlayerRow)
-##   2. Pick one of THEIR cards to target (OpponentRow)
-##   3. Matchup panel fills in (home vs away, fixed columns), Take Shot
-##      spins both dice and reveals
-##   4. Press "Opponent's Turn" for their (AI-controlled) mirrored reply
-##   5. Press "Next Round" to continue
+## Drag-and-drop battle screen. Two vertical columns of up to 3 card slots
+## each (yours on the left, opponent's on the right, see battle.tscn).
+##
+## Flow, fully automatic once the match starts — no buttons anywhere:
+##   1. Drag one of YOUR card slots onto one of THEIR card slots to attack.
+##      (Optionally drag the consumable icon onto one of your own cards
+##      first, to boost its next shot.)
+##   2. Dropping commits the shot immediately: rolls animate, result flashes
+##      on both cards involved.
+##   3. After a short pause, the opponent's (AI-controlled) reply plays out
+##      automatically the same way.
+##   4. After another short pause, the round advances automatically. Slots
+##      unlock and you can drag again, until the match ends.
 ##
 ## DEBUG_MODE registers clearly-named fake AWAY (opponent) cards at runtime
 ## so the two squads are easy to tell apart while testing — your squad
@@ -16,29 +21,23 @@ extends Control
 
 const DEBUG_MODE := true
 
-# Your real squad — swap for actual squad-builder output once that's ready.
-# NOTE: these must exactly match the "id" field in card_database.tres,
-# not the texture filenames (e.g. "james_garner", not "james_garner_bronze").
-
-@onready var battle_manager: BattleManager = $BattleManager
-@onready var round_label: Label = $VBoxContainer/RoundLabel
-@onready var score_label: Label = $VBoxContainer/ScoreLabel
+@onready var match_logic: MatchLogic = $MatchLogic
+@onready var round_label: Label = $VBoxContainer/TopBar/RoundLabel
+@onready var score_label: Label = $VBoxContainer/TopBar/ScoreLabel
 @onready var result_label: Label = $VBoxContainer/ResultLabel
-@onready var start_button: Button = $VBoxContainer/StartButton
-@onready var take_shot_button: Button = $VBoxContainer/TakeShotButton
-@onready var consumable_button: Button = $VBoxContainer/ConsumableButton
-@onready var opponent_turn_button: Button = $VBoxContainer/OpponentTurnButton
-@onready var next_round_button: Button = $VBoxContainer/NextRoundButton
-@onready var player_buttons: Array[Button] = [
-	$VBoxContainer/PlayerRow/Button1,
-	$VBoxContainer/PlayerRow/Button2,
-	$VBoxContainer/PlayerRow/Button3
+
+@onready var player_slots: Array[BattleCardSlot] = [
+	$VBoxContainer/Arena/PlayerColumn/PlayerSlot1,
+	$VBoxContainer/Arena/PlayerColumn/PlayerSlot2,
+	$VBoxContainer/Arena/PlayerColumn/PlayerSlot3
 ]
-@onready var opponent_buttons: Array[Button] = [
-	$VBoxContainer/OpponentRow/Button1,
-	$VBoxContainer/OpponentRow/Button2,
-	$VBoxContainer/OpponentRow/Button3
+@onready var opponent_slots: Array[BattleCardSlot] = [
+	$VBoxContainer/Arena/OpponentColumn/OpponentSlot1,
+	$VBoxContainer/Arena/OpponentColumn/OpponentSlot2,
+	$VBoxContainer/Arena/OpponentColumn/OpponentSlot3
 ]
+@onready var consumable_slot: ConsumableSlot = $VBoxContainer/ConsumableRow/ConsumableSlot
+
 # Matchup panel. Node names are historical (AttackerColumn/DefenderColumn
 # from an earlier layout) but are now used as fixed HOME (you) / AWAY
 # (opponent) columns — left is always yours, right is always theirs.
@@ -50,13 +49,13 @@ const DEBUG_MODE := true
 
 const ROLL_ANIMATION_STEPS := 10
 const ROLL_ANIMATION_STEP_DELAY := 0.15
-const TARGET_REVEAL_PAUSE := 1.5
+const TARGET_REVEAL_PAUSE := 1.2
+const ROUND_ADVANCE_PAUSE := 1.5
 
 var player_squad: Array[String] = []
 var opponent_squad: Array[String] = []
-var selected_attacker_id: String = ""
-var selected_defender_id: String = ""
 var _last_shot: Dictionary = {}
+var _round_active: bool = false  # true while a shot/round sequence is playing out
 
 # Temporary in-code test consumable — swap for a .tres resource loaded from
 # res://data/consumables/ once you have a proper item/inventory system.
@@ -76,29 +75,23 @@ func _ready() -> void:
 	boost.dice_sides = 30
 	_lucky_boots.effect = boost
 
-	battle_manager.shot_resolved.connect(_on_shot_resolved)
-	battle_manager.round_started.connect(_on_round_started)
-	battle_manager.match_ended.connect(_on_match_ended)
+	match_logic.shot_resolved.connect(_on_shot_resolved)
+	match_logic.round_started.connect(_on_round_started)
+	match_logic.match_ended.connect(_on_match_ended)
 
-	start_button.pressed.connect(_on_start_pressed)
-	take_shot_button.pressed.connect(_on_take_shot_pressed)
-	consumable_button.pressed.connect(_on_consumable_pressed)
-	opponent_turn_button.pressed.connect(_on_opponent_turn_pressed)
-	next_round_button.pressed.connect(_on_next_round_pressed)
-
-	for i in range(player_buttons.size()):
-		player_buttons[i].pressed.connect(_on_player_button_pressed.bind(i))
-	for i in range(opponent_buttons.size()):
-		opponent_buttons[i].pressed.connect(_on_opponent_button_pressed.bind(i))
+	for slot in player_slots:
+		slot.side = "player"
+		slot.consumable_dropped.connect(_on_consumable_dropped)
+	for slot in opponent_slots:
+		slot.side = "opponent"
+		slot.attack_dropped.connect(_on_attack_dropped)
 
 	_clear_matchup_panel()
 	result_label.text = ""
 	score_label.text = ""
 	round_label.text = ""
-	take_shot_button.visible = false
-	consumable_button.visible = false
-	opponent_turn_button.visible = false
-	next_round_button.visible = false
+
+	_start_match()
 
 
 ## Registers clearly-named fake AWAY test cards at runtime so the opposition
@@ -112,7 +105,8 @@ func _get_player_squad() -> Array[String]:
 	for id in MatchSquadState.get_ordered_selection():
 		squad.append(id)
 	return squad
-	
+
+
 func _setup_debug_opponent_cards() -> void:
 	if not DEBUG_MODE:
 		return
@@ -147,43 +141,53 @@ func _clear_matchup_panel() -> void:
 	opponent_roll_label.text = ""
 
 
-func _on_start_pressed() -> void:
+## --- Match start / slot population ---
+
+func _start_match() -> void:
 	if not DEBUG_MODE:
 		opponent_squad = SquadGenerator.generate_random_squad(3)
 
-	selected_attacker_id = ""
-	selected_defender_id = ""
-	_refresh_player_buttons()
-	_refresh_opponent_buttons()
+	_populate_column(player_slots, player_squad)
+	_populate_column(opponent_slots, opponent_squad)
+	_set_all_interactive(true)
+
 	_clear_matchup_panel()
-	result_label.text = "Select one of your players to attack with."
+	result_label.text = "Drag one of your players onto an opponent to attack."
 	score_label.text = "You: 0   Opponent: 0"
-	take_shot_button.visible = false
-	consumable_button.visible = false
+
 	_lucky_boots.reset_uses()
-	opponent_turn_button.visible = false
-	next_round_button.visible = false
-	battle_manager.start_match(player_squad, opponent_squad)
+	consumable_slot.set_consumable(_lucky_boots)
+
+	match_logic.start_match(player_squad, opponent_squad)
 
 
-func _refresh_player_buttons() -> void:
-	for i in range(player_buttons.size()):
-		if i < player_squad.size():
-			player_buttons[i].text = _card_display_text(player_squad[i])
-			player_buttons[i].disabled = false
+## Fills each slot with a card, up to however many are in the squad (3 max);
+## any leftover slots (e.g. a squad of only 1 or 2) are hidden entirely.
+func _populate_column(slots: Array[BattleCardSlot], squad: Array[String]) -> void:
+	for i in range(slots.size()):
+		if i < squad.size():
+			slots[i].set_card(squad[i])
 		else:
-			player_buttons[i].disabled = true
+			slots[i].set_card("")
 
 
-## Shows each opponent card's name and stats right on the button, so you can
-## actually see who you're playing against before choosing a target.
-func _refresh_opponent_buttons() -> void:
-	for i in range(opponent_buttons.size()):
-		if i < opponent_squad.size():
-			opponent_buttons[i].text = _card_display_text(opponent_squad[i])
-			opponent_buttons[i].disabled = false
-		else:
-			opponent_buttons[i].disabled = true
+func _set_all_interactive(value: bool) -> void:
+	for slot in player_slots:
+		if slot.card_id != "":
+			slot.set_interactive(value)
+	for slot in opponent_slots:
+		if slot.card_id != "":
+			slot.set_interactive(value)
+
+
+func _find_slot(card_id: String) -> BattleCardSlot:
+	for slot in player_slots:
+		if slot.card_id == card_id:
+			return slot
+	for slot in opponent_slots:
+		if slot.card_id == card_id:
+			return slot
+	return null
 
 
 func _card_display_text(card_id: String) -> String:
@@ -194,106 +198,94 @@ func _card_display_text(card_id: String) -> String:
 	return "%s\n(%s)  ATK %d / DEF %d" % [name, card.position, card.attack, card.defense]
 
 
-# --- Player's turn: pick attacker, then pick target ---
+## --- Consumable ---
 
-func _on_player_button_pressed(index: int) -> void:
-	if index >= player_squad.size():
+func _on_consumable_dropped(consumable_id: String, target_slot: BattleCardSlot) -> void:
+	if _round_active or consumable_id != _lucky_boots.id:
+		return
+	if not _lucky_boots.use(match_logic):
 		return
 
-	selected_attacker_id = player_squad[index]
-	selected_defender_id = ""
-	take_shot_button.visible = false
-	chance_label.text = ""
-	result_label.text = "%s selected. Now choose who to attack." % _display_name(selected_attacker_id)
+	target_slot.set_boosted(true)
+	consumable_slot.refresh()
+
+	var boosted_sides := match_logic.get_pending_player_dice_sides()
+	result_label.text = "%s equipped %s! Next shot rolls a d%d." % [
+		_display_name(target_slot.card_id), _lucky_boots.display_name, boosted_sides
+	]
 
 
-func _on_opponent_button_pressed(index: int) -> void:
-	if selected_attacker_id == "":
-		result_label.text = "Choose one of your players first!"
+## --- Player's turn: drag attacker onto a target ---
+
+func _on_attack_dropped(attacker_id: String, target_slot: BattleCardSlot) -> void:
+	if _round_active:
 		return
-	if index >= opponent_squad.size():
-		return
+	_run_player_shot(attacker_id, target_slot.card_id)
 
-	selected_defender_id = opponent_squad[index]
-	for btn in player_buttons:
-		btn.disabled = true
-	for btn in opponent_buttons:
-		btn.disabled = true
 
-	_show_matchup(selected_attacker_id, "Attacking", selected_defender_id, "Defending")
+func _run_player_shot(attacker_id: String, defender_id: String) -> void:
+	_round_active = true
+	_set_all_interactive(false)
 
+	_show_matchup(attacker_id, "Attacking", defender_id, "Defending")
 	result_label.text = ""
-	take_shot_button.visible = true
-	take_shot_button.disabled = false
-	consumable_button.visible = _lucky_boots.can_use()
-	consumable_button.disabled = false
-	consumable_button.text = "%s (%d/%d)" % [_lucky_boots.display_name, _lucky_boots.uses_remaining, _lucky_boots.max_uses]
 
-
-func _on_take_shot_pressed() -> void:
-	take_shot_button.disabled = true
-	take_shot_button.visible = false
-	consumable_button.visible = false
-
-	battle_manager.resolve_player_shot(selected_attacker_id, selected_defender_id)
+	match_logic.resolve_player_shot(attacker_id, defender_id)
 	await _animate_dual_roll()
+
+	var shot := _last_shot
+	_find_slot(attacker_id).flash_result(shot.scored)
+	_find_slot(defender_id).flash_result(not shot.scored)
+	_clear_all_boosted()
 	_reveal_last_shot()
 
-	# Opponent's turn is a separate, deliberate step from here —
-	# nothing happens until the player chooses to continue.
-	opponent_turn_button.visible = true
-	opponent_turn_button.disabled = false
+	await get_tree().create_timer(TARGET_REVEAL_PAUSE).timeout
+
+	await _run_opponent_shot()
+
+	await get_tree().create_timer(ROUND_ADVANCE_PAUSE).timeout
+	_advance_round()
 
 
-func _on_consumable_pressed() -> void:
-	if not _lucky_boots.use(battle_manager):
-		return
+## --- Opponent's turn (AI-controlled, runs automatically) ---
 
-	consumable_button.visible = false
-
-	# Refresh the chance preview using the boosted dice size so the effect
-	# is visible before committing to Take Shot.
-	var boosted_sides := battle_manager.get_pending_player_dice_sides()
-	var chance := battle_manager.calculate_goal_chance(selected_attacker_id, selected_defender_id, boosted_sides, battle_manager.DICE_SIDES)
-	chance_label.text = "Chance to\nscore: %d%%" % chance
-	result_label.text = "%s used! Rolling a d%d this shot." % [_lucky_boots.display_name, boosted_sides]
-
-
-# --- Opponent's turn (separate phase, AI-controlled, player-initiated) ---
-
-func _on_opponent_turn_pressed() -> void:
-	opponent_turn_button.disabled = true
-	opponent_turn_button.visible = false
-
-	var shooter := battle_manager.get_current_opponent_shooter()
-	var target := battle_manager.preview_opponent_target()  # one of YOUR cards
+func _run_opponent_shot() -> void:
+	var shooter := match_logic.get_current_opponent_shooter()
+	var target := match_logic.preview_opponent_target()  # one of YOUR cards
 	_show_matchup(target, "Defending", shooter, "Attacking")
-
 	result_label.text = "%s is targeting your %s!" % [_display_name(shooter), _display_name(target)]
 
 	await get_tree().create_timer(TARGET_REVEAL_PAUSE).timeout
 
-	battle_manager.resolve_opponent_shot()
+	match_logic.resolve_opponent_shot()
 	await _animate_dual_roll()
+
+	var shot := _last_shot
+	_find_slot(shooter).flash_result(shot.scored)
+	_find_slot(target).flash_result(not shot.scored)
 	_reveal_last_shot()
 
-	next_round_button.visible = true
-	next_round_button.disabled = false
+
+func _clear_all_boosted() -> void:
+	for slot in player_slots:
+		slot.set_boosted(false)
 
 
-func _on_next_round_pressed() -> void:
-	next_round_button.disabled = true
-	next_round_button.visible = false
-	selected_attacker_id = ""
-	selected_defender_id = ""
+## --- Round advance (automatic) ---
+
+func _advance_round() -> void:
 	_clear_matchup_panel()
-	result_label.text = "Select one of your players to attack with."
-	battle_manager.advance_round()
-	_refresh_player_buttons()
-	_refresh_opponent_buttons()
+	match_logic.advance_round()
+
+	if match_logic.match_over:
+		return
+
+	result_label.text = "Drag one of your players onto an opponent to attack."
+	_set_all_interactive(true)
+	_round_active = false
 
 
-# --- Matchup panel (fixed home/away columns) ---
+## --- Matchup panel (fixed home/away columns) ---
 
 ## player_id/player_role always populate the LEFT column, opponent_id/
 ## opponent_role always populate the RIGHT column — regardless of which
@@ -307,9 +299,9 @@ func _show_matchup(player_id: String, player_role: String, opponent_id: String, 
 
 	var chance: int
 	if player_role == "Attacking":
-		chance = battle_manager.calculate_goal_chance(player_id, opponent_id)
+		chance = match_logic.calculate_goal_chance(player_id, opponent_id)
 	else:
-		chance = battle_manager.calculate_goal_chance(opponent_id, player_id)
+		chance = match_logic.calculate_goal_chance(opponent_id, player_id)
 	chance_label.text = "Chance to\nscore: %d%%" % chance
 
 
@@ -364,7 +356,7 @@ func _reveal_last_shot() -> void:
 	var who := "You" if shot.is_player else "Opponent"
 	var outcome := "GOAL!" if shot.scored else "Missed"
 	result_label.text = "%s: %s" % [who, outcome]
-	score_label.text = "You: %d   Opponent: %d" % [battle_manager.player_goals, battle_manager.opponent_goals]
+	score_label.text = "You: %d   Opponent: %d" % [match_logic.player_goals, match_logic.opponent_goals]
 
 
 # --- Shared helpers ---
@@ -377,7 +369,7 @@ func _display_name(card_id: String) -> String:
 
 
 func _on_round_started(round_number: int) -> void:
-	round_label.text = "Round %d / %d" % [round_number, battle_manager.total_rounds]
+	round_label.text = "Round %d / %d" % [round_number, match_logic.total_rounds]
 
 
 func _on_shot_resolved(
@@ -417,10 +409,5 @@ func _on_match_ended(player_goals: int, opponent_goals: int, player_won: bool) -
 	CoinState.add_coins(coins_awarded)
 
 	result_label.text += "\n\nMATCH OVER — %s (%d-%d)\n+%d coins" % [verdict, player_goals, opponent_goals, coins_awarded]
-	for btn in player_buttons:
-		btn.disabled = true
-	for btn in opponent_buttons:
-		btn.disabled = true
-	take_shot_button.visible = false
-	opponent_turn_button.visible = false
-	next_round_button.visible = false
+	_set_all_interactive(false)
+	_round_active = true  # locks out any stray drags now the match is over

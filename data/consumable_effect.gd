@@ -10,5 +10,5 @@ extends Resource
 ## override apply(), and give it whatever @export fields it needs. Then any
 ## ConsumableCard can use it by assigning an instance to its `effect` field.
 
-func apply(_battle_manager: BattleManager) -> void:
+func apply(_match_logic: MatchLogic) -> void:
 	push_warning("ConsumableEffect: apply() not implemented on this subclass")

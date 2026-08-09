@@ -36,10 +36,10 @@ func can_use() -> bool:
 
 ## Applies the effect and consumes one use. Returns false (and does nothing
 ## else) if there are no uses left or no effect is assigned.
-func use(battle_manager: BattleManager) -> bool:
+func use(match_logic: MatchLogic) -> bool:
 	if not can_use():
 		push_warning("ConsumableCard '%s': cannot be used (no uses left or no effect assigned)" % display_name)
 		return false
-	effect.apply(battle_manager)
+	effect.apply(match_logic)
 	uses_remaining -= 1
 	return true

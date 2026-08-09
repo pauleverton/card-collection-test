@@ -7,5 +7,5 @@ extends ConsumableEffect
 
 @export var dice_sides: int = 30
 
-func apply(battle_manager: BattleManager) -> void:
-	battle_manager.apply_player_dice_boost(dice_sides)
+func apply(match_logic: MatchLogic) -> void:
+	match_logic.apply_player_dice_boost(dice_sides)

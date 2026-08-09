@@ -21,7 +21,8 @@ extends Control
 
 const DEBUG_MODE := true
 
-@onready var match_logic: MatchLogic = $match_logic
+
+@onready var match_logic: MatchLogic = $MatchLogic
 @onready var round_label: Label = $VBoxContainer/TopBar/RoundLabel
 @onready var score_label: Label = $VBoxContainer/TopBar/ScoreLabel
 @onready var result_label: Label = $VBoxContainer/ResultLabel
@@ -74,6 +75,7 @@ func _ready() -> void:
 	var boost := DiceBoostEffect.new()
 	boost.dice_sides = 30
 	_lucky_boots.effect = boost
+
 
 	match_logic.shot_resolved.connect(_on_shot_resolved)
 	match_logic.round_started.connect(_on_round_started)
@@ -203,7 +205,7 @@ func _card_display_text(card_id: String) -> String:
 func _on_consumable_dropped(consumable_id: String, target_slot: BattleCardSlot) -> void:
 	if _round_active or consumable_id != _lucky_boots.id:
 		return
-	if not _lucky_boots.use(MatchLogic):
+	if not _lucky_boots.use(match_logic):
 		return
 
 	target_slot.set_boosted(true)
