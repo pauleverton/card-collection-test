@@ -322,37 +322,69 @@ func _animate_dual_roll() -> void:
 	var final_player_roll: int
 	var player_mod: int
 	var player_sides: int
+	var player_bonus: int
 	var final_opponent_roll: int
 	var opponent_mod: int
 	var opponent_sides: int
+	var opponent_bonus: int
 
 	if shot.is_player:
 		final_player_roll = shot.attacker_roll
 		player_mod = shot.attacker_modifier
 		player_sides = shot.attacker_dice_sides
+		player_bonus = shot.attacker_bonus
 		final_opponent_roll = shot.defender_roll
 		opponent_mod = shot.defender_modifier
 		opponent_sides = shot.defender_dice_sides
+		opponent_bonus = shot.defender_bonus
 	else:
 		final_player_roll = shot.defender_roll
 		player_mod = shot.defender_modifier
 		player_sides = shot.defender_dice_sides
+		player_bonus = shot.defender_bonus
 		final_opponent_roll = shot.attacker_roll
 		opponent_mod = shot.attacker_modifier
 		opponent_sides = shot.attacker_dice_sides
+		opponent_bonus = shot.attacker_bonus
 
 	for i in range(ROLL_ANIMATION_STEPS):
 		player_roll_label.text = "d%d: %d" % [player_sides, randi_range(1, player_sides)]
 		opponent_roll_label.text = "d%d: %d" % [opponent_sides, randi_range(1, opponent_sides)]
 		await get_tree().create_timer(ROLL_ANIMATION_STEP_DELAY).timeout
 
-	player_roll_label.text = "d%d: %d  %s  = %d" % [
-		player_sides, final_player_roll, _format_modifier(player_mod), final_player_roll + player_mod
+	# is_player == true means the PLAYER column is attacking this exchange —
+	# used only to label which support bonus applied (Midfield while
+	# attacking, GK while defending), the number itself is already folded
+	# into player_mod/opponent_mod by match_logic.gd.
+	# is_player == true means the PLAYER column is attacking this exchange —
+	# used only to label which support bonus applied (Midfield while
+	# attacking, GK while defending). player_mod/opponent_mod already
+	# include the bonus (match_logic.gd folds it in before emitting), so
+	# the base modifier shown here is back-calculated purely for display —
+	# the "= total" always reflects the true, already-boosted total either way.
+	var player_base_mod := player_mod - player_bonus
+	var opponent_base_mod := opponent_mod - opponent_bonus
+
+	player_roll_label.text = "d%d: %d  %s%s  = %d" % [
+		player_sides, final_player_roll, _format_modifier(player_base_mod),
+		_support_note(player_bonus, shot.is_player), final_player_roll + player_mod
 	]
-	opponent_roll_label.text = "d%d: %d  %s  = %d" % [
-		opponent_sides, final_opponent_roll, _format_modifier(opponent_mod), final_opponent_roll + opponent_mod
+	opponent_roll_label.text = "d%d: %d  %s%s  = %d" % [
+		opponent_sides, final_opponent_roll, _format_modifier(opponent_base_mod),
+		_support_note(opponent_bonus, not shot.is_player), final_opponent_roll + opponent_mod
 	]
 	await get_tree().create_timer(1.0).timeout
+
+
+## Describes a GK/midfielder support bonus as its own term in the equation,
+## e.g. " +6(GK)" — appears between the base modifier and the "=", so the
+## roll line reads as roll, base mod, support bonus, total: all visible,
+## nothing hidden inside a single lumped number.
+func _support_note(bonus: int, is_attacking_side: bool) -> String:
+	if bonus <= 0:
+		return ""
+	var source := "MID" if is_attacking_side else "GK"
+	return "  +%d(%s)" % [bonus, source]
 
 
 func _format_modifier(modifier: int) -> String:
@@ -382,8 +414,8 @@ func _on_round_started(round_number: int) -> void:
 
 func _on_shot_resolved(
 	attacker_id: String, defender_id: String,
-	attacker_roll: int, attacker_modifier: int, attacker_dice_sides: int,
-	defender_roll: int, defender_modifier: int, defender_dice_sides: int,
+	attacker_roll: int, attacker_modifier: int, attacker_dice_sides: int, attacker_bonus: int,
+	defender_roll: int, defender_modifier: int, defender_dice_sides: int, defender_bonus: int,
 	scored: bool, is_player_shot: bool
 ) -> void:
 	_last_shot = {
@@ -392,9 +424,11 @@ func _on_shot_resolved(
 		"attacker_roll": attacker_roll,
 		"attacker_modifier": attacker_modifier,
 		"attacker_dice_sides": attacker_dice_sides,
+		"attacker_bonus": attacker_bonus,
 		"defender_roll": defender_roll,
 		"defender_modifier": defender_modifier,
 		"defender_dice_sides": defender_dice_sides,
+		"defender_bonus": defender_bonus,
 		"scored": scored,
 		"is_player": is_player_shot
 	}

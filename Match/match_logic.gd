@@ -8,7 +8,11 @@ class_name MatchLogic
 ## still make a save on a good one) and leaves room for future cards to
 ## add bonuses/rerolls to either roll without changing the core structure.
 ##
-## Flow for one round, driven by the UI (see match.gd):
+## Squad composition bonuses (GK / midfielder) are additive support rolls,
+## not die swaps — the acting player's own d20 always stays a d20. See
+## _defense_support_bonus() / _attack_support_bonus() below.
+##
+## Flow for one round, driven by the UI (see match_attempt.gd):
 ##   1. preview_chance(defender_id)      -- true probability, no roll yet
 ##   2. resolve_player_shot(defender_id) -- rolls + resolves the player's shot
 ##   3. resolve_opponent_shot()          -- rolls + resolves the opponent's shot
@@ -16,8 +20,8 @@ class_name MatchLogic
 
 signal shot_resolved(
 	attacker_id: String, defender_id: String,
-	attacker_roll: int, attacker_modifier: int, attacker_dice_sides: int,
-	defender_roll: int, defender_modifier: int, defender_dice_sides: int,
+	attacker_roll: int, attacker_modifier: int, attacker_dice_sides: int, attacker_bonus: int,
+	defender_roll: int, defender_modifier: int, defender_dice_sides: int, defender_bonus: int,
 	scored: bool, is_player_shot: bool
 )
 signal round_started(round_number: int)
@@ -43,7 +47,8 @@ var active_conditions: Array[MatchCondition] = []
 ## One-shot override for the player's NEXT attacking roll only (e.g. a
 ## consumable card that widens the die for a single shot). -1 means "no
 ## override, use the standard die". Automatically consumed and reset back
-## to -1 the moment resolve_player_shot() is called.
+## to -1 the moment resolve_player_shot() is called. Takes priority over
+## the passive midfielder support bonus below if both are active at once.
 var _player_attacker_dice_override: int = -1
 
 
@@ -85,18 +90,29 @@ func preview_opponent_chance() -> int:
 
 ## Resolves the player's shot: attacker_id is whichever of the player's cards
 ## THEY chose to attack with, defender_id is whichever opponent card they
-## chose to target. Rolls both dice, updates score, emits shot_resolved.
-## Does NOT trigger the opponent's turn — call resolve_opponent_shot()
-## separately once the UI has shown this result.
+## chose to target. Rolls both dice (plus any GK/midfielder support bonus),
+## updates score, emits shot_resolved. Does NOT trigger the opponent's turn
+## — call resolve_opponent_shot() separately once the UI has shown this result.
 func resolve_player_shot(attacker_id: String, defender_id: String) -> bool:
 	if match_over:
 		push_warning("MatchLogic: match already over, ignoring shot")
 		return false
 
-	var attacker_dice_sides := get_pending_player_dice_sides()
+	var attacker_dice_sides: int
+	if _player_attacker_dice_override > 0:
+		attacker_dice_sides = _player_attacker_dice_override  # consumable takes priority
+	else:
+		attacker_dice_sides = DICE_SIDES
 	_player_attacker_dice_override = -1  # consumed — one-shot only
 
-	var scored := _resolve_shot(attacker_id, defender_id, true, attacker_dice_sides, DICE_SIDES)
+	var attacker_bonus := _attack_support_bonus(attacker_id, player_squad)
+	var defender_bonus := _defense_support_bonus(defender_id, opponent_squad)
+
+	var scored := _resolve_shot(
+		attacker_id, defender_id, true,
+		attacker_dice_sides, DICE_SIDES,
+		attacker_bonus, defender_bonus
+	)
 	if scored:
 		player_goals += 1
 	return scored
@@ -126,7 +142,14 @@ func resolve_opponent_shot() -> bool:
 	var attacker_id: String = opponent_squad[opponent_shooter_index]
 	var defender_id: String = _opponent_pick_target()
 
-	var scored := _resolve_shot(attacker_id, defender_id, false)
+	var attacker_bonus := _attack_support_bonus(attacker_id, opponent_squad)
+	var defender_bonus := _defense_support_bonus(defender_id, player_squad)
+
+	var scored := _resolve_shot(
+		attacker_id, defender_id, false,
+		DICE_SIDES, DICE_SIDES,
+		attacker_bonus, defender_bonus
+	)
 	if scored:
 		opponent_goals += 1
 
@@ -161,10 +184,16 @@ func _opponent_pick_target() -> String:
 
 
 ## Core resolution: both sides roll a die (standard d20 unless overridden)
-## and add their modifier. Higher total wins the exchange.
-func _resolve_shot(attacker_id: String, defender_id: String, is_player_shot: bool, attacker_dice_sides: int = DICE_SIDES, defender_dice_sides: int = DICE_SIDES) -> bool:
-	var attacker_mod := _get_attack_modifier(attacker_id)
-	var defender_mod := _get_defense_modifier(defender_id)
+## and add their modifier — plus any GK/midfielder support bonus already
+## folded into attacker_bonus/defender_bonus by the caller. Higher total
+## wins the exchange.
+func _resolve_shot(
+	attacker_id: String, defender_id: String, is_player_shot: bool,
+	attacker_dice_sides: int = DICE_SIDES, defender_dice_sides: int = DICE_SIDES,
+	attacker_bonus: int = 0, defender_bonus: int = 0
+) -> bool:
+	var attacker_mod := _get_attack_modifier(attacker_id) + attacker_bonus
+	var defender_mod := _get_defense_modifier(defender_id) + defender_bonus
 
 	var attacker_roll := roll_die(attacker_dice_sides)
 	var defender_roll := roll_die(defender_dice_sides)
@@ -175,8 +204,8 @@ func _resolve_shot(attacker_id: String, defender_id: String, is_player_shot: boo
 
 	shot_resolved.emit(
 		attacker_id, defender_id,
-		attacker_roll, attacker_mod, attacker_dice_sides,
-		defender_roll, defender_mod, defender_dice_sides,
+		attacker_roll, attacker_mod, attacker_dice_sides, attacker_bonus,
+		defender_roll, defender_mod, defender_dice_sides, defender_bonus,
 		scored, is_player_shot
 	)
 	return scored
@@ -190,6 +219,10 @@ func roll_die(sides: int = DICE_SIDES) -> int:
 ## current modifiers and dice sizes — computed by checking every possible
 ## outcome, so it's always accurate rather than hand-tuned. Pass a
 ## non-default dice_sides to preview the effect of a boosted die.
+##
+## NOTE: does not currently factor in the GK/midfielder support bonus,
+## since that's a second random roll rather than a dice-size change — the
+## percentage shown here is the base chance before that bonus is applied.
 func calculate_goal_chance(attacker_id: String, defender_id: String, attacker_dice_sides: int = DICE_SIDES, defender_dice_sides: int = DICE_SIDES) -> int:
 	var attacker_mod := _get_attack_modifier(attacker_id)
 	var defender_mod := _get_defense_modifier(defender_id)
@@ -229,3 +262,36 @@ func _get_defense_modifier(card_id: String) -> int:
 		if condition.applies_to(card.position):
 			defense *= condition.defense_multiplier
 	return int(round(defense / 10.0))
+
+
+## True if any card in the squad has the given position ("GK", "MID", etc.)
+func _squad_has_position(squad: Array[String], position: String) -> bool:
+	for id in squad:
+		var card: CardData = CardDatabase.get_card(id)
+		if card != null and card.position == position:
+			return true
+	return false
+
+
+## GK's presence adds a supporting d8 roll on top of the normal defense roll
+## whenever another player on their squad is defending — representing the
+## keeper organizing/covering. The GK's own defense roll (when THEY'RE the
+## one being shot at) is unaffected — no bonus, plain d20 only.
+func _defense_support_bonus(defender_id: String, defending_squad: Array[String]) -> int:
+	var defender_card: CardData = CardDatabase.get_card(defender_id)
+	var defender_is_gk := defender_card != null and defender_card.position == "GK"
+	if not defender_is_gk and _squad_has_position(defending_squad, "GK"):
+		return roll_die(8)
+	return 0
+
+
+## A midfielder's presence adds a supporting d5 roll on top of the normal
+## attack roll whenever another player on their squad is attacking —
+## representing the extra buildup/service. The midfielder's own attack roll
+## (when THEY'RE the one shooting) is unaffected — no bonus, plain d20 only.
+func _attack_support_bonus(attacker_id: String, attacking_squad: Array[String]) -> int:
+	var attacker_card: CardData = CardDatabase.get_card(attacker_id)
+	var attacker_is_mid := attacker_card != null and attacker_card.position == "MID"
+	if not attacker_is_mid and _squad_has_position(attacking_squad, "MID"):
+		return roll_die(5)
+	return 0
