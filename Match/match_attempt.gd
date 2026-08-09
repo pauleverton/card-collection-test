@@ -22,21 +22,21 @@ extends Control
 const DEBUG_MODE := true
 
 @onready var match_logic: MatchLogic = $MatchLogic
-@onready var round_label: Label = $VBoxContainer/TopBar/RoundLabel
-@onready var score_label: Label = $VBoxContainer/TopBar/ScoreLabel
-@onready var result_label: Label = $VBoxContainer/ResultLabel
+@onready var round_label: Label = $TopBar/RoundLabel
+@onready var score_label: Label = $TopBar/ScoreLabel
+@onready var result_label: Label = $ResultLabel
 
 @onready var player_slots: Array[BattleCardSlot] = [
-	$VBoxContainer/Arena/PlayerColumn/PlayerSlot1,
-	$VBoxContainer/Arena/PlayerColumn/PlayerSlot2,
-	$VBoxContainer/Arena/PlayerColumn/PlayerSlot3
+	$PlayerSlot1,
+	$PlayerSlot2,
+	$PlayerSlot3
 ]
 @onready var opponent_slots: Array[BattleCardSlot] = [
-	$VBoxContainer/Arena/OpponentColumn/OpponentSlot1,
-	$VBoxContainer/Arena/OpponentColumn/OpponentSlot2,
-	$VBoxContainer/Arena/OpponentColumn/OpponentSlot3
+	$OpponentSlot1,
+	$OpponentSlot2,
+	$OpponentSlot3
 ]
-@onready var consumable_slot: ConsumableSlot = $VBoxContainer/ConsumableRow/ConsumableSlot
+@onready var consumable_slot: ConsumableSlot = $ConsumableRow/ConsumableSlot
 
 # Matchup panel. Node names are historical (AttackerColumn/DefenderColumn
 # from an earlier layout) but are now used as fixed HOME (you) / AWAY
