@@ -74,5 +74,5 @@ func _update_gotomatch_button() -> void:
 	go_to_match_button.disabled = MatchSquadState.selected.is_empty()
 
 func _on_gotomatch_pressed() -> void:
-	get_tree().change_scene_to_file("res://Match/match.tscn")
+	get_tree().change_scene_to_file("res://Match/matchattempt.tscn")
 	

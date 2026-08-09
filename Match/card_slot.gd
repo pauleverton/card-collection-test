@@ -94,7 +94,8 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 	set_drag_preview(preview)
 
 	return {"type": "attack", "attacker_id": card_id}
-
+	
+	drag_started.emit(self)
 
 func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	if not interactive or card_id == "" or typeof(data) != TYPE_DICTIONARY:
@@ -108,6 +109,8 @@ func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 		return true
 	return false
 
+func _ready() -> void:
+	mouse_exited.connect(_refresh_color)
 
 func _drop_data(_at_position: Vector2, data: Variant) -> void:
 	if data.get("type") == "attack":
@@ -123,3 +126,5 @@ func _notification(what: int) -> void:
 	# left over from _can_drop_data if the drop happened elsewhere.
 	if what == NOTIFICATION_DRAG_END:
 		_refresh_color()
+		
+signal drag_started(from_slot: BattleCardSlot)

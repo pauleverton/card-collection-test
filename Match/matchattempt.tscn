@@ -16,6 +16,14 @@ script = ExtResource("1_yjup1")
 [node name="MatchLogic" type="Node" parent="." unique_id=2058562356]
 script = ExtResource("2_yjup1")
 
+[node name="AttackLine" type="Line2D" parent="." unique_id=1605648112]
+visible = false
+width = 4.0
+
+[node name="ArrowHead" type="Polygon2D" parent="." unique_id=313180641]
+visible = false
+polygon = PackedVector2Array(-10, -7, 10, 0, -10, 7)
+
 [node name="TextureRect" type="TextureRect" parent="." unique_id=1522997756]
 layout_mode = 0
 offset_right = 1147.0
@@ -24,28 +32,37 @@ texture = ExtResource("1_qpqsg")
 
 [node name="TopBar" type="HBoxContainer" parent="." unique_id=869050776]
 layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+offset_left = 342.0
+offset_top = 47.0
+offset_right = 803.0
+offset_bottom = 93.0
 
 [node name="RoundLabel" type="Label" parent="TopBar" unique_id=525387351]
 layout_mode = 2
+horizontal_alignment = 1
 
 [node name="ScoreLabel" type="Label" parent="TopBar" unique_id=1472538011]
 layout_mode = 2
+horizontal_alignment = 1
 
 [node name="ResultLabel" type="Label" parent="." unique_id=1686453698]
 layout_mode = 0
-offset_left = 10.0
-offset_top = 8.0
-offset_right = 11.0
-offset_bottom = 31.0
+offset_left = 290.0
+offset_top = 498.0
+offset_right = 859.0
+offset_bottom = 577.0
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="MatchupPanel" type="HBoxContainer" parent="." unique_id=1652944751]
-layout_mode = 0
-offset_left = 212.0
-offset_top = 173.0
-offset_right = 328.0
-offset_bottom = 314.0
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 398.0
+offset_top = 110.0
+offset_right = 711.0
+offset_bottom = 160.0
+grow_horizontal = 2
 
 [node name="AttackerColumn" type="VBoxContainer" parent="MatchupPanel" unique_id=1928982873]
 layout_mode = 2
@@ -81,6 +98,23 @@ offset_bottom = 314.0
 script = ExtResource("2_bg1ev")
 metadata/_custom_type_script = "uid://bfoqewsgcb1a7"
 
+[node name="Margin" type="MarginContainer" parent="PlayerSlot1" unique_id=171855034]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="PlayerSlot1/Margin" unique_id=467356664]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="PlayerSlot1/Margin/VBox" unique_id=1612474093]
+custom_minimum_size = Vector2(100, 120)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="PlayerSlot1/Margin/VBox" unique_id=1352566152]
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="PlayerSlot2" type="PanelContainer" parent="." unique_id=220454288]
 layout_mode = 0
 offset_left = 212.0
@@ -89,6 +123,23 @@ offset_right = 324.0
 offset_bottom = 493.0
 script = ExtResource("2_bg1ev")
 metadata/_custom_type_script = "uid://bfoqewsgcb1a7"
+
+[node name="Margin" type="MarginContainer" parent="PlayerSlot2" unique_id=1405499378]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="PlayerSlot2/Margin" unique_id=188884393]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="PlayerSlot2/Margin/VBox" unique_id=1142115964]
+custom_minimum_size = Vector2(100, 120)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="PlayerSlot2/Margin/VBox" unique_id=1374868200]
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="PlayerSlot3" type="PanelContainer" parent="." unique_id=1177279264]
 layout_mode = 0
@@ -99,6 +150,23 @@ offset_bottom = 398.0
 script = ExtResource("2_bg1ev")
 metadata/_custom_type_script = "uid://bfoqewsgcb1a7"
 
+[node name="Margin" type="MarginContainer" parent="PlayerSlot3" unique_id=1508030575]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="PlayerSlot3/Margin" unique_id=1180428209]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="PlayerSlot3/Margin/VBox" unique_id=1813535616]
+custom_minimum_size = Vector2(100, 120)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="PlayerSlot3/Margin/VBox" unique_id=300890461]
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="OpponentSlot1" type="PanelContainer" parent="." unique_id=41675249]
 layout_mode = 0
 offset_left = 829.0
@@ -107,6 +175,23 @@ offset_right = 943.0
 offset_bottom = 317.0
 script = ExtResource("2_bg1ev")
 metadata/_custom_type_script = "uid://bfoqewsgcb1a7"
+
+[node name="Margin" type="MarginContainer" parent="OpponentSlot1" unique_id=1359732109]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="OpponentSlot1/Margin" unique_id=232475253]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="OpponentSlot1/Margin/VBox" unique_id=1255359206]
+custom_minimum_size = Vector2(100, 120)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="OpponentSlot1/Margin/VBox" unique_id=1331581110]
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="OpponentSlot2" type="PanelContainer" parent="." unique_id=311591951]
 layout_mode = 0
@@ -117,7 +202,24 @@ offset_bottom = 489.0
 script = ExtResource("2_bg1ev")
 metadata/_custom_type_script = "uid://bfoqewsgcb1a7"
 
-[node name="OppontentSlot3" type="PanelContainer" parent="." unique_id=437377758]
+[node name="Margin" type="MarginContainer" parent="OpponentSlot2" unique_id=125385212]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="OpponentSlot2/Margin" unique_id=1814514043]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="OpponentSlot2/Margin/VBox" unique_id=1795671707]
+custom_minimum_size = Vector2(100, 120)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="OpponentSlot2/Margin/VBox" unique_id=594952228]
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="OpponentSlot3" type="PanelContainer" parent="." unique_id=437377758]
 layout_mode = 0
 offset_left = 661.0
 offset_top = 263.0
@@ -125,6 +227,23 @@ offset_right = 778.0
 offset_bottom = 395.0
 script = ExtResource("2_bg1ev")
 metadata/_custom_type_script = "uid://bfoqewsgcb1a7"
+
+[node name="Margin" type="MarginContainer" parent="OpponentSlot3" unique_id=1962647979]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="OpponentSlot3/Margin" unique_id=1980321972]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="OpponentSlot3/Margin/VBox" unique_id=1827027789]
+custom_minimum_size = Vector2(100, 120)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="OpponentSlot3/Margin/VBox" unique_id=624083395]
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="ConsumableRow" type="HBoxContainer" parent="." unique_id=1116703774]
 layout_mode = 0
@@ -138,14 +257,14 @@ layout_mode = 2
 script = ExtResource("5_xfwop")
 metadata/_custom_type_script = "uid://cj7tsbo24pwr5"
 
-[node name="MarginContainer" type="MarginContainer" parent="ConsumableRow/ConsumableSlot" unique_id=999613700]
+[node name="Margin" type="MarginContainer" parent="ConsumableRow/ConsumableSlot" unique_id=999613700]
 layout_mode = 2
 
-[node name="Vbox" type="VBoxContainer" parent="ConsumableRow/ConsumableSlot/MarginContainer" unique_id=1010595654]
+[node name="VBox" type="VBoxContainer" parent="ConsumableRow/ConsumableSlot/Margin" unique_id=1010595654]
 layout_mode = 2
 
-[node name="NameLabel" type="Label" parent="ConsumableRow/ConsumableSlot/MarginContainer/Vbox" unique_id=891459674]
+[node name="NameLabel" type="Label" parent="ConsumableRow/ConsumableSlot/Margin/VBox" unique_id=891459674]
 layout_mode = 2
 
-[node name="UsesLabel" type="Label" parent="ConsumableRow/ConsumableSlot/MarginContainer/Vbox" unique_id=1570792838]
+[node name="UsesLabel" type="Label" parent="ConsumableRow/ConsumableSlot/Margin/VBox" unique_id=1570792838]
 layout_mode = 2

@@ -29,7 +29,7 @@ const DEBUG_MODE := true
 @onready var player_slots: Array[BattleCardSlot] = [
 	$PlayerSlot1,
 	$PlayerSlot2,
-	$PlayerSlot3
+	$PlayerSlot3	
 ]
 @onready var opponent_slots: Array[BattleCardSlot] = [
 	$OpponentSlot1,
@@ -41,11 +41,17 @@ const DEBUG_MODE := true
 # Matchup panel. Node names are historical (AttackerColumn/DefenderColumn
 # from an earlier layout) but are now used as fixed HOME (you) / AWAY
 # (opponent) columns — left is always yours, right is always theirs.
-@onready var player_name_label: Label = $VBoxContainer/MatchupPanel/AttackerColumn/AttackerNameLabel
-@onready var player_roll_label: Label = $VBoxContainer/MatchupPanel/AttackerColumn/AttackerRollLabel
-@onready var chance_label: Label = $VBoxContainer/MatchupPanel/VsColumn/ChanceLabel
-@onready var opponent_name_label: Label = $VBoxContainer/MatchupPanel/DefenderColumn/DefenderNameLabel
-@onready var opponent_roll_label: Label = $VBoxContainer/MatchupPanel/DefenderColumn/DefenderRollLabel
+@onready var player_name_label: Label = $MatchupPanel/AttackerColumn/AttackerNameLabel
+@onready var player_roll_label: Label = $MatchupPanel/AttackerColumn/AttackerRollLabel
+@onready var chance_label: Label = $MatchupPanel/VsColumn/ChanceLabel
+@onready var opponent_name_label: Label = $MatchupPanel/DefenderColumn/DefenderNameLabel
+@onready var opponent_roll_label: Label = $MatchupPanel/DefenderColumn/DefenderRollLabel
+
+#Next 3 lines may get deleted
+@onready var attack_line: Line2D = $AttackLine
+@onready var arrow_head: Polygon2D = $ArrowHead
+var _drag_origin_slot: BattleCardSlot = null
+
 
 const ROLL_ANIMATION_STEPS := 10
 const ROLL_ANIMATION_STEP_DELAY := 0.15
@@ -82,6 +88,8 @@ func _ready() -> void:
 	for slot in player_slots:
 		slot.side = "player"
 		slot.consumable_dropped.connect(_on_consumable_dropped)
+		slot.drag_started.connect(_on_attack_drag_started)
+	
 	for slot in opponent_slots:
 		slot.side = "opponent"
 		slot.attack_dropped.connect(_on_attack_dropped)
@@ -411,3 +419,26 @@ func _on_match_ended(player_goals: int, opponent_goals: int, player_won: bool) -
 	result_label.text += "\n\nMATCH OVER — %s (%d-%d)\n+%d coins" % [verdict, player_goals, opponent_goals, coins_awarded]
 	_set_all_interactive(false)
 	_round_active = true  # locks out any stray drags now the match is over
+
+#May get deleted
+
+func _on_attack_drag_started(from_slot: BattleCardSlot) -> void:
+	_drag_origin_slot = from_slot
+	attack_line.visible = true
+	arrow_head.visible = true
+
+func _process(_delta: float) -> void:
+	if _drag_origin_slot == null:
+		return
+	if not get_viewport().gui_is_dragging():
+		# drag ended, however it ended - hide and clear
+		_drag_origin_slot = null
+		attack_line.visible = false
+		arrow_head.visible = false
+		return
+
+	var start: Vector2 = attack_line.to_local(_drag_origin_slot.global_position + _drag_origin_slot.size / 2)
+	var end: Vector2 = attack_line.to_local(get_global_mouse_position())
+	attack_line.points = [start, end]
+	arrow_head.position = end
+	arrow_head.rotation = (end - start).angle()
