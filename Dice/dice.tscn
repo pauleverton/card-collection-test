@@ -1,0 +1,153 @@
+[gd_scene format=3 uid="uid://bh2oyll1o25m6"]
+
+[ext_resource type="Texture2D" uid="uid://8k4t7n1ywan4" path="res://Dice/D20.png" id="1_ipsek"]
+[ext_resource type="Script" uid="uid://byh6wcww20rma" path="res://Dice/dice.gd" id="1_ntoik"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_swqdq"]
+radius = 32.06244
+
+[node name="Dice" type="StaticBody2D" unique_id=1744585198]
+input_pickable = true
+script = ExtResource("1_ntoik")
+
+[node name="faces" type="Node2D" parent="." unique_id=783377967]
+position = Vector2(0, 188)
+
+[node name="1" type="Sprite2D" parent="faces" unique_id=448138496]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(0, 0, 64, 64)
+
+[node name="2" type="Sprite2D" parent="faces" unique_id=260554029]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(64, 0, 64, 64)
+
+[node name="3" type="Sprite2D" parent="faces" unique_id=323849453]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(128, 0, 64, 64)
+
+[node name="4" type="Sprite2D" parent="faces" unique_id=722203996]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(192, 0, 64, 64)
+
+[node name="5" type="Sprite2D" parent="faces" unique_id=290776797]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(256, 0, 64, 64)
+
+[node name="6" type="Sprite2D" parent="faces" unique_id=109136057]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(320, 0, 64, 64)
+
+[node name="7" type="Sprite2D" parent="faces" unique_id=170678791]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(384, 0, 64, 64)
+
+[node name="8" type="Sprite2D" parent="faces" unique_id=590526117]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(448, 0, 64, 64)
+
+[node name="9" type="Sprite2D" parent="faces" unique_id=782244098]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(512, 0, 64, 64)
+
+[node name="10" type="Sprite2D" parent="faces" unique_id=649707002]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(576, 0, 64, 64)
+
+[node name="11" type="Sprite2D" parent="faces" unique_id=624966029]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(640, 0, 64, 64)
+
+[node name="12" type="Sprite2D" parent="faces" unique_id=2088122188]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(704, 0, 64, 64)
+
+[node name="13" type="Sprite2D" parent="faces" unique_id=261034986]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(768, 0, 64, 64)
+
+[node name="14" type="Sprite2D" parent="faces" unique_id=1907956764]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(832, 0, 64, 64)
+
+[node name="15" type="Sprite2D" parent="faces" unique_id=1554212262]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(896, 0, 64, 64)
+
+[node name="16" type="Sprite2D" parent="faces" unique_id=1343484610]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(960, 0, 64, 64)
+
+[node name="17" type="Sprite2D" parent="faces" unique_id=402501509]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(1024, 0, 64, 64)
+
+[node name="18" type="Sprite2D" parent="faces" unique_id=680055346]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(1088, 0, 64, 64)
+
+[node name="19" type="Sprite2D" parent="faces" unique_id=1481498949]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(1152, 0, 64, 64)
+
+[node name="20" type="Sprite2D" parent="faces" unique_id=1927000616]
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ipsek")
+region_enabled = true
+region_rect = Rect2(1216, 0, 64, 64)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=716051516]
+position = Vector2(0, 188)
+scale = Vector2(1.5, 1.5)
+shape = SubResource("CircleShape2D_swqdq")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1659845408]
+
+[node name="Label" type="Label" parent="." unique_id=630040325]
+offset_left = -63.0
+offset_top = -74.0
+offset_right = 66.0
+offset_bottom = 63.0
+theme_override_constants/outline_size = 50
+theme_override_font_sizes/font_size = 100
+text = "5"
+horizontal_alignment = 1
+
+[connection signal="input_event" from="." to="." method="_on_input_event"]

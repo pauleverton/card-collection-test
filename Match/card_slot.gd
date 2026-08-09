@@ -92,10 +92,11 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 	preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	preview.modulate.a = 0.85
 	set_drag_preview(preview)
-
+	drag_started.emit(self)
+	
 	return {"type": "attack", "attacker_id": card_id}
 	
-	drag_started.emit(self)
+
 
 func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	if not interactive or card_id == "" or typeof(data) != TYPE_DICTIONARY:

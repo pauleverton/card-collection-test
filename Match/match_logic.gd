@@ -24,7 +24,7 @@ signal round_started(round_number: int)
 signal match_ended(player_goals: int, opponent_goals: int, player_won: bool)
 
 # --- Config ---
-@export var total_rounds: int = 1
+@export var total_rounds: int = 3
 const DICE_SIDES := 20
 
 # --- Match state ---
