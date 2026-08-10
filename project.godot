@@ -22,7 +22,7 @@ MatchSquadState="*uid://b36baagfnap4k"
 LeagueState="*uid://drh3b45cteav5"
 CareerState="*uid://bdal6ushgnda6"
 CoinState="*uid://6pmwnexcrmhu"
-BossRoster="*res://data/boss_roster.tres"
+BossRoster="*uid://dbspi4n07cpr6"
 
 [display]
 
