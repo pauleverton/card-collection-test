@@ -1,3 +1,46 @@
-[gd_resource type="Resource" format=3 uid="uid://cjmpyd37c00o1"]
+[gd_resource type="Resource" script_class="BossRosterResource" format=3 uid="uid://cjmpyd37c00o1"]
+
+[ext_resource type="Script" uid="uid://4tf87bvcnive" path="res://data/boss_roster_resource.gd" id="1_roster"]
+[ext_resource type="Script" uid="uid://b4on8twdpi5sx" path="res://data/boss_team.gd" id="2_team"]
+[ext_resource type="Script" uid="uid://621tkxcwqaxm" path="res://data/match_condition.gd" id="3_cond"]
+
+[sub_resource type="Resource" id="MatchCondition_mid1"]
+script = ExtResource("3_cond")
+condition_name = "Iron Midfield"
+description = "This team's press is relentless — your midfielder's usual support bonus won't help you this match."
+affected_position = "MID"
+disables_support_bonus = true
+
+[sub_resource type="Resource" id="BossTeam_1"]
+script = ExtResource("2_team")
+boss_name = "The Iron Wall"
+conditions = Array[ExtResource("3_cond")]([SubResource("MatchCondition_mid1")])
+
+[sub_resource type="Resource" id="MatchCondition_gk1"]
+script = ExtResource("3_cond")
+condition_name = "No Safety Net"
+description = "Their forwards crowd the box all match — your goalkeeper can't organise the defence like usual."
+affected_position = "GK"
+disables_support_bonus = true
+
+[sub_resource type="Resource" id="BossTeam_2"]
+script = ExtResource("2_team")
+boss_name = "The Press Merchants"
+conditions = Array[ExtResource("3_cond")]([SubResource("MatchCondition_gk1")])
+
+[sub_resource type="Resource" id="MatchCondition_mid2"]
+script = ExtResource("3_cond")
+condition_name = "Total Control"
+description = "They dominate the middle of the park completely — your midfielder's support bonus is nullified this match."
+affected_position = "MID"
+disables_support_bonus = true
+
+[sub_resource type="Resource" id="BossTeam_3"]
+script = ExtResource("2_team")
+boss_name = "Golden Generation"
+base_rarity = "gold"
+conditions = Array[ExtResource("3_cond")]([SubResource("MatchCondition_mid2")])
 
 [resource]
+script = ExtResource("1_roster")
+bosses = Array[ExtResource("2_team")]([SubResource("BossTeam_1"), SubResource("BossTeam_2"), SubResource("BossTeam_3")])

@@ -16,6 +16,7 @@ class_name BattleCardSlot
 
 signal attack_dropped(attacker_id: String, target_slot: BattleCardSlot)
 signal consumable_dropped(consumable_id: String, target_slot: BattleCardSlot)
+signal drag_started(from_slot: BattleCardSlot)
 
 @export_enum("player", "opponent") var side: String = "player"
 
@@ -32,6 +33,10 @@ const VALID_TARGET_COLOR := Color(1, 0.85, 0.35, 1)
 const BOOSTED_COLOR := Color(0.55, 1, 0.65, 1)
 const SCORE_FLASH_COLOR := Color(0.35, 1, 0.45, 1)
 const MISS_FLASH_COLOR := Color(1, 0.35, 0.35, 1)
+
+
+func _ready() -> void:
+	mouse_exited.connect(_refresh_color)
 
 
 func set_card(id: String) -> void:
@@ -93,9 +98,7 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 	preview.modulate.a = 0.85
 	set_drag_preview(preview)
 	drag_started.emit(self)
-	
 	return {"type": "attack", "attacker_id": card_id}
-	
 
 
 func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
@@ -110,8 +113,6 @@ func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 		return true
 	return false
 
-func _ready() -> void:
-	mouse_exited.connect(_refresh_color)
 
 func _drop_data(_at_position: Vector2, data: Variant) -> void:
 	if data.get("type") == "attack":
@@ -127,5 +128,3 @@ func _notification(what: int) -> void:
 	# left over from _can_drop_data if the drop happened elsewhere.
 	if what == NOTIFICATION_DRAG_END:
 		_refresh_color()
-		
-signal drag_started(from_slot: BattleCardSlot)

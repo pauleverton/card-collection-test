@@ -1,6 +1,6 @@
 extends Node
 
-@onready var go_to_match_button: Button = $Gotomatch  # adjust path to match your actual node
+@onready var go_to_match_button: Button = $Gotomatch
 @onready var go_to_transfer_button: Button = $Gototransfermarket
 
 

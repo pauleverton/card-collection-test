@@ -33,7 +33,7 @@ const DEBUG_MODE := true
 @onready var player_slots: Array[BattleCardSlot] = [
 	$PlayerSlot1,
 	$PlayerSlot2,
-	$PlayerSlot3	
+	$PlayerSlot3
 ]
 @onready var opponent_slots: Array[BattleCardSlot] = [
 	$OpponentSlot1,
@@ -51,7 +51,8 @@ const DEBUG_MODE := true
 @onready var opponent_name_label: Label = $MatchupPanel/DefenderColumn/DefenderNameLabel
 @onready var opponent_roll_label: Label = $MatchupPanel/DefenderColumn/DefenderRollLabel
 
-#Next 3 lines may get deleted
+## Drag-in-progress attack arrow — a Line2D + Polygon2D that follows the
+## cursor from the origin card while dragging, purely for feel.
 @onready var attack_line: Line2D = $AttackLine
 @onready var arrow_head: Polygon2D = $ArrowHead
 var _drag_origin_slot: BattleCardSlot = null
@@ -61,6 +62,10 @@ const ROLL_ANIMATION_STEPS := 10
 const ROLL_ANIMATION_STEP_DELAY := 0.15
 const TARGET_REVEAL_PAUSE := 1.2
 const ROUND_ADVANCE_PAUSE := 1.5
+
+const COINS_FOR_WIN := 100
+const COINS_FOR_DRAW := 40
+const COINS_FOR_LOSS := 10
 
 var player_squad: Array[String] = []
 var opponent_squad: Array[String] = []
@@ -95,7 +100,7 @@ func _ready() -> void:
 		slot.side = "player"
 		slot.consumable_dropped.connect(_on_consumable_dropped)
 		slot.drag_started.connect(_on_attack_drag_started)
-	
+
 	for slot in opponent_slots:
 		slot.side = "opponent"
 		slot.attack_dropped.connect(_on_attack_dropped)
@@ -216,12 +221,15 @@ func _find_slot(card_id: String) -> BattleCardSlot:
 	return null
 
 
-func _card_display_text(card_id: String) -> String:
-	var card: CardData = CardDatabase.get_card(card_id)
-	if card == null:
-		return card_id
-	var name := card.display_name if card.display_name != "" else card_id
-	return "%s\n(%s)  ATK %d / DEF %d" % [name, card.position, card.attack, card.defense]
+## Thin wrapper around _find_slot().flash_result() that won't crash if the
+## card id doesn't match a live slot for some reason — flashing is a visual
+## nicety, not worth taking the whole match down over.
+func _flash_slot(card_id: String, scored: bool) -> void:
+	var slot := _find_slot(card_id)
+	if slot == null:
+		push_warning("match_attempt: no slot found for card '%s', skipping flash" % card_id)
+		return
+	slot.flash_result(scored)
 
 
 ## --- Consumable ---
@@ -260,8 +268,8 @@ func _run_player_shot(attacker_id: String, defender_id: String) -> void:
 	await _animate_dual_roll()
 
 	var shot := _last_shot
-	_find_slot(attacker_id).flash_result(shot.scored)
-	_find_slot(defender_id).flash_result(not shot.scored)
+	_flash_slot(attacker_id, shot.scored)
+	_flash_slot(defender_id, not shot.scored)
 	_clear_all_boosted()
 	_reveal_last_shot()
 
@@ -287,8 +295,8 @@ func _run_opponent_shot() -> void:
 	await _animate_dual_roll()
 
 	var shot := _last_shot
-	_find_slot(shooter).flash_result(shot.scored)
-	_find_slot(target).flash_result(not shot.scored)
+	_flash_slot(shooter, shot.scored)
+	_flash_slot(target, not shot.scored)
 	_reveal_last_shot()
 
 
@@ -370,10 +378,6 @@ func _animate_dual_roll() -> void:
 		opponent_roll_label.text = "d%d: %d" % [opponent_sides, randi_range(1, opponent_sides)]
 		await get_tree().create_timer(ROLL_ANIMATION_STEP_DELAY).timeout
 
-	# is_player == true means the PLAYER column is attacking this exchange —
-	# used only to label which support bonus applied (Midfield while
-	# attacking, GK while defending), the number itself is already folded
-	# into player_mod/opponent_mod by match_logic.gd.
 	# is_player == true means the PLAYER column is attacking this exchange —
 	# used only to label which support bonus applied (Midfield while
 	# attacking, GK while defending). player_mod/opponent_mod already
@@ -458,25 +462,21 @@ func _on_match_ended(player_goals: int, opponent_goals: int, player_won: bool) -
 
 	if player_goals == opponent_goals:
 		verdict = "It's a draw."
-		coins_awarded = 40
+		coins_awarded = COINS_FOR_DRAW
 	elif player_won:
 		verdict = "You win!"
-		coins_awarded = 100
+		coins_awarded = COINS_FOR_WIN
 	else:
 		verdict = "You lose."
-		coins_awarded = 10
+		coins_awarded = COINS_FOR_LOSS
 
 	CoinState.add_coins(coins_awarded)
 
 	var league_note := _apply_league_result(player_goals, opponent_goals)
+	var result_line := "%s (%d-%d)\n+%d coins" % [verdict, player_goals, opponent_goals, coins_awarded]
 
-	var full_time_text := "FULL TIME\n\n%s (%d-%d)\n+%d coins\n\n%s" % [
-		verdict, player_goals, opponent_goals, coins_awarded, league_note
-	]
-	result_label.text += "\n\nMATCH OVER — %s (%d-%d)\n+%d coins\n%s" % [
-		verdict, player_goals, opponent_goals, coins_awarded, league_note
-	]
-	full_time_label.text = full_time_text
+	result_label.text += "\n\nMATCH OVER — %s\n%s" % [result_line, league_note]
+	full_time_label.text = "FULL TIME\n\n%s\n\n%s" % [result_line, league_note]
 	full_time_overlay.visible = true
 
 	_set_all_interactive(false)
@@ -519,7 +519,7 @@ func _apply_league_result(player_goals: int, opponent_goals: int) -> String:
 		final_points, tournament_name_before, target, LeagueState.current_tournament_name()
 	]
 
-#May get deleted
+## --- Attack-drag arrow (cursor-following line + arrowhead) ---
 
 func _on_attack_drag_started(from_slot: BattleCardSlot) -> void:
 	_drag_origin_slot = from_slot

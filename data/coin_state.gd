@@ -13,5 +13,7 @@ func add_coins(amount: int) -> void:
 	coins_changed.emit(coins)
 
 func deduct_coins(amount: int) -> void:
-	coins -= amount
+	if amount > coins:
+		push_warning("CoinState: deducting %d but only %d available — clamping to 0" % [amount, coins])
+	coins = max(0, coins - amount)
 	coins_changed.emit(coins)
