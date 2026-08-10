@@ -268,3 +268,53 @@ width = 4.0
 [node name="ArrowHead" type="Polygon2D" parent="." unique_id=313180641]
 visible = false
 polygon = PackedVector2Array(-10, -7, 10, 0, -10, 7)
+
+[node name="FullTimeOverlay" type="Control" parent="." unique_id=1013533090]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="FullTimeOverlay" unique_id=748573256]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.39354613, 0.39354613, 0.39354613, 0)
+
+[node name="CenterContainer" type="CenterContainer" parent="FullTimeOverlay" unique_id=36160655]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="FullTimeOverlay/CenterContainer" unique_id=812308257]
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="FullTimeOverlay/CenterContainer/Panel" unique_id=1564527762]
+layout_mode = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 24
+
+[node name="VBox" type="VBoxContainer" parent="FullTimeOverlay/CenterContainer/Panel/Margin" unique_id=1967698775]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="FullTimeLabel" type="Label" parent="FullTimeOverlay/CenterContainer/Panel/Margin/VBox" unique_id=1566075543]
+custom_minimum_size = Vector2(380, 0)
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="BackButton" type="Button" parent="FullTimeOverlay/CenterContainer/Panel/Margin/VBox" unique_id=1992282434]
+layout_mode = 2
+text = "Back to Locker Room"

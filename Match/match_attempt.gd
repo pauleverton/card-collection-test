@@ -26,6 +26,10 @@ const DEBUG_MODE := true
 @onready var score_label: Label = $TopBar/ScoreLabel
 @onready var result_label: Label = $ResultLabel
 
+@onready var full_time_overlay: Control = $FullTimeOverlay
+@onready var full_time_label: Label = $FullTimeOverlay/CenterContainer/Panel/Margin/VBox/FullTimeLabel
+@onready var back_to_locker_room_button: Button = $FullTimeOverlay/CenterContainer/Panel/Margin/VBox/BackButton
+
 @onready var player_slots: Array[BattleCardSlot] = [
 	$PlayerSlot1,
 	$PlayerSlot2,
@@ -85,6 +89,7 @@ func _ready() -> void:
 	match_logic.shot_resolved.connect(_on_shot_resolved)
 	match_logic.round_started.connect(_on_round_started)
 	match_logic.match_ended.connect(_on_match_ended)
+	back_to_locker_room_button.pressed.connect(_on_back_to_locker_room_pressed)
 
 	for slot in player_slots:
 		slot.side = "player"
@@ -465,11 +470,21 @@ func _on_match_ended(player_goals: int, opponent_goals: int, player_won: bool) -
 
 	var league_note := _apply_league_result(player_goals, opponent_goals)
 
+	var full_time_text := "FULL TIME\n\n%s (%d-%d)\n+%d coins\n\n%s" % [
+		verdict, player_goals, opponent_goals, coins_awarded, league_note
+	]
 	result_label.text += "\n\nMATCH OVER — %s (%d-%d)\n+%d coins\n%s" % [
 		verdict, player_goals, opponent_goals, coins_awarded, league_note
 	]
+	full_time_label.text = full_time_text
+	full_time_overlay.visible = true
+
 	_set_all_interactive(false)
 	_round_active = true  # locks out any stray drags now the match is over
+
+
+func _on_back_to_locker_room_pressed() -> void:
+	get_tree().change_scene_to_file("res://lockerroom.tscn")
 
 
 ## Feeds this match's result into LeagueState and returns a short line for
