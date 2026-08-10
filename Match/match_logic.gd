@@ -273,11 +273,23 @@ func _squad_has_position(squad: Array[String], position: String) -> bool:
 	return false
 
 
+## True if any of this match's active_conditions disables the support
+## bonus for the given position (see MatchCondition.disables_support_bonus)
+## — set by a boss's signature rule (see BossTeam / BossRoster).
+func _support_bonus_disabled_for(position: String) -> bool:
+	for condition in active_conditions:
+		if condition.disables_support_bonus and condition.applies_to(position):
+			return true
+	return false
+
+
 ## GK's presence adds a supporting d8 roll on top of the normal defense roll
 ## whenever another player on their squad is defending — representing the
 ## keeper organizing/covering. The GK's own defense roll (when THEY'RE the
 ## one being shot at) is unaffected — no bonus, plain d20 only.
 func _defense_support_bonus(defender_id: String, defending_squad: Array[String]) -> int:
+	if _support_bonus_disabled_for("GK"):
+		return 0
 	var defender_card: CardData = CardDatabase.get_card(defender_id)
 	var defender_is_gk := defender_card != null and defender_card.position == "GK"
 	if not defender_is_gk and _squad_has_position(defending_squad, "GK"):
@@ -290,6 +302,8 @@ func _defense_support_bonus(defender_id: String, defending_squad: Array[String])
 ## representing the extra buildup/service. The midfielder's own attack roll
 ## (when THEY'RE the one shooting) is unaffected — no bonus, plain d20 only.
 func _attack_support_bonus(attacker_id: String, attacking_squad: Array[String]) -> int:
+	if _support_bonus_disabled_for("MID"):
+		return 0
 	var attacker_card: CardData = CardDatabase.get_card(attacker_id)
 	var attacker_is_mid := attacker_card != null and attacker_card.position == "MID"
 	if not attacker_is_mid and _squad_has_position(attacking_squad, "MID"):

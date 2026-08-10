@@ -1,6 +1,7 @@
 extends Node
 
 @onready var go_to_match_button: Button = $Gotomatch  # adjust path to match your actual node
+@onready var go_to_transfer_button: Button = $Gototransfermarket
 
 
 @onready var player_slots: Array[HBoxContainer] = [
@@ -14,8 +15,13 @@ extends Node
 ]
 
 func _ready() -> void:
+	if not LeagueState.season_prediction_shown:
+		get_tree().change_scene_to_file("res://SeasonPrediction/season_prediction.tscn")
+		return
+
 	refresh_squad_display()
 	_update_gotomatch_button()
+	_update_transfer_button()
 
 func refresh_squad_display() -> void:
 	for slot in player_slots:
@@ -68,11 +74,20 @@ func _update_selection_visual(button: TextureButton, is_selected: bool) -> void:
 	button.modulate = Color(0.6, 1.0, 0.6) if is_selected else Color(1, 1, 1)
 
 func _on_gototransfermarket_pressed() -> void:
+	if not LeagueState.is_before_first_match_of_season():
+		return  # button should already be disabled — belt and braces
 	get_tree().change_scene_to_file("res://TransferMarket.tscn")
 
 func _update_gotomatch_button() -> void:
 	go_to_match_button.disabled = MatchSquadState.selected.is_empty()
 
+## Transfer market is only open before the first match of the current
+## season — once you've played a match, it locks until the next season
+## starts (promotion, or a fresh run after elimination), matching
+## LeagueState.is_before_first_match_of_season().
+func _update_transfer_button() -> void:
+	go_to_transfer_button.disabled = not LeagueState.is_before_first_match_of_season()
+	go_to_transfer_button.tooltip_text = "" if LeagueState.is_before_first_match_of_season() else "Transfer market re-opens next season"
+
 func _on_gotomatch_pressed() -> void:
 	get_tree().change_scene_to_file("res://Match/matchattempt.tscn")
-	

@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="BossRosterResource" load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://data/boss_roster_resource.gd" id="1_roster"]
+[ext_resource type="Script" path="res://data/boss_team.gd" id="2_team"]
+[ext_resource type="Script" path="res://data/match_condition.gd" id="3_cond"]
+
+[sub_resource type="Resource" id="MatchCondition_mid1"]
+script = ExtResource("3_cond")
+condition_name = "Iron Midfield"
+description = "This team's press is relentless — your midfielder's usual support bonus won't help you this match."
+affected_position = "MID"
+attack_multiplier = 1.0
+defense_multiplier = 1.0
+disables_support_bonus = true
+
+[sub_resource type="Resource" id="BossTeam_1"]
+script = ExtResource("2_team")
+boss_name = "The Iron Wall"
+base_rarity = "silver"
+conditions = [SubResource("MatchCondition_mid1")]
+
+[sub_resource type="Resource" id="MatchCondition_gk1"]
+script = ExtResource("3_cond")
+condition_name = "No Safety Net"
+description = "Their forwards crowd the box all match — your goalkeeper can't organise the defence like usual."
+affected_position = "GK"
+attack_multiplier = 1.0
+defense_multiplier = 1.0
+disables_support_bonus = true
+
+[sub_resource type="Resource" id="BossTeam_2"]
+script = ExtResource("2_team")
+boss_name = "The Press Merchants"
+base_rarity = "silver"
+conditions = [SubResource("MatchCondition_gk1")]
+
+[sub_resource type="Resource" id="MatchCondition_mid2"]
+script = ExtResource("3_cond")
+condition_name = "Total Control"
+description = "They dominate the middle of the park completely — your midfielder's support bonus is nullified this match."
+affected_position = "MID"
+attack_multiplier = 1.0
+defense_multiplier = 1.0
+disables_support_bonus = true
+
+[sub_resource type="Resource" id="BossTeam_3"]
+script = ExtResource("2_team")
+boss_name = "Golden Generation"
+base_rarity = "gold"
+conditions = [SubResource("MatchCondition_mid2")]
+
+[resource]
+script = ExtResource("1_roster")
+bosses = [SubResource("BossTeam_1"), SubResource("BossTeam_2"), SubResource("BossTeam_3")]

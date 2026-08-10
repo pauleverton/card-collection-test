@@ -62,6 +62,7 @@ var player_squad: Array[String] = []
 var opponent_squad: Array[String] = []
 var _last_shot: Dictionary = {}
 var _round_active: bool = false  # true while a shot/round sequence is playing out
+var _active_boss: BossTeam = null  # set only when this match is the season's decider
 
 # Temporary in-code test consumable — swap for a .tres resource loaded from
 # res://data/consumables/ once you have a proper item/inventory system.
@@ -152,21 +153,33 @@ func _clear_matchup_panel() -> void:
 ## --- Match start / slot population ---
 
 func _start_match() -> void:
-	if not DEBUG_MODE:
+	_active_boss = null
+	var match_conditions: Array[MatchCondition] = []
+
+	if LeagueState.is_last_match_of_season() and LeagueState.current_season_boss != null:
+		_active_boss = LeagueState.current_season_boss
+		opponent_squad = SquadGenerator.generate_boss_squad(3, _active_boss.base_rarity)
+		match_conditions = _active_boss.conditions
+	elif not DEBUG_MODE:
 		opponent_squad = SquadGenerator.generate_random_squad(3)
+	# else: DEBUG_MODE regular match keeps the fixed debug squad already
+	# set up in _setup_debug_opponent_cards() during _ready()
 
 	_populate_column(player_slots, player_squad)
 	_populate_column(opponent_slots, opponent_squad)
 	_set_all_interactive(true)
 
 	_clear_matchup_panel()
-	result_label.text = "Drag one of your players onto an opponent to attack."
+	if _active_boss != null:
+		result_label.text = "SEASON DECIDER vs %s! Drag one of your players onto an opponent to attack." % _active_boss.boss_name
+	else:
+		result_label.text = "Drag one of your players onto an opponent to attack."
 	score_label.text = "You: 0   Opponent: 0"
 
 	_lucky_boots.reset_uses()
 	consumable_slot.set_consumable(_lucky_boots)
 
-	match_logic.start_match(player_squad, opponent_squad)
+	match_logic.start_match(player_squad, opponent_squad, match_conditions)
 
 
 ## Fills each slot with a card, up to however many are in the squad (3 max);
@@ -450,9 +463,46 @@ func _on_match_ended(player_goals: int, opponent_goals: int, player_won: bool) -
 
 	CoinState.add_coins(coins_awarded)
 
-	result_label.text += "\n\nMATCH OVER — %s (%d-%d)\n+%d coins" % [verdict, player_goals, opponent_goals, coins_awarded]
+	var league_note := _apply_league_result(player_goals, opponent_goals)
+
+	result_label.text += "\n\nMATCH OVER — %s (%d-%d)\n+%d coins\n%s" % [
+		verdict, player_goals, opponent_goals, coins_awarded, league_note
+	]
 	_set_all_interactive(false)
 	_round_active = true  # locks out any stray drags now the match is over
+
+
+## Feeds this match's result into LeagueState and returns a short line for
+## the result label describing what happened league-wise — either "here's
+## where the table stands" (most matches), or the season-end outcome
+## (promoted / missed promotion / crowned champion) on the season's last match.
+func _apply_league_result(player_goals: int, opponent_goals: int) -> String:
+	var tournament_name_before := LeagueState.current_tournament_name()
+	var target := LeagueState.promotion_target()
+	var was_final_tournament := LeagueState.is_final_tournament()
+
+	var result := LeagueState.record_match_result(player_goals, opponent_goals)
+
+	if not result.season_ended:
+		var points: int = result.final_points
+		var remaining := LeagueState.matches_remaining()
+		return "%s: %d point%s so far (%d match%s left, need %d to go up)." % [
+			tournament_name_before, points, ("" if points == 1 else "s"),
+			remaining, ("" if remaining == 1 else "es"), target
+		]
+
+	var final_points: int = result.final_points
+	if not result.promoted:
+		return "Missed promotion from %s — needed %d points, finished on %d. Run over." % [
+			tournament_name_before, target, final_points
+		]
+	if was_final_tournament:
+		return "CHAMPION! %d points in %s — you've won every tournament. Run complete!" % [
+			final_points, tournament_name_before
+		]
+	return "Promoted! %d points in %s (needed %d) — you're up to %s." % [
+		final_points, tournament_name_before, target, LeagueState.current_tournament_name()
+	]
 
 #May get deleted
 
