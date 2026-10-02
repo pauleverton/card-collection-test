@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="BossRosterResource" format=3 uid="uid://cjmpyd37c00o1"]
 
-[ext_resource type="Script" uid="uid://4tf87bvcnive" path="res://data/boss_roster_resource.gd" id="1_roster"]
-[ext_resource type="Script" uid="uid://b4on8twdpi5sx" path="res://data/boss_team.gd" id="2_team"]
-[ext_resource type="Script" uid="uid://621tkxcwqaxm" path="res://data/match_condition.gd" id="3_cond"]
+[ext_resource type="Script" uid="uid://4tf87bvcnive" path="res://Scripts/boss_roster_resource.gd" id="1_roster"]
+[ext_resource type="Script" uid="uid://b4on8twdpi5sx" path="res://Scripts/boss_team.gd" id="2_team"]
+[ext_resource type="Script" uid="uid://621tkxcwqaxm" path="res://Scripts/match_condition.gd" id="3_cond"]
 
 [sub_resource type="Resource" id="MatchCondition_mid1"]
 script = ExtResource("3_cond")

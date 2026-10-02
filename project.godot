@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="Card collection test"
+config/name="Revised card tst"
 run/main_scene="uid://c1ikq7hlp47qr"
 config/features=PackedStringArray("4.7", "Forward Plus")
 
@@ -23,6 +23,7 @@ LeagueState="*uid://drh3b45cteav5"
 CareerState="*uid://bdal6ushgnda6"
 CoinState="*uid://6pmwnexcrmhu"
 BossRoster="*uid://dbspi4n07cpr6"
+DeckState="*uid://bik846611mhor"
 
 [display]
 

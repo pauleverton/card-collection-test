@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cb11v1e0c12ur"]
 
-[ext_resource type="Script" uid="uid://dkui678vqxqqd" path="res://SeasonPrediction/season_prediction.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://dkui678vqxqqd" path="res://Scripts/season_prediction.gd" id="1_script"]
 
 [node name="SeasonPrediction" type="Control" unique_id=916349154]
 layout_mode = 3

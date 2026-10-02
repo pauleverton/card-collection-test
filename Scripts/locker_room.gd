@@ -16,7 +16,7 @@ extends Node
 
 func _ready() -> void:
 	if not LeagueState.season_prediction_shown:
-		get_tree().change_scene_to_file("res://SeasonPrediction/season_prediction.tscn")
+		get_tree().change_scene_to_file("res://Scenes/season_prediction.tscn")
 		return
 
 	refresh_squad_display()
@@ -76,7 +76,7 @@ func _update_selection_visual(button: TextureButton, is_selected: bool) -> void:
 func _on_gototransfermarket_pressed() -> void:
 	if not LeagueState.is_before_first_match_of_season():
 		return  # button should already be disabled — belt and braces
-	get_tree().change_scene_to_file("res://TransferMarket.tscn")
+	get_tree().change_scene_to_file("res://Scenes/TransferMarket.tscn")
 
 func _update_gotomatch_button() -> void:
 	go_to_match_button.disabled = MatchSquadState.selected.is_empty()
@@ -90,4 +90,4 @@ func _update_transfer_button() -> void:
 	go_to_transfer_button.tooltip_text = "" if LeagueState.is_before_first_match_of_season() else "Transfer market re-opens next season"
 
 func _on_gotomatch_pressed() -> void:
-	get_tree().change_scene_to_file("res://Match/matchattempt.tscn")
+	get_tree().change_scene_to_file("res://Scenes/matchattempt.tscn")

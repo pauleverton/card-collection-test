@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://b2e3in6xu8rj4"]
 
-[ext_resource type="Script" uid="uid://3worpa1kn0y6" path="res://card_base.gd" id="1_gxr5w"]
+[ext_resource type="Script" uid="uid://3worpa1kn0y6" path="res://Scripts/card_base.gd" id="1_gxr5w"]
 
 [node name="DrawCardBase" type="VBoxContainer" unique_id=483209984]
 offset_right = 250.0

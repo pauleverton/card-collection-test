@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cm0uxlpxa8un1"]
 
-[ext_resource type="Script" uid="uid://dvph205vxhq23" path="res://hud.gd" id="1_37p78"]
+[ext_resource type="Script" uid="uid://dvph205vxhq23" path="res://Scripts/hud.gd" id="1_37p78"]
 
 [node name="PanelContainer" type="PanelContainer" unique_id=811184455]
 offset_left = 880.0

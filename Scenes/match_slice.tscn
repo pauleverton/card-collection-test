@@ -1,0 +1,63 @@
+[gd_scene format=3 uid="uid://1wskr7vxkrbn"]
+
+[ext_resource type="PackedScene" uid="uid://cwu28l4omivta" path="res://Scenes/hand.tscn" id="1_b5xid"]
+[ext_resource type="Script" uid="uid://bcefkpn30hf4u" path="res://Scenes/match_slice.gd" id="1_rlrqh"]
+[ext_resource type="Script" uid="uid://b2oocq28vdoul" path="res://Scripts/pitch_script.gd" id="3_sypgv"]
+
+[node name="MatchSlice" type="Control" unique_id=417129108]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_rlrqh")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1494732306]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.27701452, 0.44654077, 0.02145871, 1)
+
+[node name="Hand" parent="." unique_id=1534953697 instance=ExtResource("1_b5xid")]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="InfoLabel" type="Label" parent="." unique_id=429595187]
+layout_mode = 0
+offset_left = 421.0
+offset_top = 83.0
+offset_right = 705.0
+offset_bottom = 119.0
+
+[node name="Pitch" type="HBoxContainer" parent="." unique_id=959226060]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 140.0
+offset_bottom = 140.0
+grow_horizontal = 2
+script = ExtResource("3_sypgv")
+
+[node name="ResultLabel" type="Label" parent="." unique_id=898386773]
+layout_mode = 0
+offset_left = 797.0
+offset_top = 19.0
+offset_right = 1159.0
+offset_bottom = 98.0
+
+[node name="KickOffButton" type="Button" parent="." unique_id=1749137881]
+layout_mode = 0
+offset_left = 560.0
+offset_top = 437.0
+offset_right = 672.0
+offset_bottom = 490.0
+text = "Kick off again"

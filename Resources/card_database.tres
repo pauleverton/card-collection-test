@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="CardDatabaseResource" format=3 uid="uid://exvxpboyojaw"]
 
-[ext_resource type="Script" uid="uid://byw4wa812jf65" path="res://data/card_data.gd" id="1_0apoi"]
+[ext_resource type="Script" uid="uid://byw4wa812jf65" path="res://Scripts/card_data.gd" id="1_0apoi"]
 [ext_resource type="Texture2D" uid="uid://cyyayncl728e7" path="res://Cards/iliman_ndiaye_silver.png" id="2_koinq"]
-[ext_resource type="Script" uid="uid://k3mcdls2aqgh" path="res://data/card_database_resource.gd" id="2_w0kwd"]
+[ext_resource type="Script" uid="uid://k3mcdls2aqgh" path="res://Scripts/card_database_resource.gd" id="2_w0kwd"]
 [ext_resource type="Texture2D" uid="uid://cvbhyb7kelc4l" path="res://Cards/jake_obrien_bronze.png" id="3_4rb3r"]
 [ext_resource type="Texture2D" uid="uid://cs43lhknqc12v" path="res://Cards/james_garner_bronze.png" id="4_ygkdt"]
 [ext_resource type="Texture2D" uid="uid://cm7sclgu2e4qd" path="res://Cards/jordan_pickford_gold.png" id="5_jfmu1"]

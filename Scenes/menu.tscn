@@ -1,15 +1,15 @@
 [gd_scene format=3 uid="uid://c1ikq7hlp47qr"]
 
-[ext_resource type="Texture2D" uid="uid://cpjk38edhrfh2" path="res://data/background.jpg" id="1_lti8b"]
-[ext_resource type="Script" uid="uid://ch7jx5j3yub7a" path="res://menu.gd" id="1_ouk20"]
+[ext_resource type="Script" uid="uid://ch7jx5j3yub7a" path="res://Scripts/menu.gd" id="1_xhh6f"]
+[ext_resource type="Texture2D" uid="uid://cpjk38edhrfh2" path="res://Images/background.jpg" id="2_cayip"]
 
 [node name="Node2D" type="Node2D" unique_id=149288371]
-script = ExtResource("1_ouk20")
+script = ExtResource("1_xhh6f")
 
 [node name="TextureRect" type="TextureRect" parent="." unique_id=341127537]
 offset_right = 1153.0
 offset_bottom = 647.0
-texture = ExtResource("1_lti8b")
+texture = ExtResource("2_cayip")
 
 [node name="StartGame" type="Button" parent="TextureRect" unique_id=2145299175]
 layout_mode = 1

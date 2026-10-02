@@ -130,4 +130,4 @@ func _build_row_nodes(card: CardData) -> Array:
 	return [texture_rect, name_label]
 
 func _on_go_to_locker_room_button_pressed() -> void:
-	get_tree().change_scene_to_file("res://lockerroom.tscn")
+	get_tree().change_scene_to_file("res://Scenes/lockerroom.tscn")

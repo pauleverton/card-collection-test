@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ActionData" format=3 uid="uid://djf0ce8opm8ps"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_data.gd" id="1_yj2ng"]
+
+[resource]
+script = ExtResource("1_yj2ng")
+display_name = "Shot"
+energy_cost = 2
+tag = "shot"
+base_value = 3
+metadata/_custom_type_script = "uid://c7aob23hi7te0"

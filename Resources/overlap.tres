@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ActionData" format=3 uid="uid://f8xlkeq6ua82"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_data.gd" id="1_l6q7e"]
+
+[resource]
+script = ExtResource("1_l6q7e")
+display_name = "Overlap"
+tag = "overlap"
+base_value = 2
+description = "Your next move card gets +2"
+metadata/_custom_type_script = "uid://c7aob23hi7te0"

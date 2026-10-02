@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ActionData" format=3 uid="uid://d0o01e0m64iss"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_data.gd" id="1_4ishg"]
+
+[resource]
+script = ExtResource("1_4ishg")
+display_name = "Recall"
+tag = "recall"
+metadata/_custom_type_script = "uid://c7aob23hi7te0"

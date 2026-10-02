@@ -65,7 +65,7 @@ extends ConsumableEffect
 @export var dice_sides: int = 30
 
 func _init() -> void:
-	target_type = TargetType.MATCH
+	target_type = TargetType.MATCH 
 
 func apply(match_logic: MatchLogic = null, _card: CardData = null) -> void:
 	match_logic.apply_player_dice_boost(dice_sides)

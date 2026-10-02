@@ -6,7 +6,7 @@ extends Node
 ## keyed by card id for O(1) lookups. Safe for 150+ cards with no
 ## per-frame or per-lookup performance cost.
 
-const DATABASE_PATH := "res://data/card_database.tres"
+const DATABASE_PATH := "res://Resources/card_database.tres"
 
 var _cards_by_id: Dictionary = {}  # id (String) -> CardData
 var all_ids: Array = []
