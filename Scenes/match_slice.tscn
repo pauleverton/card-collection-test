@@ -61,3 +61,11 @@ offset_top = 437.0
 offset_right = 672.0
 offset_bottom = 490.0
 text = "Kick off again"
+
+[node name="ShootButton" type="Button" parent="." unique_id=2069174672]
+layout_mode = 0
+offset_left = 715.0
+offset_top = 447.0
+offset_right = 849.0
+offset_bottom = 478.0
+text = "Shoot (1 energy)"

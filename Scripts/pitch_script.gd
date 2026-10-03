@@ -3,6 +3,7 @@ extends HBoxContainer
 const GRASS := [Color("3a6b35"), Color("4a7d3f"), Color("3a6b35"), Color("4a7d3f"), Color("3a6b35")]
 const BALL_COLOUR := Color("f2c14e")
 const LOST_COLOUR := Color("b33a3a")
+const GOAL_COLOUR := Color.WHITE
 
 var _zones: Array = []
 var _labels: Array = []
@@ -21,19 +22,35 @@ func _ready() -> void:
 		rect.add_child(label)
 		_zones.append(rect)
 		_labels.append(label)
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
-func show_state(zone: int, target: int, has_ball: bool) -> void:
+func show_state(m: PitchMatch) -> void:
 	for i in 5:
+		_labels[i].add_theme_font_size_override("font_size", 26)
 		_zones[i].color = GRASS[i]
 		_labels[i].text = PitchMatch.ZONE_NAMES[i]
 		_labels[i].add_theme_color_override("font_color", Color.WHITE)
-	if not has_ball:
-		_zones[zone].color = LOST_COLOUR
-		_labels[zone].text += "\n\nLOST IT"
+	var z := m.zone
+	if m.scored_last:
+		_zones[z].color = GOAL_COLOUR
+		_labels[z].add_theme_color_override("font_color", Color.BLACK)
+		_labels[z].text += "\n\nGOAL!"
 		return
-	_zones[zone].color = BALL_COLOUR
-	_labels[zone].add_theme_color_override("font_color", Color.BLACK)
-	if zone == 4:
-		_labels[zone].text += "\n\nBALL\nIn the box!"
+	if not m.has_ball:
+		_zones[z].color = LOST_COLOUR
+		_labels[z].text += "\n\nLOST IT"
+		return
+	_zones[z].color = BALL_COLOUR
+	_labels[z].add_theme_color_override("font_color", Color.BLACK)
+	if z == 4:
+		_labels[z].add_theme_font_size_override("font_size", 17)
+		var names: PackedStringArray = []
+		for d in m.upcoming_defenders():
+			names.append(PitchMatch.DEFENDER_TEXT[d])
+		var next_up: String = " › ".join(names) if not names.is_empty() else "nobody! Free shot"
+		_labels[z].text += "\nChance %d\nNext: %s\nShoot now: %d%%\nWith Shot card: %d%%" % [
+				m.quality, next_up,
+				m.goal_odds(m.quality - PitchMatch.BASIC_SHOT_PENALTY),
+				m.goal_odds(m.quality + 3 + m.next_bonus)]
 	else:
-		_labels[zone].text += "\n\nBALL\nPress %d" % target
+		_labels[z].text += "\n\nBALL\nPress %d" % m.target

@@ -11,6 +11,6 @@ func _ready() -> void:
 
 func setup(data: ActionData) -> void:
 	card = data
-	text = "%s\nCost: %d\n\n%s" % [data.display_name, data.energy_cost, data.description]
+	text = "%s\nCost: %d\n Value: %d\n%s" % [data.display_name, data.energy_cost,data.base_value, data.description]
 	
 	
