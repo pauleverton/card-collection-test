@@ -11,23 +11,12 @@ extends Control
 @onready var continue_button = $FullTimePanel/VBox/ContinueButton
 
 var pitch := PitchMatch.new()
+## Filled in at full time by LeagueState, and read by Continue to decide where to go next.
+var league_result := {}
+var was_final_tournament := false
 
 func _ready() -> void:
-	var short_pass = load("res://Resources/short_pass.tres")
-	var dribble = load("res://Resources/dribble.tres")
-	var through_ball = load("res://Resources/through_ball.tres")
-	var overlap = load("res://Resources/overlap.tres")
-	var cross = load("res://Resources/cross.tres")
-	var shot = load("res://Resources/shot.tres")
-	var tackle = load("res://Resources/tackle.tres")
-	var track_back = load("res://Resources/track_back.tres")
-	var block = load("res://Resources/block.tres")
-	var retain = load("res://Resources/retain_possession.tres")
-	var lump = load("res://Resources/lump_clear.tres")
-	var deck = [short_pass, short_pass, short_pass, dribble, dribble, through_ball,
-			overlap, overlap, cross, cross, shot,
-			tackle, tackle,lump, track_back, track_back, block, retain]
-	DeckState.start_match(deck)
+	DeckState.start_match(RunState.deck)
 	DeckState.draw(5)
 	pitch.start()
 	hand.card_played.connect(play_card)
@@ -68,26 +57,61 @@ func _after_action(events: Array) -> void:
 func _show_full_time() -> void:
 	var coins := pitch.coins_earned()
 	CoinState.add_coins(coins)
+
+	## Read these BEFORE recording the result: promotion moves you to the next tournament.
+	var tournament := LeagueState.current_tournament_name()
+	var target := LeagueState.promotion_target()
+	was_final_tournament = LeagueState.is_final_tournament()
+	league_result = LeagueState.record_match_result(pitch.goals, pitch.conceded)
+	if not league_result["season_ended"] and LeagueState.is_target_out_of_reach():
+		league_result = {"season_ended": true, "promoted": false, "final_points": LeagueState.season_points}
+		CareerState.end_run()
+
 	var result := "LOSS"
 	if pitch.goals > pitch.conceded:
 		result = "WIN"
 	elif pitch.goals == pitch.conceded:
 		result = "DRAW"
-	full_time_label.text = "FULL TIME\n\nYou %d - %d Them\n%s\n\n+%d coins   (total %d)" % [
-			pitch.goals, pitch.conceded, result, coins, CoinState.coins]
+
+	var league_line := ""
+	if not league_result["season_ended"]:
+		league_line = "%s: %d pts, %d matches left (need %d)" % [
+				tournament, LeagueState.season_points, LeagueState.matches_remaining(), target]
+	elif league_result["promoted"] and was_final_tournament:
+		league_line = "%s won with %d pts. YOU'VE WON EVERYTHING!" % [tournament, league_result["final_points"]]
+		continue_button.text = "Start a new run"
+	elif league_result["promoted"]:
+		league_line = "Season over: %d pts. PROMOTED from %s!" % [league_result["final_points"], tournament]
+	else:
+		league_line = "Season over: %d pts, needed %d. RUN OVER." % [league_result["final_points"], target]
+		continue_button.text = "Start a new run"
+
+	full_time_label.text = "FULL TIME\n\nYou %d - %d Them   (%s)\n\n%s\n\n+%d coins   (total %d)" % [
+			pitch.goals, pitch.conceded, result, league_line, coins, CoinState.coins]
 	full_time_panel.visible = true
 
 func _on_continue() -> void:
-	## For now: play another match. Next step: this goes to the reward screen.
-	get_tree().reload_current_scene()
+	RunState.matches_played += 1
+	var season_ended: bool = league_result["season_ended"]
+	var run_over: bool = season_ended and (not league_result["promoted"] or was_final_tournament)
+	if run_over:
+		RunState.new_run()
+		CareerState.start_new_run()
+		get_tree().reload_current_scene()
+	elif pitch.goals > pitch.conceded:
+		get_tree().change_scene_to_file("res://Scenes/reward_screen.tscn")
+	else:
+		get_tree().reload_current_scene()
 
 # ---------- Screen ----------
 
 func refresh_all() -> void:
 	hand.refresh()
 	pitch_strip.show_state(pitch)
-	info_label.text = "%d'   |   You %d - %d Them   |   Energy %d   |   Next bonus +%d" % [
-			pitch.minute, pitch.goals, pitch.conceded, pitch.energy, pitch.next_bonus]
+	info_label.text = "%s  Match %d/%d  %d pts (need %d)   |   %d'   |   You %d - %d Them   |   Energy %d" % [
+			LeagueState.current_tournament_name(), LeagueState.matches_played + 1,
+			LeagueState.MATCHES_PER_SEASON, LeagueState.season_points, LeagueState.promotion_target(),
+			pitch.minute, pitch.goals, pitch.conceded, pitch.energy]
 	shoot_button.visible = pitch.in_their_box() and not pitch.match_over
 	let_through_button.visible = not pitch.has_ball and not pitch.match_over
 	let_through_button.text = "Let them shoot" if pitch.in_our_box() else "Let them through"
@@ -178,3 +202,17 @@ func describe(events: Array) -> String:
 			"lumped":
 				lines.append("Lumped it clear! They restart from %s." % e["zone"])
 	return "\n".join(lines)
+
+
+## Debug keys, only in the editor: G = you score, C = they score, F = skip to full time.
+func _unhandled_input(event: InputEvent) -> void:
+	if not OS.is_debug_build() or pitch.match_over:
+		return
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.keycode:
+			KEY_G:
+				_after_action(pitch.debug_goal())
+			KEY_C:
+				_after_action(pitch.debug_concede())
+			KEY_F:
+				_after_action(pitch.debug_full_time())

@@ -145,3 +145,7 @@ func _resolve_season() -> Dictionary:
 func reset_for_new_tournament() -> void:
 	season_points = 0
 	matches_played = 0
+
+## True if even winning every remaining match can't reach the target.
+func is_target_out_of_reach() -> bool:
+	return season_points + matches_remaining() * POINTS_WIN < promotion_target()

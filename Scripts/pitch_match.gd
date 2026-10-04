@@ -126,8 +126,6 @@ func is_right_phase(card: ActionData) -> bool:
 	
 ## True if the card is worth playing right now (used for the green tint).
 func would_succeed(card: ActionData) -> bool:
-	if match_over:
-		return false
 	if match_over or not is_right_phase(card):
 		return false
 	if card.tag in ["retain", "overlap"]:
@@ -181,7 +179,7 @@ func play(card: ActionData) -> Array:
 		next_bonus += card.base_value
 		events.append({"type": "bonus", "next_bonus": next_bonus})
 	elif card.tag == "retain":
-		energy += card.base_value
+		energy += card.energy_boost
 		DeckState.draw(card.draw_count)
 		events.append({"type": "retain", "energy": card.base_value, "drew": card.draw_count})
 	elif card.tag == "lump_clear":
@@ -215,6 +213,7 @@ func take_shot() -> Array:
 	events.append({"type": "basic_shot", "roll": roll, "quality": quality})
 	_shoot(events)
 	_check_out_of_energy(events)
+	_tick_clock(events)
 	return events
 
 ## Defending: don't challenge, let them carry on (or shoot, if they're in your box).
@@ -225,6 +224,7 @@ func let_them_through() -> Array:
 		return events
 	if has_ball:
 		events.append({"type": "not_now"})
+		return events
 	elif zone == 0:
 		_their_shot(events)
 	else:
@@ -482,3 +482,30 @@ func coins_earned() -> int:
 	else:
 		coins += COINS_LOSS
 	return coins
+
+
+# ---------- Debug only ----------
+
+func debug_goal() -> Array:
+	var events := []
+	goals += 1
+	events.append({"type": "goal", "goals": goals})
+	zone = 2
+	_start_their_possession()
+	_tick_clock(events)
+	return events
+
+func debug_concede() -> Array:
+	var events := []
+	conceded += 1
+	events.append({"type": "conceded", "conceded": conceded})
+	zone = 2
+	_start_our_possession(events)
+	_tick_clock(events)
+	return events
+
+func debug_full_time() -> Array:
+	var events := []
+	minute = MATCH_LENGTH - MINUTES_PER_ACTION
+	_tick_clock(events)
+	return events
