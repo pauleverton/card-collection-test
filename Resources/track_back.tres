@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ActionData" format=3 uid="uid://casn5m3tivv11"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_data.gd" id="1_4a6h0"]
+
+[resource]
+script = ExtResource("1_4a6h0")
+display_name = "Track Back"
+tag = "track_back"
+card_type = "Defending"
+base_value = 3
+usable_when = "defending"
+metadata/_custom_type_script = "uid://c7aob23hi7te0"

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ActionData" format=3 uid="uid://cmhw8y42lehip"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_data.gd" id="1_kcg74"]
+
+[resource]
+script = ExtResource("1_kcg74")
+display_name = "Lump it!"
+tag = "lump_clear"
+card_type = "Defending"
+base_value = 3
+description = "Only in your box or half. Boot it 3 zones upfield but surrender possession."
+metadata/_custom_type_script = "uid://c7aob23hi7te0"

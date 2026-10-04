@@ -8,4 +8,5 @@ display_name = "Through ball"
 energy_cost = 2
 tag = "long_ball"
 base_value = 5
+usable_when = "attacking"
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

@@ -31,26 +31,28 @@ func show_state(m: PitchMatch) -> void:
 		_labels[i].text = PitchMatch.ZONE_NAMES[i]
 		_labels[i].add_theme_color_override("font_color", Color.WHITE)
 	var z := m.zone
-	if m.scored_last:
-		_zones[z].color = GOAL_COLOUR
+	if m.has_ball:
+		_zones[z].color = BALL_COLOUR
 		_labels[z].add_theme_color_override("font_color", Color.BLACK)
-		_labels[z].text += "\n\nGOAL!"
-		return
-	if not m.has_ball:
-		_zones[z].color = LOST_COLOUR
-		_labels[z].text += "\n\nLOST IT"
-		return
-	_zones[z].color = BALL_COLOUR
-	_labels[z].add_theme_color_override("font_color", Color.BLACK)
-	if z == 4:
-		_labels[z].add_theme_font_size_override("font_size", 17)
-		var names: PackedStringArray = []
-		for d in m.upcoming_defenders():
-			names.append(PitchMatch.DEFENDER_TEXT[d])
-		var next_up: String = " › ".join(names) if not names.is_empty() else "nobody! Free shot"
-		_labels[z].text += "\nChance %d\nNext: %s\nShoot now: %d%%\nWith Shot card: %d%%" % [
-				m.quality, next_up,
-				m.goal_odds(m.quality - PitchMatch.BASIC_SHOT_PENALTY),
-				m.goal_odds(m.quality + 3 + m.next_bonus)]
+		if z == 4:
+			_labels[z].add_theme_font_size_override("font_size", 17)
+			var upcoming := m.upcoming_defenders()
+			var next_up := "nobody! Free shot"
+			if not upcoming.is_empty():
+				next_up = PitchMatch.DEFENDER_TEXT[upcoming[0]]
+				if upcoming.size() > 1:
+					next_up += " (+%d more)" % (upcoming.size() - 1)
+			_labels[z].text += "\nChance %d\nNext: %s\nShoot now: %d%%\nWith Shot card: %d%%" % [
+					m.quality, next_up,
+					m.basic_shot_odds(),
+					m.goal_odds(m.quality + 3 + m.next_bonus)]
+		else:
+			_labels[z].text += "\n\nYOUR BALL\nPress %d" % m.target
 	else:
-		_labels[z].text += "\n\nBALL\nPress %d" % m.target
+		_zones[z].color = LOST_COLOUR
+		if z == 0:
+			_labels[z].add_theme_font_size_override("font_size", 17)
+			_labels[z].text += "\nTHEIR CHANCE %d\nThey score: %d%%\nBlock or Tackle to lower it" % [
+					m.quality, m.their_goal_odds()]
+		else:
+			_labels[z].text += "\n\nTHEIR BALL\nAttack %d" % m.target

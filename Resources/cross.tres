@@ -7,5 +7,6 @@ script = ExtResource("1_3y67c")
 display_name = "Cross"
 tag = "cross"
 base_value = 3
+usable_when = "attacking"
 description = "Cross the ball"
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

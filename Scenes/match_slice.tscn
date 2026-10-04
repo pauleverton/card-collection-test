@@ -54,7 +54,7 @@ offset_top = 19.0
 offset_right = 1159.0
 offset_bottom = 98.0
 
-[node name="KickOffButton" type="Button" parent="." unique_id=1749137881]
+[node name="LetThroughButton" type="Button" parent="." unique_id=1749137881]
 layout_mode = 0
 offset_left = 560.0
 offset_top = 437.0
@@ -69,3 +69,38 @@ offset_top = 447.0
 offset_right = 849.0
 offset_bottom = 478.0
 text = "Shoot (1 energy)"
+
+[node name="FullTimePanel" type="Panel" parent="." unique_id=801056383]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_top = -4.0
+offset_right = 2.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="FullTimePanel" unique_id=1176487560]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="FullTimeLabel" type="Label" parent="FullTimePanel/VBox" unique_id=589059374]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+horizontal_alignment = 1
+
+[node name="ContinueButton" type="Button" parent="FullTimePanel/VBox" unique_id=1782092316]
+layout_mode = 2
+text = "Replay (for now)"

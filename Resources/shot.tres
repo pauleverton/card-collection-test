@@ -7,5 +7,6 @@ script = ExtResource("1_yj2ng")
 display_name = "Shot"
 tag = "shot"
 base_value = 3
+usable_when = "attacking"
 description = "Shoot!"
 metadata/_custom_type_script = "uid://c7aob23hi7te0"
