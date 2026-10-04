@@ -17,7 +17,7 @@ const POINTS_WIN := 3
 const POINTS_DRAW := 1
 const POINTS_LOSS := 0
 
-const MATCHES_PER_SEASON := 4
+const DEFAULT_MATCHES_PER_SEASON := 4
 
 ## Points needed for promotion out of tournament index 0. Each tournament
 ## after that needs one more point than the last (6, 7, 8, ...) — see
@@ -35,7 +35,7 @@ const TOURNAMENTS := [
 	{"name": "Premier League",   "type": "league", "boss_rarity": "gold"},
 	{"name": "Europa League",    "type": "cup",    "boss_rarity": "gold"},
 	{"name": "Champions League", "type": "cup",    "boss_rarity": "gold"},
-	{"name": "World Cup",        "type": "cup",    "boss_rarity": "gold"},
+	{"name": "World Cup",        "type": "cup",    "boss_rarity": "gold","matches":6},
 ]
 
 var current_tournament_index: int = 0   # run-scoped, NOT reset by reset_for_new_tournament()
@@ -61,10 +61,12 @@ func current_tournament() -> Dictionary:
 func current_tournament_name() -> String:
 	return current_tournament().name
 
-
+## How many matches the CURRENT tournament lasts (4 unless the tournament says otherwise).
+func matches_per_season() -> int:
+	return current_tournament().get("matches", DEFAULT_MATCHES_PER_SEASON)
+	
 func matches_remaining() -> int:
-	return max(0, MATCHES_PER_SEASON - matches_played)
-
+	return max(0, matches_per_season() - matches_played)
 
 func is_final_tournament() -> bool:
 	return current_tournament_index >= TOURNAMENTS.size() - 1
@@ -88,8 +90,7 @@ func is_before_first_match_of_season() -> bool:
 ## start_match() to decide whether to use current_season_boss's squad and
 ## conditions instead of the normal random opponent.
 func is_last_match_of_season() -> bool:
-	return matches_played == MATCHES_PER_SEASON - 1
-
+	return matches_played == matches_per_season() - 1
 
 func mark_season_prediction_shown() -> void:
 	season_prediction_shown = true
@@ -113,7 +114,7 @@ func record_match_result(player_goals: int, opponent_goals: int) -> Dictionary:
 
 	matches_played += 1
 
-	if matches_played < MATCHES_PER_SEASON:
+	if matches_played < matches_per_season():
 		return {"season_ended": false, "promoted": false, "final_points": season_points}
 
 	return _resolve_season()
