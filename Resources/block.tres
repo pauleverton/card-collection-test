@@ -6,7 +6,7 @@
 script = ExtResource("1_b42ww")
 display_name = "Block"
 tag = "block"
-card_type = "Defending"
+card_type = "defending"
 base_value = 2
 usable_when = "defending"
 description = "Block"

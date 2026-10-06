@@ -8,7 +8,7 @@ const CARD_UI = preload("res://Scenes/action_card_ui.tscn")
 
 func _ready() -> void:
 	title_label.text = "Match %d done. Pick a card for your deck (%d cards)." % [
-			RunState.matches_played, RunState.deck.size()]
+		RunState.matches_played, RunState.deck.size()]
 	for card in RunState.reward_options():
 		var ui = CARD_UI.instantiate()
 		ui.setup(card)
@@ -21,4 +21,4 @@ func _on_card_chosen(card: ActionData) -> void:
 	_next_match()
 
 func _next_match() -> void:
-	get_tree().change_scene_to_file("res://Scenes/match_slice.tscn")
+	get_tree().change_scene_to_file("res://Scenes/shop.tscn")

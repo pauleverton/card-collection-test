@@ -1,0 +1,56 @@
+[gd_scene format=3 uid="uid://cdseoe1miolcf"]
+
+[ext_resource type="Script" uid="uid://dw3tms6o556g3" path="res://Scripts/shop.gd" id="1_a0mxf"]
+
+[node name="Shop" type="Control" unique_id=1257282089]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_a0mxf")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=116083447]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.10980392, 0.14901961, 0.2509804, 1)
+
+[node name="VBox" type="VBoxContainer" parent="." unique_id=2021058490]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="CoinsLabel" type="Label" parent="VBox" unique_id=211980508]
+layout_mode = 2
+
+[node name="ForSale" type="HBoxContainer" parent="VBox" unique_id=1282709806]
+layout_mode = 2
+
+[node name="PackButton" type="Button" parent="VBox" unique_id=1342289265]
+layout_mode = 2
+text = "Buy a pack"
+
+[node name="PackReveal" type="HBoxContainer" parent="VBox" unique_id=146333750]
+layout_mode = 2
+
+[node name="LeaveButton" type="Button" parent="VBox" unique_id=261926974]
+layout_mode = 2
+text = "Exit Shop
+"
+
+[node name="UpgradeButton" type="Button" parent="VBox" unique_id=1940348101]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="VBox" unique_id=653743719]
+custom_minimum_size = Vector2(1100, 360)
+layout_mode = 2
+
+[node name="DeckView" type="HFlowContainer" parent="VBox/ScrollContainer" unique_id=1908118591]
+custom_minimum_size = Vector2(1100, 0)
+layout_mode = 2

@@ -6,7 +6,7 @@
 script = ExtResource("1_4a6h0")
 display_name = "Track Back"
 tag = "track_back"
-card_type = "Defending"
+card_type = "defending"
 base_value = 2
 usable_when = "defending"
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

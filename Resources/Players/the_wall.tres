@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PlayerCard" format=3 uid="uid://yw8j6fiqa0f3"]
+
+[ext_resource type="Script" uid="uid://b8dxl7yvw3hj" path="res://Scripts/player_card.gd" id="1_l6068"]
+
+[resource]
+script = ExtResource("1_l6068")
+display_name = "The Wall"
+description = "+1 to all defending cards"
+boosts_type = "defending"
+metadata/_custom_type_script = "uid://b8dxl7yvw3hj"

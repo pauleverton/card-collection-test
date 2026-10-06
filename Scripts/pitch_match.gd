@@ -39,6 +39,7 @@ const ATTACK_MODIFIER := [0, 2, 1, 0, 0]   ## the mirror of PRESS_MODIFIER
 const ATTACK_DECK := [2, 2, 3, 3, 3, 4, 4, 4, 5]
 const THEIR_CHANCE_DECK := [3, 4, 4, 5, 5, 6, 6, 7]
 const OUR_KEEPER_DECK := [2, 3, 3, 4, 4, 5, 5, 6, 7]
+const MIN_THEIR_CHANCE := 3   ## you can never block a chance down to nothing
 
 ## --- Match clock and rewards ---
 const MATCH_LENGTH := 90
@@ -141,7 +142,7 @@ func would_succeed(card: ActionData) -> bool:
 			return box_gain(card) - next_defender_effect(card) > 0
 	else:
 		if zone == 0:
-			return card.tag in ["block", "tackle"]
+			return card.tag in ["block", "tackle"] and quality > MIN_THEIR_CHANCE
 		if not card.tag in ["tackle", "track_back"]:
 			return false
 	return power_of(card) >= target
@@ -158,7 +159,8 @@ func next_defender_effect(card: ActionData) -> int:
 ## What this card adds to your chance in the box, before the defender responds.
 func box_gain(card: ActionData) -> int:
 	var amount: int = card.base_value if card.tag == "cross" else BOX_WORK_VALUE
-	return amount + next_bonus
+	return amount + next_bonus + RunState.squad_bonus(card)
+	
 
 # ---------- Actions ----------
 
@@ -249,8 +251,9 @@ func _attempt_move(card: ActionData, events: Array) -> void:
 	var power := power_of(card)
 	next_bonus = 0
 	var success := power >= target
-	events.append({"type": "attempt", "card": card.display_name,
-			"power": power, "target": target, "success": success})
+	events.append({"type": "challenge", "card": card.display_name,
+			"power": power, "target": target, "success": success,
+			"helpers": RunState.squad_helpers(card)})
 	if success:
 		var steps := 1
 		if card.tag == "long_ball" and power >= target + LONG_BALL_MARGIN:
@@ -348,7 +351,8 @@ func _defend_build_up(card: ActionData, events: Array) -> void:
 			next_bonus = 0
 			var success := power >= target
 			events.append({"type": "challenge", "card": card.display_name,
-					"power": power, "target": target, "success": success})
+					"power": power, "target": target, "success": success,
+					"helpers": RunState.squad_helpers(card)})
 			if success:
 				_win_ball(events)
 			elif card.tag == "track_back":
@@ -379,7 +383,7 @@ func _defend_in_box(card: ActionData, events: Array) -> void:
 		"block", "tackle":
 			var power := power_of(card)
 			next_bonus = 0
-			quality = max(0, quality - power)
+			quality = max(MIN_THEIR_CHANCE, quality - power)
 			events.append({"type": "blocked", "card": card.display_name, "quality": quality})
 		_:
 			events.append({"type": "wrong_phase", "card": card.display_name})
@@ -509,3 +513,6 @@ func debug_full_time() -> Array:
 	minute = MATCH_LENGTH - MINUTES_PER_ACTION
 	_tick_clock(events)
 	return events
+
+##func power_of(card: ActionData) -> int:
+	##return card.base_value + next_bonus + RunState.squad_bonus(card)

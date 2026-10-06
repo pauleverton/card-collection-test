@@ -3,15 +3,19 @@ extends Control
 @onready var hand = $Hand
 @onready var info_label = $InfoLabel
 @onready var pitch_strip = $Pitch
-@onready var result_label = $ResultLabel
 @onready var let_through_button = $LetThroughButton
 @onready var shoot_button = $ShootButton
 @onready var full_time_panel = $FullTimePanel
 @onready var full_time_label = $FullTimePanel/VBox/FullTimeLabel
 @onready var continue_button = $FullTimePanel/VBox/ContinueButton
 @onready var full_time_background = $FullTimePanel/Background
+@onready var commentary_headline = $CommentaryBox/VBox/Headline
+@onready var commentary_log = $CommentaryBox/VBox/Log
+
 
 var pitch := PitchMatch.new()
+
+
 ## Filled in at full time by LeagueState, and read by Continue to decide where to go next.
 var league_result := {}
 var was_final_tournament := false
@@ -25,7 +29,7 @@ func _ready() -> void:
 	shoot_button.pressed.connect(_on_shoot)
 	continue_button.pressed.connect(_on_continue)
 	full_time_panel.visible = false
-	result_label.text = "Kick-off. Beat the Press to move up the pitch."
+	_say("Kick-off. Beat the Press to move up the pitch.")
 	refresh_all()
 
 # ---------- Player actions ----------
@@ -34,7 +38,7 @@ func play_card(card: ActionData) -> void:
 	var events := pitch.play(card)
 	## If the card couldn't be played at all, leave it in the hand.
 	if events[0]["type"] in ["not_now", "no_energy", "wrong_side"]:
-		result_label.text = describe(events)
+		_say(describe(events), false)
 		return
 	_after_action(events)
 
@@ -48,7 +52,7 @@ func _on_let_through() -> void:
 func _after_action(events: Array) -> void:
 	for e in events:
 		print(e)
-	result_label.text = describe(events)
+	_say(describe(events))
 	refresh_all()
 	if pitch.match_over:
 		_show_full_time()
@@ -107,7 +111,7 @@ func _on_continue() -> void:
 	elif pitch.goals > pitch.conceded:
 		get_tree().change_scene_to_file("res://Scenes/reward_screen.tscn")
 	else:
-		get_tree().reload_current_scene()
+		get_tree().change_scene_to_file("res://Scenes/shop.tscn")
 
 # ---------- Screen ----------
 
@@ -156,7 +160,7 @@ func describe(events: Array) -> String:
 			"shot":
 				lines.append("SHOT! Chance %d vs keeper %d..." % [e["quality"], e["save"]])
 			"goal":
-				lines.append("GOAL! You've scored %d. They kick off." % e["goals"])
+				lines.append("[color=gold][b]GOAL![/b] You've scored %d.[/color]" % e["goals"])
 			"corner":
 				lines.append("Tipped round the post. Corner! Chance reset to 2, +1 energy.")
 			"saved":
@@ -166,6 +170,8 @@ func describe(events: Array) -> String:
 			# --- Them attacking ---
 			"challenge":
 				var result: String = "won it!" if e["success"] else "beaten."
+				if not e["helpers"].is_empty():
+					lines.append("   (boosted by %s)" % ", ".join(e["helpers"]))
 				lines.append("%s %d vs Attack %d: %s" % [e["card"], e["power"], e["target"], result])
 			"delayed":
 				lines.append("Couldn't win it, but slowed them down. Attack now %d." % e["target"])
@@ -178,7 +184,7 @@ func describe(events: Array) -> String:
 			"their_shot":
 				lines.append("THEY SHOOT! Chance %d vs your keeper %d..." % [e["quality"], e["save"]])
 			"conceded":
-				lines.append("Goal for them. (%d conceded)" % e["conceded"])
+				lines.append("[color=#e04040]Goal for them. (%d conceded)[/color]" % e["conceded"])
 			"our_save":
 				lines.append("Your keeper saves it!")
 			"won_ball":
@@ -199,7 +205,7 @@ func describe(events: Array) -> String:
 			"not_now":
 				lines.append("You can't do that right now.")
 			"full_time":
-				lines.append("FULL TIME!")
+				lines.append("[b]FULL TIME![/b]")
 			"no_options":
 				lines.append("No way forward. You're closed down and lose the ball.")
 			"wrong_side":
@@ -207,6 +213,18 @@ func describe(events: Array) -> String:
 			"lumped":
 				lines.append("Lumped it clear! They restart from %s." % e["zone"])
 	return "\n".join(lines)
+	
+## Show a message: the last line as the big headline, every line added to the log with the minute.
+## log_it = false for things that didn't really happen (e.g. "can't play that card").
+func _say(text: String, log_it: bool = true) -> void:
+	var lines := text.split("\n")
+	commentary_headline.text = lines[lines.size() - 1]
+	## A quick "typed out" effect on the headline.
+	commentary_headline.visible_ratio = 0.0
+	create_tween().tween_property(commentary_headline, "visible_ratio", 1.0, 0.3)
+	if log_it:
+		for line in lines:
+			commentary_log.append_text("[color=#9a9a9a]%d'[/color]  %s\n" % [pitch.minute, line])
 
 # ---------- Debug ----------
 
@@ -226,5 +244,5 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_T:
 				LeagueState.current_tournament_index = LeagueState.TOURNAMENTS.size() - 1
 				LeagueState.reset_for_new_tournament()
-				result_label.text = "DEBUG: jumped to %s." % LeagueState.current_tournament_name()
+				_say("DEBUG: jumped to %s." % LeagueState.current_tournament_name(), false)
 				refresh_all()

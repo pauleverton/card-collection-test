@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_4o3ad")
 display_name = "Short pass"
-card_type = "Move"
+card_type = "move"
 base_value = 3
 usable_when = "attacking"
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

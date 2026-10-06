@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://1wskr7vxkrbn"]
 
 [ext_resource type="PackedScene" uid="uid://cwu28l4omivta" path="res://Scenes/hand.tscn" id="1_b5xid"]
-[ext_resource type="Script" uid="uid://bcefkpn30hf4u" path="res://Scenes/match_slice.gd" id="1_rlrqh"]
+[ext_resource type="Script" uid="uid://bcefkpn30hf4u" path="res://Scripts/match_slice.gd" id="1_rlrqh"]
 [ext_resource type="Script" uid="uid://b2oocq28vdoul" path="res://Scripts/pitch_script.gd" id="3_sypgv"]
 
 [node name="MatchSlice" type="Control" unique_id=417129108]
@@ -47,42 +47,63 @@ offset_bottom = 140.0
 grow_horizontal = 2
 script = ExtResource("3_sypgv")
 
-[node name="ResultLabel" type="Label" parent="." unique_id=898386773]
-layout_mode = 0
-offset_left = 797.0
-offset_top = 19.0
-offset_right = 1159.0
-offset_bottom = 98.0
+[node name="CommentaryBox" type="PanelContainer" parent="." unique_id=1695255033]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -599.0
+offset_top = -107.0
+offset_right = 599.0
+offset_bottom = 107.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="CommentaryBox" unique_id=1241725564]
+layout_mode = 2
+
+[node name="Headline" type="RichTextLabel" parent="CommentaryBox/VBox" unique_id=502780018]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/normal_font_size = 28
+bbcode_enabled = true
+fit_content = true
+
+[node name="Log" type="RichTextLabel" parent="CommentaryBox/VBox" unique_id=734963512]
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+bbcode_enabled = true
+scroll_following = true
 
 [node name="LetThroughButton" type="Button" parent="." unique_id=1749137881]
 layout_mode = 0
-offset_left = 560.0
-offset_top = 437.0
-offset_right = 672.0
-offset_bottom = 490.0
+offset_left = 27.0
+offset_top = 624.0
+offset_right = 190.0
+offset_bottom = 677.0
 text = "Kick off again"
 
 [node name="ShootButton" type="Button" parent="." unique_id=2069174672]
 layout_mode = 0
-offset_left = 715.0
-offset_top = 447.0
-offset_right = 849.0
-offset_bottom = 478.0
+offset_left = 1700.0
+offset_top = 624.0
+offset_right = 1896.0
+offset_bottom = 666.0
 text = "Shoot (1 energy)"
 
 [node name="FullTimePanel" type="Panel" parent="." unique_id=801056383]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 2.0
-offset_top = -4.0
-offset_right = 2.0
-offset_bottom = -4.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Background" type="ColorRect" parent="FullTimePanel" unique_id=2105251916]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -112,4 +133,11 @@ horizontal_alignment = 1
 
 [node name="ContinueButton" type="Button" parent="FullTimePanel/VBox" unique_id=1782092316]
 layout_mode = 2
-text = "Replay (for now)"
+text = "Next Match"
+
+[node name="SquadBar" type="HBoxContainer" parent="." unique_id=1721132799]
+layout_mode = 0
+offset_left = 389.0
+offset_top = 77.0
+offset_right = 1358.0
+offset_bottom = 181.0

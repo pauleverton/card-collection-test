@@ -14,3 +14,5 @@ extends Resource
 ## When this card can be played at all.
 @export_enum("any", "attacking", "defending") var usable_when: String = "any"
 @export_multiline var description: String
+@export var upgrades_to: ActionData
+@export var is_upgraded: bool = false

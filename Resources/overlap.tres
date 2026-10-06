@@ -6,7 +6,7 @@
 script = ExtResource("1_l6q7e")
 display_name = "Overlap"
 tag = "overlap"
-card_type = "Utility"
+card_type = "utility"
 base_value = 2
 usable_when = "attacking"
 description = "Your next move card gets +2"

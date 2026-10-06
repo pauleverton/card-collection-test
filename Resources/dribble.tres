@@ -6,7 +6,7 @@
 script = ExtResource("1_df5el")
 display_name = "Dribble"
 tag = "dribble"
-card_type = "Move"
+card_type = "move"
 base_value = 2
 usable_when = "attacking"
 description = "Draw one card"
