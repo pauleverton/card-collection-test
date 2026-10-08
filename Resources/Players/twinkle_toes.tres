@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PlayerCard" format=3 uid="uid://bd2nq1s1l2m7g"]
+
+[ext_resource type="Script" uid="uid://b8dxl7yvw3hj" path="res://Scripts/player_card.gd" id="1_oak6u"]
+
+[resource]
+script = ExtResource("1_oak6u")
+display_name = "Twinkle Toes"
+description = "Dribbling +2"
+boosts_tags = "dribble"
+bonus = 2
+metadata/_custom_type_script = "uid://b8dxl7yvw3hj"

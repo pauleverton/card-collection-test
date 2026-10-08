@@ -23,6 +23,7 @@ grow_vertical = 2
 color = Color(0.27701452, 0.44654077, 0.02145871, 1)
 
 [node name="Hand" parent="." unique_id=1534953697 instance=ExtResource("1_b5xid")]
+custom_minimum_size = Vector2(0, 320)
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
@@ -33,10 +34,10 @@ grow_vertical = 0
 
 [node name="InfoLabel" type="Label" parent="." unique_id=429595187]
 layout_mode = 0
-offset_left = 421.0
-offset_top = 83.0
-offset_right = 705.0
-offset_bottom = 119.0
+offset_left = 1626.0
+offset_top = 7.0
+offset_right = 1910.0
+offset_bottom = 43.0
 
 [node name="Pitch" type="HBoxContainer" parent="." unique_id=959226060]
 layout_mode = 1
@@ -137,7 +138,7 @@ text = "Next Match"
 
 [node name="SquadBar" type="HBoxContainer" parent="." unique_id=1721132799]
 layout_mode = 0
-offset_left = 389.0
-offset_top = 77.0
-offset_right = 1358.0
-offset_bottom = 181.0
+offset_left = 474.0
+offset_top = 4.0
+offset_right = 1443.0
+offset_bottom = 108.0

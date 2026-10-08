@@ -3,11 +3,6 @@
 [ext_resource type="Script" uid="uid://cqj05fhaxavq4" path="res://Scripts/action_card_ui.gd" id="1_s5uji"]
 
 [node name="ActionCardUi_tscn" type="Button" unique_id=429835350]
-anchors_preset = -1
-anchor_right = 0.99300003
-anchor_bottom = 1.0
-offset_left = 546.0
-offset_top = 340.0
-offset_right = -771.56006
-offset_bottom = -561.0
+offset_right = 8.0
+offset_bottom = 8.0
 script = ExtResource("1_s5uji")

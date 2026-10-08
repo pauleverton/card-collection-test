@@ -5,7 +5,7 @@ signal player_clicked(player: PlayerCard)
 var player: PlayerCard
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(150, 90)
+	custom_minimum_size = Vector2(210, 90)
 	autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	pressed.connect(func(): player_clicked.emit(player))
 

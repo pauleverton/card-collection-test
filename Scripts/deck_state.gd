@@ -5,6 +5,8 @@ var draw_pile: Array = []
 var hand: Array = []
 var discard_pile: Array = []
 
+const MAX_HAND_SIZE := 10
+
 func start_match(deck: Array) -> void:
 	draw_pile = deck.duplicate()
 	draw_pile.shuffle()
@@ -13,6 +15,8 @@ func start_match(deck: Array) -> void:
 
 func draw(count: int) -> void:
 	for i in count:
+		if hand.size() >= MAX_HAND_SIZE:
+			return
 		if draw_pile.is_empty():
 			draw_pile = discard_pile.duplicate()
 			discard_pile.clear()

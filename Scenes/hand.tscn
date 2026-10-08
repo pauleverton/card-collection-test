@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://c6cgib8dvph07" path="res://Scripts/hand.gd" id="1_f6hnx"]
 
-[node name="Hand" type="HBoxContainer" unique_id=1534953697]
-alignment = 1
+[node name="Hand" type="Control" unique_id=1290399388]
+layout_mode = 3
+anchors_preset = 0
 script = ExtResource("1_f6hnx")

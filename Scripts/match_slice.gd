@@ -11,7 +11,8 @@ extends Control
 @onready var full_time_background = $FullTimePanel/Background
 @onready var commentary_headline = $CommentaryBox/VBox/Headline
 @onready var commentary_log = $CommentaryBox/VBox/Log
-
+const PLAYER_UI = preload("res://Scenes/player_card_ui.tscn")
+@onready var squad_bar = $SquadBar
 
 var pitch := PitchMatch.new()
 
@@ -30,6 +31,11 @@ func _ready() -> void:
 	continue_button.pressed.connect(_on_continue)
 	full_time_panel.visible = false
 	_say("Kick-off. Beat the Press to move up the pitch.")
+	for p in RunState.squad:
+		var ui = PLAYER_UI.instantiate()
+		ui.setup(p)
+		ui.disabled = true          ## display only during a match
+		squad_bar.add_child(ui)
 	refresh_all()
 
 # ---------- Player actions ----------
@@ -137,6 +143,8 @@ func describe(events: Array) -> String:
 			# --- You attacking ---
 			"attempt":
 				var outcome: String = "made it!" if e["success"] else "stopped."
+				if not e["helpers"].is_empty():
+					lines.append("   (boosted by %s)" % ", ".join(e["helpers"]))				
 				lines.append("%s %d vs Press %d: %s" % [e["card"], e["power"], e["target"], outcome])
 			"advance":
 				lines.append("Ball moves into %s." % e["zone"])

@@ -32,6 +32,7 @@ func _ready() -> void:
 	new_run()
 	squad.clear()
 	squad.append(load("res://Resources/Players/the_wall.tres"))   ## TEMPORARY, for testing
+	squad.append(load("res://Resources/Players/twinkle_toes.tres"))
 	
 func new_run() -> void:
 	deck.clear()

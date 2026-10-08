@@ -9,5 +9,5 @@ tag = "lump_clear"
 card_type = "defending"
 base_value = 3
 usable_when = "defending"
-description = "Only in your box or half. Boot it 3 zones upfield but surrender possession."
+description = "Clear it 3 zones and surrender possession"
 metadata/_custom_type_script = "uid://c7aob23hi7te0"
