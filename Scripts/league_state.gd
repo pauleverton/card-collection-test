@@ -42,16 +42,6 @@ var current_tournament_index: int = 0   # run-scoped, NOT reset by reset_for_new
 var season_points: int = 0              # resets each new tournament
 var matches_played: int = 0             # resets each new tournament
 
-## This season's decider-match opponent, picked randomly the moment a new
-## season starts (see _resolve_season()). Null for tournament index 0 —
-## there's no "previous season won" yet to reveal one for.
-var current_season_boss: BossTeam = null
-
-## True once the player has seen the Season Prediction screen for the
-## CURRENT season. Starts true so season 1 doesn't try to show a reveal
-## before any season has actually been won — see locker_room.gd, which
-## redirects to the prediction scene while this is false.
-var season_prediction_shown: bool = true
 
 
 func current_tournament() -> Dictionary:
@@ -86,14 +76,11 @@ func is_before_first_match_of_season() -> bool:
 
 
 ## True when the NEXT match played will be this season's decider — the
-## last of MATCHES_PER_SEASON. match_attempt.gd checks this before
 ## start_match() to decide whether to use current_season_boss's squad and
 ## conditions instead of the normal random opponent.
 func is_last_match_of_season() -> bool:
 	return matches_played == matches_per_season() - 1
 
-func mark_season_prediction_shown() -> void:
-	season_prediction_shown = true
 
 
 ## Call after every match in the season — win, draw, or loss, doesn't
@@ -138,8 +125,6 @@ func _resolve_season() -> Dictionary:
 	current_tournament_index += 1
 	season_complete.emit(final_points, true)
 	reset_for_new_tournament()
-	current_season_boss = BossRoster.get_random_boss()
-	season_prediction_shown = false
 	return {"season_ended": true, "promoted": true, "final_points": final_points}
 
 

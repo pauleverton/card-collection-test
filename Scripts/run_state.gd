@@ -3,24 +3,24 @@ extends Node
 ## Register as "RunState" in Project Settings > Globals > Autoload.
 
 const STARTING_DECK := [
-	"res://Resources/short_pass.tres", "res://Resources/short_pass.tres", "res://Resources/short_pass.tres",
-	"res://Resources/dribble.tres", "res://Resources/dribble.tres",
-	"res://Resources/through_ball.tres",
-	"res://Resources/overlap.tres", "res://Resources/overlap.tres",
-	"res://Resources/cross.tres", "res://Resources/cross.tres",
-	"res://Resources/shot.tres",
-	"res://Resources/tackle.tres", "res://Resources/tackle.tres",
-	"res://Resources/track_back.tres", "res://Resources/track_back.tres",
-	"res://Resources/block.tres", "res://Resources/lump_clear.tres",
-	"res://Resources/retain_possession.tres"]
+	"res://Resources/cards/short_pass.tres", "res://Resources/cards/short_pass.tres", "res://Resources/cards/short_pass.tres",
+	"res://Resources/cards/dribble.tres", "res://Resources/cards/dribble.tres",
+	"res://Resources/cards/through_ball.tres",
+	"res://Resources/cards/overlap.tres", "res://Resources/cards/overlap.tres",
+	"res://Resources/cards/cross.tres", "res://Resources/cards/cross.tres",
+	"res://Resources/cards/shot.tres",
+	"res://Resources/cards/tackle.tres", "res://Resources/cards/tackle.tres",
+	"res://Resources/cards/track_back.tres", "res://Resources/cards/track_back.tres",
+	"res://Resources/cards/block.tres", "res://Resources/cards/lump_clear.tres",
+	"res://Resources/cards/retain_possession.tres"]
 
 ## Cards that can be offered as rewards.
 const REWARD_POOL := [
-	"res://Resources/short_pass.tres", "res://Resources/dribble.tres",
-	"res://Resources/through_ball.tres", "res://Resources/overlap.tres",
-	"res://Resources/cross.tres", "res://Resources/shot.tres","res://Resources/long_shot.tres",
-	"res://Resources/track_back.tres", "res://Resources/block.tres",
-	"res://Resources/lump_clear.tres"]
+	"res://Resources/cards/short_pass.tres", "res://Resources/cards/dribble.tres",
+	"res://Resources/cards/through_ball.tres", "res://Resources/cards/overlap.tres",
+	"res://Resources/cards/cross.tres", "res://Resources/cards/shot.tres","res://Resources/cards/long_shot.tres",
+	"res://Resources/cards/track_back.tres", "res://Resources/cards/block.tres",
+	"res://Resources/cards/lump_clear.tres"]
 const REWARD_CHOICES := 3
 
 var deck: Array = []
