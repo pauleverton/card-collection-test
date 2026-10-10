@@ -1,6 +1,7 @@
-# deck_state.gd (add as an autoload)
+## DeckState: the draw pile, hand and discard pile DURING ONE MATCH.
+## Rebuilt at every kick-off from RunState.deck (the cards you own for the whole run).
 extends Node
-
+	
 var draw_pile: Array = []
 var hand: Array = []
 var discard_pile: Array = []
@@ -25,7 +26,7 @@ func draw(count: int) -> void:
 			return
 		hand.append(draw_pile.pop_back())
 
-func play(card: ActionData) -> void:
+func play(card: ActionCard) -> void:
 	hand.erase(card)
 	discard_pile.append(card)
 
@@ -33,7 +34,7 @@ func discard_hand() -> void:
 	discard_pile.append_array(hand)
 	hand.clear()
 
-func recall_last_discarded() -> ActionData:
+func recall_last_discarded() -> ActionCard:
 	if discard_pile.is_empty():
 		push_warning("recall: discard pile is empty")
 		return null

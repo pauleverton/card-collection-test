@@ -1,6 +1,6 @@
-# action_data.gd
+# action_card.gd — what an action card IS (tag, cost, value…). One .tres per card in Resources/cards.
 @tool
-class_name ActionData
+class_name ActionCard
 extends Resource
 
 @export var id: String
@@ -15,7 +15,7 @@ extends Resource
 ## When this card can be played at all.
 @export_enum("any", "attacking", "defending") var usable_when: String = "any"
 @export_multiline var description: String
-@export var upgrades_to: ActionData
+@export var upgrades_to: ActionCard
 @export var is_upgraded: bool = false
 
 ## Turns tag and card_type into dropdowns built from CardTags, so there's only one list.

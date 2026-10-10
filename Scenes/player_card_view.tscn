@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bof1ov3ykiah3"]
 
-[ext_resource type="Script" uid="uid://b0rnevf6sd5nw" path="res://Scripts/player_card_ui.gd" id="1_kb7sj"]
+[ext_resource type="Script" uid="uid://b0rnevf6sd5nw" path="res://Scripts/player_card_view.gd" id="1_kb7sj"]
 
 [node name="PlayerCardUi" type="Button" unique_id=322385644]
 script = ExtResource("1_kb7sj")

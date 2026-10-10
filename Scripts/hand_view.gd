@@ -1,8 +1,8 @@
 extends Control
 
-signal card_played(card: ActionData)
+signal card_played(card: ActionCard)
 
-const CARD_UI = preload("res://Scenes/action_card_ui.tscn")
+const CARD_UI = preload("res://Scenes/action_card_view.tscn")
 const CARD_SIZE := Vector2(180, 250)
 const MAX_SPACING := 180.0     ## distance between cards when there's plenty of room
 const FAN_MAX_ANGLE := 12.0    ## tilt of the outermost cards, in degrees

@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://1wskr7vxkrbn"]
 
-[ext_resource type="PackedScene" uid="uid://cwu28l4omivta" path="res://Scenes/hand.tscn" id="1_b5xid"]
-[ext_resource type="Script" uid="uid://bcefkpn30hf4u" path="res://Scripts/match_slice.gd" id="1_rlrqh"]
-[ext_resource type="Script" uid="uid://b2oocq28vdoul" path="res://Scripts/pitch_script.gd" id="3_sypgv"]
+[ext_resource type="Script" uid="uid://bcefkpn30hf4u" path="res://Scripts/match_screen.gd" id="1_q5qwi"]
+[ext_resource type="PackedScene" uid="uid://cwu28l4omivta" path="res://Scenes/hand_view.tscn" id="2_inwtk"]
+[ext_resource type="Script" uid="uid://b2oocq28vdoul" path="res://Scripts/pitch_view.gd" id="3_8am4k"]
 
 [node name="MatchSlice" type="Control" unique_id=417129108]
 layout_mode = 3
@@ -11,7 +11,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_rlrqh")
+script = ExtResource("1_q5qwi")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=1494732306]
 layout_mode = 1
@@ -22,7 +22,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.27701452, 0.44654077, 0.02145871, 1)
 
-[node name="Hand" parent="." unique_id=1534953697 instance=ExtResource("1_b5xid")]
+[node name="Hand" parent="." unique_id=1534953697 instance=ExtResource("2_inwtk")]
 custom_minimum_size = Vector2(0, 320)
 layout_mode = 1
 anchors_preset = 12
@@ -46,7 +46,7 @@ anchor_right = 1.0
 offset_top = 140.0
 offset_bottom = 140.0
 grow_horizontal = 2
-script = ExtResource("3_sypgv")
+script = ExtResource("3_8am4k")
 
 [node name="CommentaryBox" type="PanelContainer" parent="." unique_id=1695255033]
 layout_mode = 1

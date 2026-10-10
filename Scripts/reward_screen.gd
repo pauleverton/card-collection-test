@@ -1,6 +1,6 @@
 extends Control
 
-const CARD_UI = preload("res://Scenes/action_card_ui.tscn")
+const CARD_UI = preload("res://Scenes/action_card_view.tscn")
 
 @onready var title_label = $VBox/TitleLabel
 @onready var choices = $VBox/Choices
@@ -16,9 +16,9 @@ func _ready() -> void:
 		choices.add_child(ui)
 	skip_button.pressed.connect(_next_match)
 
-func _on_card_chosen(card: ActionData) -> void:
+func _on_card_chosen(card: ActionCard) -> void:
 	RunState.add_card(card)
 	_next_match()
 
 func _next_match() -> void:
-	get_tree().change_scene_to_file("res://Scenes/shop.tscn")
+	get_tree().change_scene_to_file("res://Scenes/shop_screen.tscn")

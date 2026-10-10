@@ -24,11 +24,11 @@ func _ready() -> void:
 		_labels.append(label)
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
-func show_state(m: PitchMatch) -> void:
+func show_state(m: MatchRules) -> void:
 	for i in 5:
 		_labels[i].add_theme_font_size_override("font_size", 26)
 		_zones[i].color = GRASS[i]
-		_labels[i].text = PitchMatch.ZONE_NAMES[i]
+		_labels[i].text = MatchRules.ZONE_NAMES[i]
 		_labels[i].add_theme_color_override("font_color", Color.WHITE)
 	var z := m.zone
 	if m.has_ball:
@@ -39,7 +39,7 @@ func show_state(m: PitchMatch) -> void:
 			var upcoming := m.upcoming_defenders()
 			var next_up := "nobody! Free shot"
 			if not upcoming.is_empty():
-				next_up = PitchMatch.DEFENDER_TEXT[upcoming[0]]
+				next_up = MatchRules.DEFENDER_TEXT[upcoming[0]]
 				if upcoming.size() > 1:
 					next_up += " (+%d more)" % (upcoming.size() - 1)
 			_labels[z].text += "\nChance %d\nNext: %s\nShoot now: %d%%\nWith Shot card: %d%%" % [

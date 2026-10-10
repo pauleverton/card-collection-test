@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://co2brvonpa21h"]
 
-[ext_resource type="Script" uid="uid://cqj05fhaxavq4" path="res://Scripts/action_card_ui.gd" id="1_s5uji"]
+[ext_resource type="Script" uid="uid://cqj05fhaxavq4" path="res://Scripts/action_card_view.gd" id="1_s5uji"]
 
 [node name="ActionCardUi_tscn" type="Button" unique_id=429835350]
 offset_right = 8.0

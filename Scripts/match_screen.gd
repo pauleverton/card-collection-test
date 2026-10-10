@@ -11,10 +11,10 @@ extends Control
 @onready var full_time_background = $FullTimePanel/Background
 @onready var commentary_headline = $CommentaryBox/VBox/Headline
 @onready var commentary_log = $CommentaryBox/VBox/Log
-const PLAYER_UI = preload("res://Scenes/player_card_ui.tscn")
+const PLAYER_UI = preload("res://Scenes/player_card_view.tscn")
 @onready var squad_bar = $SquadBar
 
-var pitch := PitchMatch.new()
+var pitch := MatchRules.new()
 
 
 ## Filled in at full time by LeagueState, and read by Continue to decide where to go next.
@@ -40,7 +40,7 @@ func _ready() -> void:
 
 # ---------- Player actions ----------
 
-func play_card(card: ActionData) -> void:
+func play_card(card: ActionCard) -> void:
 	var events := pitch.play(card)
 	## If the card couldn't be played at all, leave it in the hand.
 	if events[0]["type"] in ["not_now", "no_energy", "wrong_side"]:
@@ -117,7 +117,7 @@ func _on_continue() -> void:
 	elif pitch.goals > pitch.conceded:
 		get_tree().change_scene_to_file("res://Scenes/reward_screen.tscn")
 	else:
-		get_tree().change_scene_to_file("res://Scenes/shop.tscn")
+		get_tree().change_scene_to_file("res://Scenes/shop_screen.tscn")
 
 # ---------- Screen ----------
 

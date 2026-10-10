@@ -1,6 +1,6 @@
 extends Control
 
-const CARD_UI = preload("res://Scenes/action_card_ui.tscn")
+const CARD_UI = preload("res://Scenes/action_card_view.tscn")
 const PRICE := {"basic": 30, "common": 50, "uncommon": 80, "rare": 120}
 const PACK_PRICE := 100
 const PACK_SIZE := 3
@@ -28,10 +28,10 @@ func _ready() -> void:
 	upgrade_button.text = "Upgrade a card (%d coins)" % UPGRADE_PRICE
 	upgrade_button.pressed.connect(_show_deck_for_upgrade)
 
-func price_of(card: ActionData) -> int:
+func price_of(card: ActionCard) -> int:
 	return PRICE.get(card.card_rarity, 50)
 
-func _buy_card(card: ActionData, ui: Button) -> void:
+func _buy_card(card: ActionCard, ui: Button) -> void:
 	var cost := price_of(card)
 	if not CoinState.can_afford(cost):
 		coins_label.text = "Not enough coins! (%d)" % CoinState.coins
@@ -63,7 +63,7 @@ func _update_coins() -> void:
 	coins_label.text = "Coins: %d   |   Deck: %d cards" % [CoinState.coins, RunState.deck.size()]
 
 func _leave() -> void:
-	get_tree().change_scene_to_file("res://Scenes/match_slice.tscn")
+	get_tree().change_scene_to_file("res://Scenes/match_screen.tscn")
 
 func _show_deck_for_upgrade() -> void:
 	if not CoinState.can_afford(UPGRADE_PRICE):
@@ -71,7 +71,7 @@ func _show_deck_for_upgrade() -> void:
 		return
 	_clear_deck_view()
 	for i in RunState.deck.size():
-		var card: ActionData = RunState.deck[i]
+		var card: ActionCard = RunState.deck[i]
 		var ui = CARD_UI.instantiate()
 		ui.setup(card)
 		ui.disabled = card.is_upgraded          ## can't upgrade twice

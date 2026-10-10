@@ -1,4 +1,4 @@
-class_name PitchMatch
+class_name MatchRules
 extends RefCounted
 
 ## Zones: 0 = your box, 1 = your half, 2 = midfield, 3 = their half, 4 = their box
@@ -113,11 +113,11 @@ func basic_shot_odds() -> int:
 func their_goal_odds() -> int:
 	return _odds_to_beat(quality, _our_keeper_pile, OUR_KEEPER_DECK)
 
-func power_of(card: ActionData) -> int:
+func power_of(card: ActionCard) -> int:
 	return card.base_value + next_bonus + RunState.squad_bonus(card)
 
 ## Can this card be played in the current possession?
-func is_right_phase(card: ActionData) -> bool:
+func is_right_phase(card: ActionCard) -> bool:
 	match card.usable_when:
 		"attacking":
 			return has_ball
@@ -126,7 +126,7 @@ func is_right_phase(card: ActionData) -> bool:
 	return true
 	
 ## True if the card is worth playing right now (used for the green tint).
-func would_succeed(card: ActionData) -> bool:
+func would_succeed(card: ActionCard) -> bool:
 	if match_over or not is_right_phase(card):
 		return false
 	if card.tag in ["retain", "overlap"]:
@@ -148,7 +148,7 @@ func would_succeed(card: ActionData) -> bool:
 	return power_of(card) >= target
 	
 ## How much the NEXT defender would take off if you played this card (CLEARED = they win it).
-func next_defender_effect(card: ActionData) -> int:
+func next_defender_effect(card: ActionCard) -> int:
 	if _box_hand.is_empty():
 		return 0
 	var d: String = _box_hand[0]
@@ -157,14 +157,14 @@ func next_defender_effect(card: ActionData) -> int:
 	return DEFENDER_EFFECT[d].get(card.tag, 0)
 
 ## What this card adds to your chance in the box, before the defender responds.
-func box_gain(card: ActionData) -> int:
+func box_gain(card: ActionCard) -> int:
 	var amount: int = card.base_value if card.tag == "cross" else BOX_WORK_VALUE
 	return amount + next_bonus + RunState.squad_bonus(card)
 	
 
 # ---------- Actions ----------
 
-func play(card: ActionData) -> Array:
+func play(card: ActionCard) -> Array:
 	var events := []
 	if match_over:
 		events.append({"type": "not_now"})
@@ -237,7 +237,7 @@ func let_them_through() -> Array:
 
 # ---------- You attacking: build-up ----------
 
-func _play_in_build_up(card: ActionData, events: Array) -> void:
+func _play_in_build_up(card: ActionCard, events: Array) -> void:
 	match card.tag:
 		"pass", "dribble", "long_ball":
 			_attempt_move(card, events)
@@ -247,7 +247,7 @@ func _play_in_build_up(card: ActionData, events: Array) -> void:
 		_:
 			events.append({"type": "wrong_phase", "card": card.display_name})
 
-func _attempt_move(card: ActionData, events: Array) -> void:
+func _attempt_move(card: ActionCard, events: Array) -> void:
 	var power := power_of(card)
 	next_bonus = 0
 	var success := power >= target
@@ -286,7 +286,7 @@ func _enter_box(start_quality: int, events: Array) -> void:
 		_box_hand.append(_draw_from(_box_defence_pile, BOX_DEFENCE_DECK))
 	events.append({"type": "in_the_box", "quality": quality})
 
-func _play_in_box(card: ActionData, events: Array) -> void:
+func _play_in_box(card: ActionCard, events: Array) -> void:
 	match card.tag:
 		"pass", "dribble", "cross":
 			quality += box_gain(card)
@@ -300,7 +300,7 @@ func _play_in_box(card: ActionData, events: Array) -> void:
 		_:
 			events.append({"type": "wrong_phase", "card": card.display_name})
 
-func _defender_responds(card: ActionData, events: Array) -> void:
+func _defender_responds(card: ActionCard, events: Array) -> void:
 	if _box_hand.is_empty():
 		events.append({"type": "no_defenders"})
 		return
@@ -332,7 +332,7 @@ func _shoot(events: Array) -> void:
 # ---------- Them attacking ----------
 
 ## Boot it upfield from your own box or half. They end up with the ball, but far from your goal.
-func _lump_clear(card: ActionData, events: Array) -> void:
+func _lump_clear(card: ActionCard, events: Array) -> void:
 	if zone > 1:
 		events.append({"type": "wrong_phase", "card": card.display_name})
 		return
@@ -344,7 +344,7 @@ func _lump_clear(card: ActionData, events: Array) -> void:
 	else:
 		_flip_attack()   ## they keep it, but have to start again from here
 
-func _defend_build_up(card: ActionData, events: Array) -> void:
+func _defend_build_up(card: ActionCard, events: Array) -> void:
 	match card.tag:
 		"tackle", "track_back":
 			var power := power_of(card)
@@ -378,7 +378,7 @@ func _flip_attack() -> void:
 func _set_their_chance() -> void:
 	quality = _draw_from(_their_chance_pile, THEIR_CHANCE_DECK)
 
-func _defend_in_box(card: ActionData, events: Array) -> void:
+func _defend_in_box(card: ActionCard, events: Array) -> void:
 	match card.tag:
 		"block", "tackle":
 			var power := power_of(card)

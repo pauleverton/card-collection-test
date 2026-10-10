@@ -10,7 +10,7 @@ extends Resource
 @export var bonus: int = 1
 
 ## How much this player adds to a given card.
-func bonus_for(card: ActionData) -> int:
+func bonus_for(card: ActionCard) -> int:
 	if boosts_type != "any" and card.card_type != boosts_type:
 		return 0
 	if boosts_tags != "any" and card.tag != boosts_tags:
