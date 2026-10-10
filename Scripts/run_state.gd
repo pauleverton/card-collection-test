@@ -69,18 +69,8 @@ func squad_helpers(card: ActionCard) -> PackedStringArray:
 			names.append(p.display_name)
 	return names
 	
-const UPGRADE_BONUS := 2
-
-## Upgrade ONE card in the deck, by its position, without touching any other copies.
+## Swap ONE deck slot for its hand-made upgraded version.
 func upgrade_card(index: int) -> void:
 	var card: ActionCard = deck[index]
-	if card.is_upgraded:
-		return
-	if card.upgrades_to != null:
+	if card.can_upgrade():
 		deck[index] = card.upgrades_to
-	else:
-		var upgraded: ActionCard = card.duplicate()
-		upgraded.base_value += UPGRADE_BONUS
-		upgraded.display_name += "+"
-		upgraded.is_upgraded = true
-		deck[index] = upgraded

@@ -4,10 +4,10 @@
 
 [resource]
 script = ExtResource("1_a5ann")
-display_name = "Block"
+display_name = "Block+"
 tag = "block"
 card_type = "defending"
-base_value = 2
+base_value = 3
 usable_when = "defending"
-description = "Block"
+description = "Block+"
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

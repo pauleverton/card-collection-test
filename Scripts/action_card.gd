@@ -25,3 +25,6 @@ func _validate_property(property: Dictionary) -> void:
 	elif property.name == "card_type":
 		property.hint = PROPERTY_HINT_ENUM
 		property.hint_string = ",".join(CardTags.TYPES)
+
+func can_upgrade() -> bool:
+	return upgrades_to != null

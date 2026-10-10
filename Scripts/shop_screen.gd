@@ -72,12 +72,14 @@ func _show_deck_for_upgrade() -> void:
 	_clear_deck_view()
 	for i in RunState.deck.size():
 		var card: ActionCard = RunState.deck[i]
+		if not card.can_upgrade():
+			continue                      ## skip cards with no upgrade
 		var ui = CARD_UI.instantiate()
 		ui.setup(card)
-		ui.disabled = card.is_upgraded          ## can't upgrade twice
+		ui.text += "\n→ %s" % card.upgrades_to.display_name
 		ui.card_clicked.connect(func(_c): _upgrade(i))
 		deck_view.add_child(ui)
-
+		
 func _upgrade(index: int) -> void:
 	var before: ActionCard = RunState.deck[index]
 	CoinState.deduct_coins(UPGRADE_PRICE)
