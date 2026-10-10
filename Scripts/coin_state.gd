@@ -3,8 +3,13 @@ extends Node
 
 signal coins_changed(new_amount: int)
 
-var coins: int = 1000
+const STARTING_COINS := 1000
+var coins: int = STARTING_COINS
 
+func new_run() -> void:
+	coins = STARTING_COINS
+	coins_changed.emit(coins)
+	
 func can_afford(amount: int) -> bool:
 	return coins >= amount
 

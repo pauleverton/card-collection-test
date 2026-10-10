@@ -79,11 +79,15 @@ func _show_deck_for_upgrade() -> void:
 		deck_view.add_child(ui)
 
 func _upgrade(index: int) -> void:
+	var before: ActionCard = RunState.deck[index]
 	CoinState.deduct_coins(UPGRADE_PRICE)
 	RunState.upgrade_card(index)
+	var after: ActionCard = RunState.deck[index]
 	_clear_deck_view()
 	upgrade_button.disabled = true             ## one upgrade per shop visit
 	_update_coins()
+	coins_label.text = "Upgraded %s (value %d) → %s (value %d)!   Coins: %d" % [
+			before.display_name, before.base_value, after.display_name, after.base_value, CoinState.coins]
 
 func _clear_deck_view() -> void:
 	for child in deck_view.get_children():

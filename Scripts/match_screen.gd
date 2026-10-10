@@ -113,7 +113,8 @@ func _on_continue() -> void:
 	if run_over:
 		RunState.new_run()
 		CareerState.start_new_run()
-		get_tree().reload_current_scene()
+		CoinState.new_run()
+		get_tree().change_scene_to_file("res://Scenes/main_menu.tscn")
 	elif pitch.goals > pitch.conceded:
 		get_tree().change_scene_to_file("res://Scenes/reward_screen.tscn")
 	else:

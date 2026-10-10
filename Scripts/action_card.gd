@@ -16,7 +16,6 @@ extends Resource
 @export_enum("any", "attacking", "defending") var usable_when: String = "any"
 @export_multiline var description: String
 @export var upgrades_to: ActionCard
-@export var is_upgraded: bool = false
 
 ## Turns tag and card_type into dropdowns built from CardTags, so there's only one list.
 func _validate_property(property: Dictionary) -> void:

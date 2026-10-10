@@ -3,24 +3,24 @@ extends Node
 ## Register as "RunState" in Project Settings > Globals > Autoload.
 
 const STARTING_DECK := [
-	"res://Resources/cards/short_pass.tres", "res://Resources/cards/short_pass.tres", "res://Resources/cards/short_pass.tres",
-	"res://Resources/cards/dribble.tres", "res://Resources/cards/dribble.tres",
-	"res://Resources/cards/through_ball.tres",
-	"res://Resources/cards/overlap.tres", "res://Resources/cards/overlap.tres",
-	"res://Resources/cards/cross.tres", "res://Resources/cards/cross.tres",
-	"res://Resources/cards/shot.tres",
-	"res://Resources/cards/tackle.tres", "res://Resources/cards/tackle.tres",
-	"res://Resources/cards/track_back.tres", "res://Resources/cards/track_back.tres",
-	"res://Resources/cards/block.tres", "res://Resources/cards/lump_clear.tres",
-	"res://Resources/cards/retain_possession.tres"]
+	"res://Resources/cards/starting_cards/short_pass.tres", "res://Resources/cards/starting_cards/short_pass.tres", "res://Resources/cards/starting_cards/short_pass.tres",
+	"res://Resources/cards/starting_cards/dribble.tres", "res://Resources/cards/starting_cards/dribble.tres",
+	"res://Resources/cards/starting_cards/through_ball.tres",
+	"res://Resources/cards/starting_cards/overlap.tres", "res://Resources/cards/starting_cards/overlap.tres",
+	"res://Resources/cards/starting_cards/cross.tres", "res://Resources/cards/starting_cards/cross.tres",
+	"res://Resources/cards/starting_cards/shot.tres",
+	"res://Resources/cards/starting_cards/tackle.tres", "res://Resources/cards/starting_cards/tackle.tres",
+	"res://Resources/cards/starting_cards/track_back.tres", "res://Resources/cards/starting_cards/track_back.tres",
+	"res://Resources/cards/starting_cards/block.tres", "res://Resources/cards/starting_cards/lump_clear.tres",
+	"res://Resources/cards/starting_cards/retain_possession.tres"]
 
 ## Cards that can be offered as rewards.
 const REWARD_POOL := [
-	"res://Resources/cards/short_pass.tres", "res://Resources/cards/dribble.tres",
-	"res://Resources/cards/through_ball.tres", "res://Resources/cards/overlap.tres",
-	"res://Resources/cards/cross.tres", "res://Resources/cards/shot.tres","res://Resources/cards/long_shot.tres",
-	"res://Resources/cards/track_back.tres", "res://Resources/cards/block.tres",
-	"res://Resources/cards/lump_clear.tres"]
+	"res://Resources/cards/starting_cards/short_pass.tres", "res://Resources/cards/starting_cards/dribble.tres",
+	"res://Resources/cards/starting_cards/through_ball.tres", "res://Resources/cards/starting_cards/overlap.tres",
+	"res://Resources/cards/starting_cards/cross.tres", "res://Resources/cards/starting_cards/shot.tres","res://Resources/cards/starting_cards/long_shot.tres",
+	"res://Resources/cards/starting_cards/track_back.tres", "res://Resources/cards/starting_cards/block.tres",
+	"res://Resources/cards/starting_cards/lump_clear.tres"]
 const REWARD_CHOICES := 3
 
 var deck: Array = []
@@ -30,15 +30,15 @@ var squad: Array = []
 
 func _ready() -> void:
 	new_run()
-	squad.clear()
-	squad.append(load("res://Resources/Players/the_wall.tres"))   ## TEMPORARY, for testing
-	squad.append(load("res://Resources/Players/twinkle_toes.tres"))
-	
+
 func new_run() -> void:
 	deck.clear()
 	for path in STARTING_DECK:
 		deck.append(load(path))
 	matches_played = 0
+	squad.clear()
+	squad.append(load("res://Resources/Players/the_wall.tres"))     ## TEMPORARY, for testing
+	squad.append(load("res://Resources/Players/twinkle_toes.tres"))  ## TEMPORARY, for testing
 
 ## Three different random cards from the pool.
 func reward_options(count: int = REWARD_CHOICES) -> Array:
