@@ -35,16 +35,17 @@ grow_vertical = 0
 [node name="InfoLabel" type="Label" parent="." unique_id=429595187]
 layout_mode = 0
 offset_left = 1626.0
-offset_top = 7.0
+offset_top = 6.0
 offset_right = 1910.0
-offset_bottom = 43.0
+offset_bottom = 216.0
+horizontal_alignment = 2
 
 [node name="Pitch" type="HBoxContainer" parent="." unique_id=959226060]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_top = 140.0
-offset_bottom = 140.0
+offset_top = 156.0
+offset_bottom = 156.0
 grow_horizontal = 2
 script = ExtResource("3_8am4k")
 

@@ -125,9 +125,9 @@ func _on_continue() -> void:
 func refresh_all() -> void:
 	hand.refresh()
 	pitch_strip.show_state(pitch)
-	info_label.text = "%s  Match %d/%d  %d pts (need %d)   |   %d'   |   You %d - %d Them   |   Energy %d" % [
-			LeagueState.current_tournament_name(), LeagueState.matches_played + 1,
-			LeagueState.matches_per_season(), LeagueState.season_points, LeagueState.promotion_target(),			pitch.minute, pitch.goals, pitch.conceded, pitch.energy]
+	info_label.text = "%s\n%d' \nYou %d - %d Them\nEnergy %d" % [
+			LeagueState.current_tournament_name(),
+			pitch.minute, pitch.goals, pitch.conceded, pitch.energy]
 	shoot_button.visible = pitch.in_their_box() and not pitch.match_over
 	let_through_button.visible = not pitch.has_ball and not pitch.match_over
 	let_through_button.text = "Let them shoot" if pitch.in_our_box() else "Let them through"

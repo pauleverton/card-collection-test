@@ -4,7 +4,7 @@ extends Resource
 
 @export var display_name: String = ""
 @export_multiline var description: String = ""
-@export var rarity: String = "common"
+@export_enum("common","uncommon","rare","special") var rarity:String="common"
 @export var boosts_type: String = "any"
 @export var boosts_tags: String = "any"
 @export var bonus: int = 1

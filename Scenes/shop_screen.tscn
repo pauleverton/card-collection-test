@@ -32,6 +32,12 @@ layout_mode = 2
 [node name="ForSale" type="HBoxContainer" parent="VBox" unique_id=1282709806]
 layout_mode = 2
 
+[node name="PlayerForSale" type="HBoxContainer" parent="VBox" unique_id=1266816886]
+layout_mode = 2
+
+[node name="SquadView" type="HBoxContainer" parent="VBox" unique_id=1459084673]
+layout_mode = 2
+
 [node name="PackButton" type="Button" parent="VBox" unique_id=1342289265]
 layout_mode = 2
 text = "Buy a pack"

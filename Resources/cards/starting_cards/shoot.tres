@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="ActionCard" format=3 uid="uid://djf0ce8opm8ps"]
 
-[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_yj2ng"]
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_alg6r"]
 
 [resource]
-script = ExtResource("1_yj2ng")
-display_name = "Shot"
+script = ExtResource("1_alg6r")
+display_name = "Shoot"
 tag = "shot"
 base_value = 3
 usable_when = "attacking"

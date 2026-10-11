@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ActionCard" format=3 uid="uid://wand37bacrgr"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_5ntem"]
+
+[resource]
+script = ExtResource("1_5ntem")
+display_name = "Dribble+"
+energy_cost = 0
+tag = "dribble"
+card_type = "move"
+base_value = 2
+usable_when = "attacking"
+description = "Draw one card"
+metadata/_custom_type_script = "uid://c7aob23hi7te0"
