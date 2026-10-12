@@ -9,7 +9,7 @@ extends Resource
 @export var tag: String = "pass"
 @export var card_type: String = "attacking"
 @export_enum("common","uncommon","rare","special") var card_rarity:String="common"
-@export var base_value: int = 1
+@export var base_value: int = 10
 @export var draw_count: int = 0
 @export var energy_boost: int = 0
 ## When this card can be played at all.

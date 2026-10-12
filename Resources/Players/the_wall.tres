@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_l6068")
 display_name = "The Wall"
-description = "+1 to all defending cards"
+description = "+10 to all defending cards"
 boosts_type = "defending"
 metadata/_custom_type_script = "uid://b8dxl7yvw3hj"

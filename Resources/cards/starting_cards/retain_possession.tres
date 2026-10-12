@@ -8,6 +8,7 @@ display_name = "Retain"
 energy_cost = 0
 tag = "retain"
 card_type = "utility"
+base_value = 1
 draw_count = 2
 energy_boost = 1
 usable_when = "attacking"

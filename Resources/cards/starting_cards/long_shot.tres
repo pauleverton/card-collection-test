@@ -8,6 +8,6 @@ display_name = "Long Shot"
 energy_cost = 2
 tag = "shot"
 card_rarity = "rare"
-base_value = 5
+base_value = 50
 description = "Shoot from range"
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

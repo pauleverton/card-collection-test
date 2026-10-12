@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_oak6u")
 display_name = "Twinkle Toes"
-description = "Dribbling +2"
+description = "Dribbling +20"
 rarity = "uncommon"
 boosts_tags = "dribble"
-bonus = 2
+bonus = 20
 metadata/_custom_type_script = "uid://b8dxl7yvw3hj"

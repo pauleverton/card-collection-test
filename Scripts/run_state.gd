@@ -41,7 +41,7 @@ const PLAYER_POOL:= [
 var deck: Array = []
 var matches_played := 0
 var squad: Array = []
-const MAX_SQUAD := 1
+const MAX_SQUAD := 5
 
 func _ready() -> void:
 	new_run()

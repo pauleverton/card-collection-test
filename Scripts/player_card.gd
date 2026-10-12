@@ -7,7 +7,7 @@ extends Resource
 @export_enum("common","uncommon","rare","special") var rarity:String="common"
 @export var boosts_type: String = "any"
 @export var boosts_tags: String = "any"
-@export var bonus: int = 1
+@export var bonus: int = 10
 
 ## How much this player adds to a given card.
 func bonus_for(card: ActionCard) -> int:

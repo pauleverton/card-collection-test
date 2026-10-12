@@ -46,6 +46,13 @@ func play_card(card: ActionCard) -> void:
 	if events[0]["type"] in ["not_now", "no_energy", "wrong_side"]:
 		_say(describe(events), false)
 		return
+	## Squad players who boost this card react one after another.
+	var delay := 0.0
+	for ui in squad_bar.get_children():
+		var bonus: int = ui.player.bonus_for(card)
+		if bonus > 0:
+			ui.react(bonus, delay)
+			delay += 0.25
 	_after_action(events)
 
 func _on_shoot() -> void:
@@ -171,7 +178,7 @@ func describe(events: Array) -> String:
 			"goal":
 				lines.append("[color=gold][b]GOAL![/b] You've scored %d.[/color]" % e["goals"])
 			"corner":
-				lines.append("Tipped round the post. Corner! Chance reset to 2, +1 energy.")
+				lines.append("Tipped round the post. Corner! Chance reset to 20, +1 energy.")
 			"saved":
 				lines.append("Saved.")
 			"turnover":

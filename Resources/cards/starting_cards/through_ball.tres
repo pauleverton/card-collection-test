@@ -7,6 +7,6 @@ script = ExtResource("1_y231i")
 display_name = "Through ball"
 energy_cost = 2
 tag = "long_ball"
-base_value = 5
+base_value = 50
 usable_when = "attacking"
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

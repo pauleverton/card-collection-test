@@ -45,7 +45,7 @@ func show_state(m: MatchRules) -> void:
 			_labels[z].text += "\nChance %d\nNext: %s\nShoot now: %d%%\nWith Shot card: %d%%" % [
 					m.quality, next_up,
 					m.basic_shot_odds(),
-					m.goal_odds(m.quality + 3 + m.next_bonus)]
+					m.goal_odds(m.quality + 30 + m.next_bonus)]
 		else:
 			_labels[z].text += "\n\nYOUR BALL\nPress %d" % m.target
 	else:

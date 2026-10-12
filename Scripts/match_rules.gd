@@ -7,39 +7,42 @@ const START_ENERGY := 5
 const POSSESSION_DRAW := 2   ## cards drawn every time the ball changes hands
 
 ## --- You attacking: their Press ---
-const PRESS_MODIFIER := [0, 0, 1, 2, 0]
-const PRESS_DECK := [2, 2, 3, 3, 3, 4, 4, 4, 5]
-const LONG_BALL_MARGIN := 3
+const PRESS_MODIFIER := [0, 0, 10, 20, 0]
+const PRESS_DECK := [20, 20, 30, 30, 30, 40, 40, 40, 50]
+const LONG_BALL_MARGIN := 30
+## A failed Dribble or Track Back lowers the target by this instead of losing the ball.
+const NEAR_MISS_DROP := 10
 
 ## --- You attacking: their box ---
 const BOX_DEFENCE_DECK := ["block", "block", "block", "tackle", "tackle",
 		"clearance", "clearance", "slip", "slip"]
 const DEFENDER_TEXT := {
-	"tackle": "Tackle (-3 on the ground, can't stop a cross)",
-	"block": "Block (-2, but a dribble goes round him)",
-	"clearance": "Header (wins a cross if chance 4 or less, no use on the ground)",
+	"tackle": "Tackle (-30 on the ground, can't stop a cross)",
+	"block": "Block (-20, but a dribble goes round him)",
+	"clearance": "Header (wins a cross if chance 40 or less, no use on the ground)",
 	"slip": "Slip (no effect)"}
 ## How much each defender takes off your chance, depending on which card you played.
 const DEFENDER_EFFECT := {
-	"tackle":    {"pass": 3, "dribble": 3, "cross": 0},
-	"block":     {"pass": 2, "dribble": 0, "cross": 2},
-	"clearance": {"pass": 0, "dribble": 0, "cross": 2},
+	"tackle":    {"pass": 30, "dribble": 30, "cross": 0},
+	"block":     {"pass": 20, "dribble": 0, "cross": 20},
+	"clearance": {"pass": 0, "dribble": 0, "cross": 20},
 	"slip":      {"pass": 0, "dribble": 0, "cross": 0}}
 const CLEARED := 99   ## a special result meaning "the defender wins the ball"
 const BOX_HAND_SIZE := 3
-const CLEARANCE_LIMIT := 4
-const BOX_WORK_VALUE := 1   ## what Pass and Dribble add inside the box
-const KEEPER_DECK := [2, 3, 3, 4, 4, 5, 5, 6, 7]
+const CLEARANCE_LIMIT := 40
+const BOX_WORK_VALUE := 10   ## what Pass and Dribble add inside the box
+const KEEPER_DECK := [20, 30, 30, 40, 40, 50, 50, 60, 70]
 const SHOT_COST := 1
 const BOX_ENERGY := 3
-const BASIC_SHOT_ROLL_MAX := 4   ## a basic shot adds a random 0 to this
+const BASIC_SHOT_ROLL_MAX := 40   ## a basic shot adds a random 0 to this...
+const BASIC_SHOT_ROLL_STEP := 10  ## ...in steps of this (0, 10, 20, 30, 40)
 
 ## --- Them attacking ---
-const ATTACK_MODIFIER := [0, 2, 1, 0, 0]   ## the mirror of PRESS_MODIFIER
-const ATTACK_DECK := [2, 2, 3, 3, 3, 4, 4, 4, 5]
-const THEIR_CHANCE_DECK := [3, 4, 4, 5, 5, 6, 6, 7]
-const OUR_KEEPER_DECK := [2, 3, 3, 4, 4, 5, 5, 6, 7]
-const MIN_THEIR_CHANCE := 3   ## you can never block a chance down to nothing
+const ATTACK_MODIFIER := [0, 20, 10, 0, 0]   ## the mirror of PRESS_MODIFIER
+const ATTACK_DECK := [20, 20, 30, 30, 30, 40, 40, 40, 50]
+const THEIR_CHANCE_DECK := [30, 40, 40, 50, 50, 60, 60, 70]
+const OUR_KEEPER_DECK := [20, 30, 30, 40, 40, 50, 50, 60, 70]
+const MIN_THEIR_CHANCE := 30   ## you can never block a chance down to nothing
 
 ## --- Match clock and rewards ---
 const MATCH_LENGTH := 90
@@ -105,9 +108,9 @@ func goal_odds(shot_quality: int) -> int:
 ## Average chance of scoring with the Shoot button, across every possible roll.
 func basic_shot_odds() -> int:
 	var total := 0
-	for roll in range(0, BASIC_SHOT_ROLL_MAX + 1):
+	for roll in range(0, BASIC_SHOT_ROLL_MAX + 1, BASIC_SHOT_ROLL_STEP):
 		total += goal_odds(quality + roll)
-	return roundi(float(total) / (BASIC_SHOT_ROLL_MAX + 1))
+	return roundi(float(total) / (BASIC_SHOT_ROLL_MAX / BASIC_SHOT_ROLL_STEP + 1))
 
 ## Percentage chance THEIR current chance beats your keeper.
 func their_goal_odds() -> int:
@@ -183,7 +186,7 @@ func play(card: ActionCard) -> Array:
 	elif card.tag == "retain":
 		energy += card.energy_boost
 		DeckState.draw(card.draw_count)
-		events.append({"type": "retain", "energy": card.base_value, "drew": card.draw_count})
+		events.append({"type": "retain", "energy": card.energy_boost, "drew": card.draw_count})
 	elif card.tag == "lump_clear":
 		_lump_clear(card, events)
 	elif in_their_box():
@@ -210,7 +213,7 @@ func take_shot() -> Array:
 		events.append({"type": "no_energy"})
 		return events
 	energy -= SHOT_COST
-	var roll := randi_range(0, BASIC_SHOT_ROLL_MAX)
+	var roll := randi_range(0, BASIC_SHOT_ROLL_MAX / BASIC_SHOT_ROLL_STEP) * BASIC_SHOT_ROLL_STEP
 	quality += roll
 	events.append({"type": "basic_shot", "roll": roll, "quality": quality})
 	_shoot(events)
@@ -260,7 +263,7 @@ func _attempt_move(card: ActionCard, events: Array) -> void:
 			steps = 2
 		_advance(steps, power - target, events)
 	elif card.tag == "dribble":
-		target -= 1
+		target -= NEAR_MISS_DROP
 		events.append({"type": "kept_ball", "target": target})
 	else:
 		_turnover(events)
@@ -322,7 +325,7 @@ func _shoot(events: Array) -> void:
 		zone = 2
 		_start_their_possession()
 	elif quality == save:
-		quality = 2
+		quality = 20
 		energy += 1
 		events.append({"type": "corner"})
 	else:
@@ -356,7 +359,7 @@ func _defend_build_up(card: ActionCard, events: Array) -> void:
 			if success:
 				_win_ball(events)
 			elif card.tag == "track_back":
-				target -= 1
+				target -= NEAR_MISS_DROP
 				events.append({"type": "delayed", "target": target})
 			else:
 				_they_advance(events)
