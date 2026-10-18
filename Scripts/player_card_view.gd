@@ -1,19 +1,18 @@
 extends Button
 
-signal player_clicked(player: PlayerCard)
+signal player_clicked(player: StaffCard)
 
-var player: PlayerCard
+var player: StaffCard
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(210, 90)
 	autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	pressed.connect(func(): player_clicked.emit(player))
 
-func setup(data: PlayerCard) -> void:
+func setup(data: StaffCard) -> void:
 	player = data
 	text = "%s\n%s" % [data.display_name, data.description]
-	modulate = Color(1.3, 1.15, 0.8)   # a gold tint, so players never look like action cards
-
+	modulate = Color(0.8, 1.0, 1.3) if data is CoachCard else Color(1.3, 1.15, 0.8)	
 
 ## Pop + wiggle, then float the bonus number. `delay` lets several players go in turn.
 func react(label_text: String, delay: float) -> void:

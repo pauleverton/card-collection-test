@@ -35,20 +35,34 @@ const REWARD_POOL := [
 const REWARD_CHOICES := 3
 
 const PLAYER_POOL:= [
-	"res://Resources/Players/the_wall.tres",
-	"res://Resources/Players/twinkle_toes.tres",
-	"res://Resources/Players/test_mult.tres"]
+	"res://Resources/players/the_wall.tres",
+	"res://Resources/players/twinkle_toes.tres",
+	"res://Resources/players/test_mult.tres"]
+	
+const COACH_POOL:= [
+	"res://Resources/coaches/attacking_coach.tres",
+	"res://Resources/coaches/assistant_manager.tres"]
 
 var deck: Array = []
 var matches_played := 0
-var squad: Array = []
-const MAX_SQUAD := 5
+var squad: Array = []          ## players AND coaches
+const MAX_PLAYERS := 5
+const MAX_COACHES := 2
+
+func players() -> Array:
+	return squad.filter(func(s): return s is PlayerCard)
+
+func coaches() -> Array:
+	return squad.filter(func(s): return s is CoachCard)
+
+## Is there room for this one? (players and coaches have separate limits)
+func squad_full_for(staff: StaffCard) -> bool:
+	if staff is CoachCard:
+		return coaches().size() >= MAX_COACHES
+	return players().size() >= MAX_PLAYERS
 
 func _ready() -> void:
 	new_run()
-
-func squad_full() -> bool:
-	return squad.size() >= MAX_SQUAD
 
 func new_run() -> void:
 	deck.clear()
@@ -66,52 +80,72 @@ func reward_options(count: int = REWARD_CHOICES) -> Array:
 		options.append(load(path))
 	return options
 
-## Up to `count` random players you don't already own.
-func players_for_sale(count: int = 1) -> Array:
-	var pool := PLAYER_POOL.duplicate()
+## Up to `count` random players/coaches you don't already own.
+func staff_for_sale(count: int = 1) -> Array:
+	var pool: Array = PLAYER_POOL + COACH_POOL
 	pool.shuffle()
 	var options := []
 	for path in pool:
-		var player: PlayerCard = load(path)
-		if player in squad:
-			continue                 ## already owned: skip
-		options.append(player)
+		var staff: StaffCard = load(path)
+		if staff in squad:
+			continue
+		options.append(staff)
 		if options.size() == count:
-			break                    ## got enough
+			break
 	return options
 
 func add_card(card: ActionCard) -> void:
 	deck.append(card)
-	
+
 func remove_card(card: ActionCard) -> void:
 	deck.erase(card)
 
-func add_player(player: PlayerCard) -> void:
-	squad.append(player)
-	
-func remove_player(player: PlayerCard) -> void:
-	squad.erase(player)
+func add_player(staff: StaffCard) -> void:
+	squad.append(staff)
+
+func remove_player(staff: StaffCard) -> void:
+	squad.erase(staff)
 
 func squad_bonus(card: ActionCard) -> int:
 	var total := 0
-	for player in squad:
-		total += player.bonus_for(card)
+	for p in players():
+		total += p.bonus_for(card)
 	return total
-	
-## All matching multipliers for this card, multiplied together. scope is "card" or "total".
-func squad_multiplier(card: ActionCard, scope: String) -> float:
+
+## All matching player multipliers, multiplied together.
+func squad_multiplier(card: ActionCard) -> float:
 	var total := 1.0
-	for p in squad:
-		if p.applies_to(card) and p.multiplies == scope:
+	for p in players():
+		if p.applies_to(card):
 			total *= p.multiplier
 	return total
-	
-## Names of the players who boost this card (for showing it on screen).
+
+## Extra triggers a played card gets from coaches.
+func retriggers_for_card(card: ActionCard) -> int:
+	var total := 0
+	for c in coaches():
+		if c.applies_to(card):
+			total += c.retriggers
+	return total
+
+## Extra triggers a coach EFFECT of this category gets (only coaches without a tag filter count).
+func retriggers_for_type(type: String) -> int:
+	var total := 0
+	for c in coaches():
+		if c.boosts_tags == "any" and c.applies_to_type(type):
+			total += c.retriggers
+	return total
+
+## Coaches whose effect fires at this moment ("on_goal", …).
+func coaches_for(when: String) -> Array:
+	return coaches().filter(func(c): return c.when == when)
+
+## Names of everyone who boosts this card (for the commentary).
 func squad_helpers(card: ActionCard) -> PackedStringArray:
 	var names: PackedStringArray = []
-	for p in squad:
-		if p.affects(card):
-			names.append(p.display_name)
+	for s in squad:
+		if s.affects(card):
+			names.append(s.display_name)
 	return names
 	
 ## Swap ONE deck slot for its hand-made upgraded version.

@@ -64,6 +64,7 @@ var next_bonus := 0
 var quality := 0
 var goals := 0
 var conceded := 0
+var bonus_coins:=0
 var _press_pile: Array = []
 var _attack_pile: Array = []
 var _their_chance_pile: Array = []
@@ -82,6 +83,7 @@ func start() -> void:
 	energy = START_ENERGY
 	next_bonus = 0
 	quality = 0
+	bonus_coins=0
 	_flip_press()
 	minute = 0
 	match_over = false
@@ -117,9 +119,9 @@ func their_goal_odds() -> int:
 	return _odds_to_beat(quality, _our_keeper_pile, OUR_KEEPER_DECK)
 
 func power_of(card: ActionCard) -> int:
-	var value := card.base_value * RunState.squad_multiplier(card, "card")
-	var total := (value + next_bonus + RunState.squad_bonus(card)) * RunState.squad_multiplier(card, "total")
-	return roundi(total)
+	var triggers := 1 + RunState.retriggers_for_card(card)
+	var flat := card.base_value + next_bonus + RunState.squad_bonus(card) * triggers
+	return roundi(flat * pow(RunState.squad_multiplier(card), triggers))
 	
 ## Can this card be played in the current possession?
 func is_right_phase(card: ActionCard) -> bool:
@@ -324,6 +326,7 @@ func _shoot(events: Array) -> void:
 	if quality > save:
 		goals += 1
 		events.append({"type": "goal", "goals": goals})
+		fire_coaches("on_goal",events)
 		zone = 2
 		_start_their_possession()
 	elif quality == save:
@@ -490,7 +493,16 @@ func coins_earned() -> int:
 		coins += COINS_DRAW
 	else:
 		coins += COINS_LOSS
+	coins += bonus_coins
 	return coins
+
+## Fire every coach whose effect happens at this moment, plus any retriggers of it.
+func fire_coaches(when: String, events: Array) -> void:
+	for c in RunState.coaches_for(when):
+		var times := 1 + RunState.retriggers_for_type(c.category)
+		bonus_coins += c.coins * times
+		events.append({"type": "coach", "name": c.display_name,
+				"coins": c.coins * times, "times": times})
 
 
 # ---------- Debug only ----------
@@ -502,6 +514,7 @@ func debug_goal() -> Array:
 	zone = 2
 	_start_their_possession()
 	_tick_clock(events)
+	fire_coaches("on_goal",events)
 	return events
 
 func debug_concede() -> Array:

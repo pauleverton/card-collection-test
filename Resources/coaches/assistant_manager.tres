@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CoachCard" format=3 uid="uid://d1vghvfwqylid"]
+
+[ext_resource type="Script" uid="uid://sjnhfn1ce2g3" path="res://Scripts/coach_card.gd" id="1_jlv8k"]
+
+[resource]
+script = ExtResource("1_jlv8k")
+retriggers = 2
+display_name = "Assistant Manager"
+description = "Retriggers all attacking cards"
+rarity = "rare"
+boosts_type = "attacking"
+metadata/_custom_type_script = "uid://sjnhfn1ce2g3"

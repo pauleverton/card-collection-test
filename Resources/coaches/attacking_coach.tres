@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CoachCard" format=3 uid="uid://cgys3psjcuhmp"]
+
+[ext_resource type="Script" uid="uid://sjnhfn1ce2g3" path="res://Scripts/coach_card.gd" id="1_yit2d"]
+
+[resource]
+script = ExtResource("1_yit2d")
+when = "on_goal"
+coins = 100
+display_name = "Attacking coach"
+description = "+100 coins per goal"
+metadata/_custom_type_script = "uid://sjnhfn1ce2g3"

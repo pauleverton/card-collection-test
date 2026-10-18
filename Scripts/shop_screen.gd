@@ -26,7 +26,7 @@ func _ready() -> void:
 		ui.text += "\n\n%d coins" % price_of(card)
 		ui.card_clicked.connect(_buy_card.bind(ui))
 		for_sale.add_child(ui)
-	for player in RunState.players_for_sale(3):
+	for player in RunState.staff_for_sale(3):
 		var ui = PLAYER_UI.instantiate()
 		ui.setup(player)
 		ui.text+="\n\n%d coins" % price_of_player(player)
@@ -43,7 +43,7 @@ func _ready() -> void:
 func price_of(card: ActionCard) -> int:
 	return PRICE.get(card.card_rarity, 50)
 	
-func price_of_player(card:PlayerCard)->int:
+func price_of_player(card:StaffCard)->int:
 	return PLAYER_PRICE.get(card.rarity,150)
 
 func _buy_card(card: ActionCard, ui: Button) -> void:
@@ -56,9 +56,9 @@ func _buy_card(card: ActionCard, ui: Button) -> void:
 	ui.queue_free()          ## sold: remove it from the shelf
 	_update_header_label()
 
-func _buy_player(player: PlayerCard, ui: Button) -> void:
+func _buy_player(player: StaffCard, ui: Button) -> void:
 	var cost := price_of_player(player)
-	if RunState.squad_full():
+	if RunState.squad_full_for(player):
 		coins_label.text = "Squad full: sell a player first"
 		return
 	if not CoinState.can_afford(cost):
@@ -134,7 +134,7 @@ func _show_squad() -> void:
 		ui.player_clicked.connect(_sell_player)    ## 5. click = sell
 		squad_view.add_child(ui)
 
-func _sell_player(player: PlayerCard) -> void:
+func _sell_player(player: StaffCard) -> void:
 	CoinState.add_coins(price_of_player(player) / 2)
 	RunState.remove_player(player)
 	_show_squad()

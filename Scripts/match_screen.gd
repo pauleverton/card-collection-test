@@ -46,13 +46,24 @@ func play_card(card: ActionCard) -> void:
 	if events[0]["type"] in ["not_now", "no_energy", "wrong_side"]:
 		_say(describe(events), false)
 		return
-	## Squad players who boost this card react one after another.
 	var delay := 0.0
+	## Players react once per trigger; a coach shouts "Again!" between rounds.
+	var triggers := 1 + RunState.retriggers_for_card(card)
+	var again_uis := []
 	for ui in squad_bar.get_children():
-		if ui.player.affects(card):
-			ui.react(ui.player.effect_label(), delay)
-			delay += 0.25
+		if ui.player is CoachCard and ui.player.applies_to(card):
+			for i in ui.player.retriggers:
+				again_uis.append(ui)
+	for t in triggers:
+		for ui in squad_bar.get_children():
+			if ui.player is PlayerCard and ui.player.affects(card):
+				ui.react(ui.player.effect_label(), delay)
+				delay += 0.25
+		if t < triggers - 1:
+			again_uis[t].react("Again!", delay)
+			delay += 0.35
 	_after_action(events)
+
 
 func _on_shoot() -> void:
 	_after_action(pitch.take_shot())
@@ -227,6 +238,9 @@ func describe(events: Array) -> String:
 				lines.append("%s can't be played right now." % e["card"])
 			"lumped":
 				lines.append("Lumped it clear! They restart from %s." % e["zone"])
+			"coach":
+				var again := "" if e["times"] == 1 else " (×%d)" % e["times"]
+				lines.append("%s: +%d coins%s" % [e["name"], e["coins"], again])
 	return "\n".join(lines)
 	
 ## Show a message: the last line as the big headline, every line added to the log with the minute.
