@@ -117,8 +117,10 @@ func their_goal_odds() -> int:
 	return _odds_to_beat(quality, _our_keeper_pile, OUR_KEEPER_DECK)
 
 func power_of(card: ActionCard) -> int:
-	return card.base_value + next_bonus + RunState.squad_bonus(card)
-
+	var value := card.base_value * RunState.squad_multiplier(card, "card")
+	var total := (value + next_bonus + RunState.squad_bonus(card)) * RunState.squad_multiplier(card, "total")
+	return roundi(total)
+	
 ## Can this card be played in the current possession?
 func is_right_phase(card: ActionCard) -> bool:
 	match card.usable_when:

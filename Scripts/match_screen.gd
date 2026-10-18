@@ -49,9 +49,8 @@ func play_card(card: ActionCard) -> void:
 	## Squad players who boost this card react one after another.
 	var delay := 0.0
 	for ui in squad_bar.get_children():
-		var bonus: int = ui.player.bonus_for(card)
-		if bonus > 0:
-			ui.react(bonus, delay)
+		if ui.player.affects(card):
+			ui.react(ui.player.effect_label(), delay)
 			delay += 0.25
 	_after_action(events)
 

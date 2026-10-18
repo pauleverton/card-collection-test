@@ -36,7 +36,8 @@ const REWARD_CHOICES := 3
 
 const PLAYER_POOL:= [
 	"res://Resources/Players/the_wall.tres",
-	"res://Resources/Players/twinkle_toes.tres"]
+	"res://Resources/Players/twinkle_toes.tres",
+	"res://Resources/Players/test_mult.tres"]
 
 var deck: Array = []
 var matches_played := 0
@@ -97,11 +98,19 @@ func squad_bonus(card: ActionCard) -> int:
 		total += player.bonus_for(card)
 	return total
 	
+## All matching multipliers for this card, multiplied together. scope is "card" or "total".
+func squad_multiplier(card: ActionCard, scope: String) -> float:
+	var total := 1.0
+	for p in squad:
+		if p.applies_to(card) and p.multiplies == scope:
+			total *= p.multiplier
+	return total
+	
 ## Names of the players who boost this card (for showing it on screen).
 func squad_helpers(card: ActionCard) -> PackedStringArray:
 	var names: PackedStringArray = []
 	for p in squad:
-		if p.bonus_for(card) > 0:
+		if p.affects(card):
 			names.append(p.display_name)
 	return names
 	

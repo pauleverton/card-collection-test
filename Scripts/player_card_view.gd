@@ -16,11 +16,11 @@ func setup(data: PlayerCard) -> void:
 
 
 ## Pop + wiggle, then float the bonus number. `delay` lets several players go in turn.
-func react(amount: int, delay: float) -> void:
+func react(label_text: String, delay: float) -> void:
 	pivot_offset = size / 2                     ## grow/rotate from the centre, not the top-left
 	var t := create_tween()
 	t.tween_interval(delay)                     ## wait for our turn
-	t.tween_callback(_float_number.bind(amount))
+	t.tween_callback(_float_number.bind(label_text))
 	t.tween_property(self, "scale", Vector2(1.2, 1.2), 0.1) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	t.tween_property(self, "rotation_degrees", 6.0, 0.06)
@@ -28,9 +28,9 @@ func react(amount: int, delay: float) -> void:
 	t.tween_property(self, "rotation_degrees", 0.0, 0.06)
 	t.parallel().tween_property(self, "scale", Vector2.ONE, 0.15)
 
-func _float_number(amount: int) -> void:
+func _float_number(label_text: String) -> void:
 	var label := Label.new()
-	label.text = "+%d" % amount
+	label.text = label_text
 	label.add_theme_font_size_override("font_size", 40)
 	label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4))
 	label.position = Vector2(size.x / 2 - 20, -20)
