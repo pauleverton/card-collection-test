@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_yit2d")
 when = "on_goal"
-coins = 100
+coins = 30
 display_name = "Attacking coach"
-description = "+100 coins per goal"
+description = "+30 coins per goal"
 metadata/_custom_type_script = "uid://sjnhfn1ce2g3"

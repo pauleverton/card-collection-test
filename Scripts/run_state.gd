@@ -28,7 +28,7 @@ const REWARD_POOL := [
 	"res://Resources/cards/starting_cards/overlap.tres",
 	"res://Resources/cards/starting_cards/cross.tres", 
 	"res://Resources/cards/starting_cards/shoot.tres",
-	"res://Resources/cards/starting_cards/long_shot.tres",
+	"res://Resources/cards/cards_to_buy/long_shot.tres",
 	"res://Resources/cards/starting_cards/track_back.tres", 
 	"res://Resources/cards/starting_cards/block.tres",
 	"res://Resources/cards/starting_cards/lump_clear.tres"]
@@ -37,7 +37,7 @@ const REWARD_CHOICES := 3
 const PLAYER_POOL:= [
 	"res://Resources/players/the_wall.tres",
 	"res://Resources/players/twinkle_toes.tres",
-	"res://Resources/players/test_mult.tres"]
+	"res://Resources/players/stopper.tres"]
 	
 const COACH_POOL:= [
 	"res://Resources/coaches/attacking_coach.tres",

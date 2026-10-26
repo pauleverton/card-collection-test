@@ -13,6 +13,8 @@ extends Control
 @onready var commentary_log = $CommentaryBox/VBox/Log
 const PLAYER_UI = preload("res://Scenes/player_card_view.tscn")
 @onready var squad_bar = $SquadBar
+@onready var build_bar = $BuildBar
+@onready var build_label = $BuildBar/BuildLabel
 
 var pitch := MatchRules.new()
 
@@ -43,7 +45,7 @@ func _ready() -> void:
 func play_card(card: ActionCard) -> void:
 	var events := pitch.play(card)
 	## If the card couldn't be played at all, leave it in the hand.
-	if events[0]["type"] in ["not_now", "no_energy", "wrong_side"]:
+	if events[0]["type"] in ["not_now", "no_energy","not_here", "wrong_side"]:
 		_say(describe(events), false)
 		return
 	var delay := 0.0
@@ -142,32 +144,43 @@ func _on_continue() -> void:
 func refresh_all() -> void:
 	hand.refresh()
 	pitch_strip.show_state(pitch)
-	info_label.text = "%s\n%d' \nYou %d - %d Them\nEnergy %d" % [
-			LeagueState.current_tournament_name(),
+	info_label.text = "%s\nOpponent strength %d\n%d' \nYou %d - %d Them\nEnergy %d" % [
+			LeagueState.current_tournament_name(), pitch.strength,
 			pitch.minute, pitch.goals, pitch.conceded, pitch.energy]
 	shoot_button.visible = pitch.in_their_box() and not pitch.match_over
 	let_through_button.visible = not pitch.has_ball and not pitch.match_over
 	let_through_button.text = "Let them shoot" if pitch.in_our_box() else "Let them through"
 	for card_ui in hand.get_children():
-		if pitch.would_succeed(card_ui.card):
-			card_ui.modulate = Color(0.6, 1.0, 0.6)
+		if not pitch.can_play_here(card_ui.card):
+			card_ui.modulate = Color(1, 1, 1, 0.3)      ## can't be played here
+		elif pitch.would_succeed(card_ui.card):
+			card_ui.modulate = Color(0.6, 1.0, 0.6)     ## gets you through
 		else:
-			card_ui.modulate = Color(1, 1, 1, 0.6)
-
+			card_ui.modulate = Color(1, 1, 1, 1)        ## playable, adds to the bar
+		## The build-up / hold bar: hidden inside either box, where the chance works differently.
+	build_bar.visible = not pitch.match_over and not pitch.in_their_box() and not pitch.in_our_box()
+	build_bar.max_value = pitch.target
+	create_tween().tween_property(build_bar, "value", pitch.build, 0.3)
+	if pitch.has_ball:
+		build_bar.modulate = Color(1.0, 0.75, 0.25)     ## amber: your build-up
+		build_label.text = "Build-up %d / %d" % [pitch.build, pitch.target]
+	else:
+		build_bar.modulate = Color(0.5, 0.7, 1.0)       ## blue: your hold
+		build_label.text = "Holding %d / %d" % [pitch.build, pitch.target]
+	
 func describe(events: Array) -> String:
 	var lines: PackedStringArray = []
 	for e in events:
 		match e["type"]:
 			# --- You attacking ---
-			"attempt":
-				var outcome: String = "made it!" if e["success"] else "stopped."
+			"build":
 				if not e["helpers"].is_empty():
-					lines.append("   (boosted by %s)" % ", ".join(e["helpers"]))				
-				lines.append("%s %d vs Press %d: %s" % [e["card"], e["power"], e["target"], outcome])
+					lines.append("   (boosted by %s)" % ", ".join(e["helpers"]))
+				lines.append("%s +%d: build-up %d / %d." % [e["card"], e["power"], e["build"], e["target"]])
+			"carry":
+				lines.append("Momentum carries on: %d towards a press of %d." % [e["build"], e["target"]])
 			"advance":
 				lines.append("Ball moves into %s." % e["zone"])
-			"kept_ball":
-				lines.append("Couldn't get past, but dragged a defender out. Press now %d." % e["target"])
 			"in_the_box":
 				lines.append("Into the box with a chance of %d." % e["quality"])
 			"quality":
@@ -194,13 +207,10 @@ func describe(events: Array) -> String:
 			"turnover":
 				lines.append("Lost the ball in %s. They're attacking." % e["zone"])
 			# --- Them attacking ---
-			"challenge":
-				var result: String = "won it!" if e["success"] else "beaten."
+			"hold":
 				if not e["helpers"].is_empty():
 					lines.append("   (boosted by %s)" % ", ".join(e["helpers"]))
-				lines.append("%s %d vs Attack %d: %s" % [e["card"], e["power"], e["target"], result])
-			"delayed":
-				lines.append("Couldn't win it, but slowed them down. Attack now %d." % e["target"])
+				lines.append("%s +%d: holding %d / %d." % [e["card"], e["power"], e["build"], e["target"]])
 			"they_advance":
 				lines.append("They move into %s." % e["zone"])
 			"they_in_box":
@@ -232,6 +242,8 @@ func describe(events: Array) -> String:
 				lines.append("You can't do that right now.")
 			"full_time":
 				lines.append("[b]FULL TIME![/b]")
+			"not_here":
+				lines.append("%s can't be played here." % e["card"])
 			"no_options":
 				lines.append("No way forward. You're closed down and lose the ball.")
 			"wrong_side":

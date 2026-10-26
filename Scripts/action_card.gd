@@ -14,8 +14,13 @@ extends Resource
 @export var energy_boost: int = 0
 ## When this card can be played at all.
 @export_enum("any", "attacking", "defending") var usable_when: String = "any"
+## Zones this card can be played in. None ticked = the usual zones for its tag.
+@export_flags("Your box", "Your half", "Midfield", "Their half", "Their box") var play_zones: int = 0
+## Chance (0–1) that this card scores outright, for long-range shots.
+@export_range(0.0, 1.0, 0.01) var chance: float = 0.0
 @export_multiline var description: String
 @export var upgrades_to: ActionCard
+
 
 ## Turns tag and card_type into dropdowns built from CardTags, so there's only one list.
 func _validate_property(property: Dictionary) -> void:

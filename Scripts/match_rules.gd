@@ -5,13 +5,12 @@ extends RefCounted
 const ZONE_NAMES := ["Your box", "Your half", "Midfield", "Their half", "Their box"]
 const START_ENERGY := 5
 const POSSESSION_DRAW := 2   ## cards drawn every time the ball changes hands
+## Each zone's target = opponent strength × this. Index = zone (0 your box … 4 their box).
+const PRESS_WEIGHT := [0.8, 0.9, 1.0, 1.2, 1.0]
+const ATTACK_WEIGHT := [1.0, 1.2, 1.0, 0.9, 0.8]
 
-## --- You attacking: their Press ---
-const PRESS_MODIFIER := [0, 0, 10, 20, 0]
-const PRESS_DECK := [20, 20, 30, 30, 30, 40, 40, 40, 50]
-const LONG_BALL_MARGIN := 30
-## A failed Dribble or Track Back lowers the target by this instead of losing the ball.
-const NEAR_MISS_DROP := 10
+var strength := 40
+
 
 ## --- You attacking: their box ---
 const BOX_DEFENCE_DECK := ["block", "block", "block", "tackle", "tackle",
@@ -38,8 +37,6 @@ const BASIC_SHOT_ROLL_MAX := 40   ## a basic shot adds a random 0 to this...
 const BASIC_SHOT_ROLL_STEP := 10  ## ...in steps of this (0, 10, 20, 30, 40)
 
 ## --- Them attacking ---
-const ATTACK_MODIFIER := [0, 20, 10, 0, 0]   ## the mirror of PRESS_MODIFIER
-const ATTACK_DECK := [20, 20, 30, 30, 30, 40, 40, 40, 50]
 const THEIR_CHANCE_DECK := [30, 40, 40, 50, 50, 60, 60, 70]
 const OUR_KEEPER_DECK := [20, 30, 30, 40, 40, 50, 50, 60, 70]
 const MIN_THEIR_CHANCE := 30   ## you can never block a chance down to nothing
@@ -62,11 +59,10 @@ var target := 0
 var next_bonus := 0
 ## The chance in whichever box the ball is in: yours to raise, or theirs to lower.
 var quality := 0
+var build := 0
 var goals := 0
 var conceded := 0
 var bonus_coins:=0
-var _press_pile: Array = []
-var _attack_pile: Array = []
 var _their_chance_pile: Array = []
 var _box_hand: Array = []
 var _box_defence_pile: Array = []
@@ -84,9 +80,11 @@ func start() -> void:
 	next_bonus = 0
 	quality = 0
 	bonus_coins=0
+	strength = LeagueState.opponent_strength()
 	_flip_press()
 	minute = 0
 	match_over = false
+
 
 # ---------- Questions the screen can ask ----------
 
@@ -120,9 +118,9 @@ func their_goal_odds() -> int:
 
 func power_of(card: ActionCard) -> int:
 	var triggers := 1 + RunState.retriggers_for_card(card)
-	var flat := card.base_value + next_bonus + RunState.squad_bonus(card) * triggers
+	var flat := (card.base_value + RunState.squad_bonus(card)) * triggers + next_bonus
 	return roundi(flat * pow(RunState.squad_multiplier(card), triggers))
-	
+
 ## Can this card be played in the current possession?
 func is_right_phase(card: ActionCard) -> bool:
 	match card.usable_when:
@@ -131,28 +129,38 @@ func is_right_phase(card: ActionCard) -> bool:
 		"defending":
 			return not has_ball
 	return true
-	
-## True if the card is worth playing right now (used for the green tint).
-func would_succeed(card: ActionCard) -> bool:
+
+## Can this card do anything where the ball is right now?
+func can_play_here(card: ActionCard) -> bool:
 	if match_over or not is_right_phase(card):
 		return false
+	if card.play_zones != 0:
+		return card.play_zones & (1 << zone) != 0
 	if card.tag in ["retain", "overlap"]:
 		return true
 	if card.tag == "lump_clear":
-		return zone <= 1 and not match_over
+		return zone <= 1
 	if has_ball:
 		if zone == 4:
-			if card.tag == "shot":
-				return true
-			if not card.tag in ["pass", "dribble", "cross"]:
-				return false
-			return box_gain(card) - next_defender_effect(card) > 0
-	else:
-		if zone == 0:
-			return card.tag in ["block", "tackle"] and quality > MIN_THEIR_CHANCE
-		if not card.tag in ["tackle", "track_back"]:
-			return false
-	return power_of(card) >= target
+			return card.tag in ["pass", "dribble", "cross", "shot"]
+		return card.tag in ["pass", "dribble", "long_ball"]
+	if zone == 0:
+		return card.tag in ["block", "tackle"]
+	return card.tag in ["tackle", "track_back"]
+	
+## True if the card would get you through (used for the green tint).
+func would_succeed(card: ActionCard) -> bool:
+	if not can_play_here(card):
+		return false
+	if card.tag in ["retain", "overlap", "lump_clear"]:
+		return true
+	if has_ball and zone == 4:
+		if card.tag == "shot":
+			return true
+		return box_gain(card) - next_defender_effect(card) > 0
+	if not has_ball and zone == 0:
+		return quality > MIN_THEIR_CHANCE
+	return build + power_of(card) >= target
 	
 ## How much the NEXT defender would take off if you played this card (CLEARED = they win it).
 func next_defender_effect(card: ActionCard) -> int:
@@ -181,6 +189,9 @@ func play(card: ActionCard) -> Array:
 		return events
 	if not is_right_phase(card):
 		events.append({"type": "wrong_side", "card": card.display_name})
+		return events
+	if not can_play_here(card):
+		events.append({"type": "not_here", "card": card.display_name})
 		return events
 	energy -= card.energy_cost
 	DeckState.play(card)   ## the card leaves your hand as soon as it's played
@@ -251,37 +262,42 @@ func _play_in_build_up(card: ActionCard, events: Array) -> void:
 			if card.tag == "dribble":
 				DeckState.draw(1)
 				events.append({"type": "drew"})
+		"long_shot":
+			_long_shot(card, events)
 		_:
 			events.append({"type": "wrong_phase", "card": card.display_name})
-
+			
 func _attempt_move(card: ActionCard, events: Array) -> void:
 	var power := power_of(card)
 	next_bonus = 0
-	var success := power >= target
-	events.append({"type": "challenge", "card": card.display_name,
-			"power": power, "target": target, "success": success,
-			"helpers": RunState.squad_helpers(card)})
-	if success:
-		var steps := 1
-		if card.tag == "long_ball" and power >= target + LONG_BALL_MARGIN:
-			steps = 2
-		_advance(steps, power - target, events)
-	elif card.tag == "dribble":
-		target -= NEAR_MISS_DROP
-		events.append({"type": "kept_ball", "target": target})
-	else:
-		_turnover(events)
+	build += power
+	events.append({"type": "build", "card": card.display_name, "power": power,
+			"build": build, "target": target, "helpers": RunState.squad_helpers(card)})
+	## Break through as many zones as the build-up allows; any overflow carries on.
+	while build >= target and zone < 4:
+		var overflow := build - target
+		zone += 1
+		events.append({"type": "advance", "zone": ZONE_NAMES[zone]})
+		if zone == 4:
+			_enter_box(overflow, events)
+			return
+		_flip_press()             ## empties the bar and reveals the new press...
+		build = overflow          ## ...then the overflow goes in
+		if build > 0:
+			events.append({"type": "carry", "build": build, "target": target})
 
-func _advance(steps: int, excess: int, events: Array) -> void:
-	zone = min(zone + steps, 4)
-	events.append({"type": "advance", "zone": ZONE_NAMES[zone]})
-	if zone == 4:
-		_enter_box(excess, events)
+func _long_shot(card: ActionCard, events: Array) -> void:
+	events.append({"type": "long_shot", "card": card.display_name, "chance": roundi(card.chance * 100)})
+	if _roll(card):
+		_score_goal(events)
 	else:
-		_flip_press()
-
+		events.append({"type": "long_shot_miss"})
+		zone = 4
+		_start_their_possession()
+		
 func _flip_press() -> void:
-	target = _draw_from(_press_pile, PRESS_DECK) + PRESS_MODIFIER[zone]
+	build = 0
+	target = roundi(strength * PRESS_WEIGHT[zone])
 
 # ---------- You attacking: their box ----------
 
@@ -324,11 +340,7 @@ func _shoot(events: Array) -> void:
 	var save: int = _draw_from(_keeper_pile, KEEPER_DECK)
 	events.append({"type": "shot", "quality": quality, "save": save})
 	if quality > save:
-		goals += 1
-		events.append({"type": "goal", "goals": goals})
-		fire_coaches("on_goal",events)
-		zone = 2
-		_start_their_possession()
+		_score_goal(events)
 	elif quality == save:
 		quality = 20
 		energy += 1
@@ -336,6 +348,14 @@ func _shoot(events: Array) -> void:
 	else:
 		events.append({"type": "saved"})
 		_turnover(events)
+
+## Everything that happens when you score, in one place.
+func _score_goal(events: Array) -> void:
+	goals += 1
+	events.append({"type": "goal", "goals": goals})
+	fire_coaches("on_goal", events)
+	zone = 2
+	_start_their_possession()
 
 # ---------- Them attacking ----------
 
@@ -357,20 +377,14 @@ func _defend_build_up(card: ActionCard, events: Array) -> void:
 		"tackle", "track_back":
 			var power := power_of(card)
 			next_bonus = 0
-			var success := power >= target
-			events.append({"type": "challenge", "card": card.display_name,
-					"power": power, "target": target, "success": success,
-					"helpers": RunState.squad_helpers(card)})
-			if success:
+			build += power
+			events.append({"type": "hold", "card": card.display_name, "power": power,
+					"build": build, "target": target, "helpers": RunState.squad_helpers(card)})
+			if build >= target:
 				_win_ball(events)
-			elif card.tag == "track_back":
-				target -= NEAR_MISS_DROP
-				events.append({"type": "delayed", "target": target})
-			else:
-				_they_advance(events)
 		_:
 			events.append({"type": "wrong_phase", "card": card.display_name})
-
+			
 func _they_advance(events: Array) -> void:
 	zone -= 1
 	events.append({"type": "they_advance", "zone": ZONE_NAMES[zone]})
@@ -381,8 +395,9 @@ func _they_advance(events: Array) -> void:
 		_flip_attack()
 
 func _flip_attack() -> void:
-	target = _draw_from(_attack_pile, ATTACK_DECK) + ATTACK_MODIFIER[zone]
-
+	build = 0
+	target = roundi(strength * ATTACK_WEIGHT[zone])
+	
 func _set_their_chance() -> void:
 	quality = _draw_from(_their_chance_pile, THEIR_CHANCE_DECK)
 
@@ -424,7 +439,7 @@ func _check_out_of_energy(events: Array) -> void:
 ## Is there at least one card in your hand you could actually play right now?
 func _has_playable_card() -> bool:
 	for card in DeckState.hand:
-		if card.energy_cost <= energy and is_right_phase(card):
+		if card.energy_cost <= energy and can_play_here(card):
 			return true
 	return false
 
@@ -461,6 +476,14 @@ func _start_their_possession() -> void:
 
 # ---------- Helpers ----------
 
+## Roll a card's chance, with one extra attempt per retrigger. True if any attempt succeeds.
+func _roll(card: ActionCard) -> bool:
+	var attempts := 1 + RunState.retriggers_for_card(card)
+	for i in attempts:
+		if randf() < card.chance:
+			return true
+	return false
+	
 ## Percentage of the cards in a pile that a value beats (uses the full deck if the pile is empty).
 func _odds_to_beat(value: int, pile: Array, source: Array) -> int:
 	var saves: Array = pile if not pile.is_empty() else source

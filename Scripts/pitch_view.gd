@@ -47,7 +47,7 @@ func show_state(m: MatchRules) -> void:
 					m.basic_shot_odds(),
 					m.goal_odds(m.quality + 30 + m.next_bonus)]
 		else:
-			_labels[z].text += "\n\nYOUR BALL\nPress %d" % m.target
+			_labels[z].text += "\n\nYOUR BALL\nBuild %d / %d" % [m.build, m.target]
 	else:
 		_zones[z].color = LOST_COLOUR
 		if z == 0:
@@ -55,4 +55,4 @@ func show_state(m: MatchRules) -> void:
 			_labels[z].text += "\nTHEIR CHANCE %d\nThey score: %d%%\nBlock or Tackle to lower it" % [
 					m.quality, m.their_goal_odds()]
 		else:
-			_labels[z].text += "\n\nTHEIR BALL\nAttack %d" % m.target
+			_labels[z].text += "\n\nTHEIR BALL\nHeld %d / %d" % [m.build, m.target]

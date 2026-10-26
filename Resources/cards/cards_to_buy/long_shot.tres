@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ActionCard" format=3 uid="uid://cs0bk7dovjwap"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_wo622"]
+
+[resource]
+script = ExtResource("1_wo622")
+display_name = "Long Shot"
+energy_cost = 2
+tag = "long_shot"
+card_rarity = "uncommon"
+base_value = 0
+usable_when = "attacking"
+play_zones = 8
+chance = 0.1
+description = "1 in 10 shots from distance go in"
+metadata/_custom_type_script = "uid://c7aob23hi7te0"

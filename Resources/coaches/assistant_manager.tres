@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_jlv8k")
 retriggers = 2
-display_name = "Assistant Manager"
-description = "Retriggers all attacking cards"
+display_name = "Assistant Mgr"
+description = "Retriggers attacking cards x2"
 rarity = "rare"
 boosts_type = "attacking"
 metadata/_custom_type_script = "uid://sjnhfn1ce2g3"

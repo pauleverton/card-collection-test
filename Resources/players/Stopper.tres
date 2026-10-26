@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PlayerCard" format=3 uid="uid://lpxgbgko1m27"]
+
+[ext_resource type="Script" uid="uid://b8dxl7yvw3hj" path="res://Scripts/player_card.gd" id="1_3pujw"]
+
+[resource]
+script = ExtResource("1_3pujw")
+multiplier = 2.0
+display_name = "Stopper"
+description = "x2 to all defensive cards"
+boosts_type = "defending"
+metadata/_custom_type_script = "uid://b8dxl7yvw3hj"

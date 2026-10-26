@@ -24,6 +24,8 @@ const DEFAULT_MATCHES_PER_SEASON := 4
 ## promotion_target().
 const BASE_PROMOTION_POINTS := 6
 
+
+
 ## Placeholder names — adjust freely. boss_rarity is reserved for a future
 ## "toughest opponent of the season" feature; not used by any promotion
 ## logic here, promotion is purely points-based now.
@@ -31,18 +33,38 @@ const TOURNAMENTS := [
 	{"name": "Non-League",       "type": "league", "boss_rarity": "bronze"},
 	{"name": "League Two",       "type": "league", "boss_rarity": "bronze"},
 	{"name": "League One",       "type": "league", "boss_rarity": "silver"},
-	{"name": "Championship",     "type": "league", "boss_rarity": "silver"},
-	{"name": "Premier League",   "type": "league", "boss_rarity": "gold"},
-	{"name": "Europa League",    "type": "cup",    "boss_rarity": "gold"},
-	{"name": "Champions League", "type": "cup",    "boss_rarity": "gold"},
-	{"name": "World Cup",        "type": "cup",    "boss_rarity": "gold","matches":6},
+	{"name": "Championship",     "type": "league", "boss_rarity": "silver", "strength": 1.5},
+	{"name": "Premier League",   "type": "league", "boss_rarity": "gold",   "strength": 1.5},
+	{"name": "Europa League",    "type": "cup",    "boss_rarity": "gold",   "strength": 1.75},
+	{"name": "Champions League", "type": "cup",    "boss_rarity": "gold",   "strength": 2.0},
+	{"name": "World Cup",        "type": "cup",    "boss_rarity": "gold",   "strength": 2.0, "matches": 6},
 ]
 
 var current_tournament_index: int = 0   # run-scoped, NOT reset by reset_for_new_tournament()
 var season_points: int = 0              # resets each new tournament
 var matches_played: int = 0             # resets each new tournament
 
+## Opponent strength: the first match of a run, and how fast it grows per match at each stake.
+const BASE_STRENGTH := 40
+const GROWTH_PER_STAKE := [0.06, 0.08, 0.10, 0.12, 0.15]
+## The last match of every season is tougher.
+const BOSS_MULTIPLIER := 1.25
 
+## Which match of the whole run this is (0 = the first).
+func run_match_number() -> int:
+	var n := matches_played
+	for i in current_tournament_index:
+		n += TOURNAMENTS[i].get("matches", DEFAULT_MATCHES_PER_SEASON)
+	return n
+
+## How strong the current opponent is. Every zone's target is built from this.
+func opponent_strength() -> int:
+	var growth: float = GROWTH_PER_STAKE[CareerState.current_stake_index]
+	var s := BASE_STRENGTH * pow(1.0 + growth, run_match_number())
+	s *= current_tournament().get("strength", 1.0)
+	if matches_remaining() == 1:
+		s *= BOSS_MULTIPLIER
+	return roundi(s)
 
 func current_tournament() -> Dictionary:
 	return TOURNAMENTS[current_tournament_index]
