@@ -38,8 +38,6 @@ func _layout() -> void:
 	var spacing := MAX_SPACING
 	if n > 1:
 		spacing = min(MAX_SPACING, (usable_width - CARD_SIZE.x) / (n - 1))
-	if n > 1:
-		spacing = min(MAX_SPACING, (size.x - CARD_SIZE.x) / (n - 1))
 	var total_width := spacing * (n - 1) + CARD_SIZE.x
 	var start_x := (size.x - total_width) / 2.0
 	var middle := (n - 1) / 2.0
