@@ -18,7 +18,9 @@ const PLAYER_UI = preload("res://Scenes/player_card_view.tscn")
 
 var pitch := MatchRules.new()
 var busy := false
-
+const PILE_MARGIN := 40       ## gap between the piles and the screen corners
+var draw_view := PileView.new()
+var discard_view := PileView.new()
 
 ## Filled in at full time by LeagueState, and read by Continue to decide where to go next.
 var league_result := {}
@@ -39,6 +41,7 @@ func _ready() -> void:
 		ui.setup(p)
 		ui.disabled = true          ## display only during a match
 		squad_bar.add_child(ui)
+	_add_piles()
 	refresh_all()
 
 # ---------- Player actions ----------
@@ -179,9 +182,27 @@ func _on_continue() -> void:
 		get_tree().change_scene_to_file("res://Scenes/shop_screen.tscn")
 
 # ---------- Screen ----------
+## The draw pile (bottom-left) and discard pile (bottom-right), made in code.
+func _add_piles() -> void:
+	draw_view.setup("Draw", Color("2f5d8a"))
+	discard_view.setup("Discard", Color("5a4a3a"))
+	for pile in [draw_view, discard_view]:
+		add_child(pile)
+		move_child(pile, hand.get_index())   ## behind the hand and the full-time panel
+	draw_view.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, PILE_MARGIN)
+	discard_view.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, PILE_MARGIN)
+
+func _update_piles() -> void:
+	draw_view.set_count(DeckState.draw_pile.size())
+	discard_view.set_count(DeckState.discard_pile.size())
+	if DeckState.take_reshuffled():
+		discard_view.pulse()
+		draw_view.pulse()
+
 
 func refresh_all() -> void:
 	hand.refresh()
+	_update_piles()	
 	pitch_strip.show_state(pitch)
 	info_label.text = "%s\nOpponent strength %d\n%d' \nYou %d - %d Them\nEnergy %d" % [
 			LeagueState.current_tournament_name(), pitch.strength,
