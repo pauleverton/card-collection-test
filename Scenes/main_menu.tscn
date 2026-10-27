@@ -71,4 +71,11 @@ grow_horizontal = 2
 grow_vertical = 2
 text = "View progress"
 
+[node name="SpeedOption" type="OptionButton" parent="TextureRect" unique_id=1097322672]
+layout_mode = 0
+offset_left = 754.0
+offset_top = 754.0
+offset_right = 1170.0
+offset_bottom = 825.0
+
 [connection signal="pressed" from="TextureRect/StartGame" to="." method="_on_start_game_pressed"]

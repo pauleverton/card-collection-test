@@ -277,7 +277,7 @@ func _attempt_move(card: ActionCard, events: Array) -> void:
 	while build >= target and zone < 4:
 		var overflow := build - target
 		zone += 1
-		events.append({"type": "advance", "zone": ZONE_NAMES[zone]})
+		events.append({"type": "advance", "zone": ZONE_NAMES[zone], "index": zone})
 		if zone == 4:
 			_enter_box(overflow, events)
 			return

@@ -24,6 +24,16 @@ func _ready() -> void:
 		_labels.append(label)
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
+## During a replay: move the yellow "your ball" highlight to zone z.
+func show_ball_at(z: int) -> void:
+	for i in 5:
+		_zones[i].color = GRASS[i]
+		_labels[i].text = MatchRules.ZONE_NAMES[i]
+		_labels[i].add_theme_color_override("font_color", Color.WHITE)
+	_zones[z].color = BALL_COLOUR
+	_labels[z].add_theme_color_override("font_color", Color.BLACK)
+	_labels[z].text += "\n\nYOUR BALL"
+
 func show_state(m: MatchRules) -> void:
 	for i in 5:
 		_labels[i].add_theme_font_size_override("font_size", 26)

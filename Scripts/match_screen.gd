@@ -17,6 +17,7 @@ const PLAYER_UI = preload("res://Scenes/player_card_view.tscn")
 @onready var build_label = $BuildBar/BuildLabel
 
 var pitch := MatchRules.new()
+var busy := false
 
 
 ## Filled in at full time by LeagueState, and read by Continue to decide where to go next.
@@ -43,11 +44,15 @@ func _ready() -> void:
 # ---------- Player actions ----------
 
 func play_card(card: ActionCard) -> void:
+	if busy: return
 	var events := pitch.play(card)
 	## If the card couldn't be played at all, leave it in the hand.
 	if events[0]["type"] in ["not_now", "no_energy","not_here", "wrong_side"]:
 		_say(describe(events), false)
 		return
+	busy = true
+	hand.refresh()                ## the played card leaves the hand straight away
+	hand.modulate = Color(1, 1, 1, 0.4)    ## dim the hand while this play resolves
 	var delay := 0.0
 	## Players react once per trigger; a coach shouts "Again!" between rounds.
 	var triggers := 1 + RunState.retriggers_for_card(card)
@@ -60,27 +65,61 @@ func play_card(card: ActionCard) -> void:
 		for ui in squad_bar.get_children():
 			if ui.player is PlayerCard and ui.player.affects(card):
 				ui.react(ui.player.effect_label(), delay)
-				delay += 0.25
+				delay += SettingsState.t(0.25)
 		if t < triggers - 1:
 			again_uis[t].react("Again!", delay)
-			delay += 0.35
+			delay += SettingsState.t(0.35)
+	if delay > 0.0:
+		await get_tree().create_timer(delay).timeout   ## let the squad reactions finish first
 	_after_action(events)
 
 
 func _on_shoot() -> void:
+	if busy: return
 	_after_action(pitch.take_shot())
 
 func _on_let_through() -> void:
+	if busy: return
 	_after_action(pitch.let_them_through())
 
 ## Every action ends here, so the screen update and the full-time check happen in one place.
 func _after_action(events: Array) -> void:
 	for e in events:
 		print(e)
+	busy = true
+	if events.any(func(e): return e["type"] == "advance"):
+		await _replay_build(events)
 	_say(describe(events))
 	refresh_all()
+	hand.modulate = Color(1, 1, 1, 1)      ## back to normal once it's finished
+	busy = false
 	if pitch.match_over:
 		_show_full_time()
+
+## Replay a build-up that broke through: fill the bar to the line, move the ball on, carry the rest.
+func _replay_build(events: Array) -> void:
+	build_bar.visible = true
+	build_bar.modulate = Color(1.0, 0.75, 0.25)
+	for e in events:
+		match e["type"]:
+			"build":
+				await _fill_bar(min(e["build"], e["target"]), e["target"])
+			"advance":
+				if e.has("index"):
+					await get_tree().create_timer(SettingsState.t(0.15)).timeout
+					pitch_strip.show_ball_at(e["index"])
+					build_bar.value = 0
+					await get_tree().create_timer(SettingsState.t(0.3)).timeout
+			"carry":
+				await _fill_bar(e["build"], e["target"])
+
+## Animate the bar up to a value against a target.
+func _fill_bar(value: int, maximum: int) -> void:
+	build_bar.max_value = maximum
+	build_label.text = "Build-up %d / %d" % [value, maximum]
+	var t := create_tween()
+	t.tween_property(build_bar, "value", value, SettingsState.t(0.3))
+	await t.finished
 
 # ---------- Full time ----------
 
@@ -160,7 +199,7 @@ func refresh_all() -> void:
 		## The build-up / hold bar: hidden inside either box, where the chance works differently.
 	build_bar.visible = not pitch.match_over and not pitch.in_their_box() and not pitch.in_our_box()
 	build_bar.max_value = pitch.target
-	create_tween().tween_property(build_bar, "value", pitch.build, 0.3)
+	create_tween().tween_property(build_bar, "value", pitch.build, SettingsState.t(0.3))
 	if pitch.has_ball:
 		build_bar.modulate = Color(1.0, 0.75, 0.25)     ## amber: your build-up
 		build_label.text = "Build-up %d / %d" % [pitch.build, pitch.target]
@@ -262,7 +301,7 @@ func _say(text: String, log_it: bool = true) -> void:
 	commentary_headline.text = lines[lines.size() - 1]
 	## A quick "typed out" effect on the headline.
 	commentary_headline.visible_ratio = 0.0
-	create_tween().tween_property(commentary_headline, "visible_ratio", 1.0, 0.3)
+	create_tween().tween_property(commentary_headline, "visible_ratio", 1.0, SettingsState.t(0.3))
 	if log_it:
 		for line in lines:
 			commentary_log.append_text("[color=#9a9a9a]%d'[/color]  %s\n" % [pitch.minute, line])
