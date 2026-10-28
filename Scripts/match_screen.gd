@@ -19,6 +19,8 @@ const PLAYER_UI = preload("res://Scenes/player_card_view.tscn")
 var pitch := MatchRules.new()
 var busy := false
 const PILE_MARGIN := 40       ## gap between the piles and the screen corners
+const OPENING_HAND := 5
+const MAX_REDEALS := 3        ## after this many, an unplayable hand just loses the ball
 var draw_view := PileView.new()
 var discard_view := PileView.new()
 
@@ -28,7 +30,7 @@ var was_final_tournament := false
 
 func _ready() -> void:
 	DeckState.start_match(RunState.deck)
-	DeckState.draw(5)
+	DeckState.draw(OPENING_HAND)
 	pitch.start()
 	hand.card_played.connect(play_card)
 	let_through_button.pressed.connect(_on_let_through)
@@ -42,7 +44,30 @@ func _ready() -> void:
 		ui.disabled = true          ## display only during a match
 		squad_bar.add_child(ui)
 	_add_piles()
-	refresh_all()
+	_kick_off()
+	
+## Deal the opening hand. If none of it can be played, it goes back and is dealt again
+## (up to MAX_REDEALS times). If it's still unplayable after that, you lose the ball as normal.
+func _kick_off() -> void:
+	busy = true
+	await _refresh_and_wait()
+	var redeals := 0
+	while pitch.hand_is_unplayable() and redeals < MAX_REDEALS:
+		redeals += 1
+		_say("Nothing you can play. Redeal!")
+		await get_tree().create_timer(hand.return_all_to(draw_view.centre())).timeout
+		DeckState.redeal(OPENING_HAND)
+		await _refresh_and_wait()
+	busy = false
+	var events := pitch.check_kick_off()
+	if not events.is_empty():
+		_after_action(events)
+
+## Redraw the screen, then wait for any new cards to finish flying in.
+func _refresh_and_wait() -> void:
+	var deal_time := refresh_all()
+	if deal_time > 0.0:
+		await get_tree().create_timer(deal_time).timeout
 
 # ---------- Player actions ----------
 
@@ -54,7 +79,8 @@ func play_card(card: ActionCard) -> void:
 		_say(describe(events), false)
 		return
 	busy = true
-	hand.refresh()                ## the played card leaves the hand straight away
+	var fly_time: float = hand.send_to_discard(discard_view.centre())
+	get_tree().create_timer(fly_time).timeout.connect(_update_piles)
 	hand.modulate = Color(1, 1, 1, 0.4)    ## dim the hand while this play resolves
 	var delay := 0.0
 	## Players react once per trigger; a coach shouts "Again!" between rounds.
@@ -93,8 +119,10 @@ func _after_action(events: Array) -> void:
 	if events.any(func(e): return e["type"] == "advance"):
 		await _replay_build(events)
 	_say(describe(events))
-	refresh_all()
+	var deal_time := refresh_all()
 	hand.modulate = Color(1, 1, 1, 1)      ## back to normal once it's finished
+	if deal_time > 0.0:
+		await get_tree().create_timer(deal_time).timeout   ## still busy while new cards fly in
 	busy = false
 	if pitch.match_over:
 		_show_full_time()
@@ -200,9 +228,10 @@ func _update_piles() -> void:
 		draw_view.pulse()
 
 
-func refresh_all() -> void:
-	hand.refresh()
-	_update_piles()	
+func refresh_all() -> float:
+	hand.draw_from = draw_view.centre()
+	var deal_time: float = hand.refresh()
+	_update_piles()
 	pitch_strip.show_state(pitch)
 	info_label.text = "%s\nOpponent strength %d\n%d' \nYou %d - %d Them\nEnergy %d" % [
 			LeagueState.current_tournament_name(), pitch.strength,
@@ -227,7 +256,8 @@ func refresh_all() -> void:
 	else:
 		build_bar.modulate = Color(0.5, 0.7, 1.0)       ## blue: your hold
 		build_label.text = "Holding %d / %d" % [pitch.build, pitch.target]
-	
+	return deal_time
+		
 func describe(events: Array) -> String:
 	var lines: PackedStringArray = []
 	for e in events:

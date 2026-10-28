@@ -85,6 +85,17 @@ func start() -> void:
 	minute = 0
 	match_over = false
 
+## True if you're attacking and nothing in the hand can be played (used for the kick-off redeal).
+## When they kick off you're never stuck, because Let them through is always there, so no redeal.
+func hand_is_unplayable() -> bool:
+	return has_ball and not _has_playable_card()
+
+## Kick-off isn't an action, so the "nothing playable, lose the ball" check never runs there.
+## Run it once after the redeals, in case the hand still can't do anything.
+func check_kick_off() -> Array:
+	var events: Array = []
+	_check_out_of_energy(events)
+	return events
 
 # ---------- Questions the screen can ask ----------
 

@@ -64,3 +64,11 @@ func take_reshuffled() -> bool:
 	var r := reshuffled
 	reshuffled = false
 	return r
+
+## Kick-off redeal: the whole hand goes back into the draw pile, shuffle, deal again.
+func redeal(count: int) -> void:
+	draw_pile.append_array(hand)
+	hand.clear()
+	draw_pile.shuffle()
+	drawn_since_shown = 0
+	draw(count)
