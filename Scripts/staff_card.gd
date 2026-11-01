@@ -9,6 +9,8 @@ extends Resource
 ## Which cards (and, for coaches, which coach effects) this one cares about.
 @export var boosts_type: String = "any"
 @export var boosts_tags: String = "any"
+## Optional special ability (see Scripts/abilities/ability.gd). Empty = none.
+@export var ability: Ability
 
 ## Does this match a card/effect type? ("attacking", "defending", …)
 func applies_to_type(type: String) -> bool:

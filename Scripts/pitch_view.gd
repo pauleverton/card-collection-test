@@ -33,6 +33,18 @@ func show_ball_at(z: int) -> void:
 	_zones[z].color = BALL_COLOUR
 	_labels[z].add_theme_color_override("font_color", Color.BLACK)
 	_labels[z].text += "\n\nYOUR BALL"
+	
+## During a replay: move the red "their ball" highlight to zone z (e.g. a counter-attack).
+func show_their_ball_at(z: int, note: String = "") -> void:
+	for i in 5:
+		_zones[i].color = GRASS[i]
+		_labels[i].text = MatchRules.ZONE_NAMES[i]
+		_labels[i].add_theme_font_size_override("font_size", 26)
+		_labels[i].add_theme_color_override("font_color", Color.WHITE)
+	_zones[z].color = LOST_COLOUR
+	_labels[z].text += "\n\nTHEIR BALL"
+	if note != "":
+		_labels[z].text += "\n" + note
 
 func show_state(m: MatchRules) -> void:
 	for i in 5:
@@ -62,7 +74,10 @@ func show_state(m: MatchRules) -> void:
 		_zones[z].color = LOST_COLOUR
 		if z == 0:
 			_labels[z].add_theme_font_size_override("font_size", 17)
-			_labels[z].text += "\nTHEIR CHANCE %d\nThey score: %d%%\nBlock or Tackle to lower it" % [
-					m.quality, m.their_goal_odds()]
+			var how_to_stop := "Nobody back: keeper only!" if m.nobody_back() else "Block or Tackle to lower it"
+			_labels[z].text += "\nTHEIR CHANCE %d\nThey score: %d%%\n%s" % [
+					m.quality, m.their_goal_odds(), how_to_stop]
+		elif m.nobody_back():
+			_labels[z].text += "\n\nTHEIR BALL\nNobody back!"
 		else:
 			_labels[z].text += "\n\nTHEIR BALL\nHeld %d / %d" % [m.build, m.target]

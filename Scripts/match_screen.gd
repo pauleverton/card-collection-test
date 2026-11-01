@@ -116,7 +116,7 @@ func _after_action(events: Array) -> void:
 	for e in events:
 		print(e)
 	busy = true
-	if events.any(func(e): return e["type"] == "advance"):
+	if events.any(func(e): return e["type"] in ["advance", "they_break"]):
 		await _replay_build(events)
 	_say(describe(events))
 	var deal_time := refresh_all()
@@ -129,8 +129,9 @@ func _after_action(events: Array) -> void:
 
 ## Replay a build-up that broke through: fill the bar to the line, move the ball on, carry the rest.
 func _replay_build(events: Array) -> void:
-	build_bar.visible = true
-	build_bar.modulate = Color(1.0, 0.75, 0.25)
+	if events.any(func(e): return e["type"] == "build"):
+		build_bar.visible = true
+		build_bar.modulate = Color(1.0, 0.75, 0.25)
 	for e in events:
 		match e["type"]:
 			"build":
@@ -143,6 +144,28 @@ func _replay_build(events: Array) -> void:
 					await get_tree().create_timer(SettingsState.t(0.3)).timeout
 			"carry":
 				await _fill_bar(e["build"], e["target"])
+			"press_changed":
+				build_bar.visible = true
+				build_bar.modulate = Color(1.0, 0.75, 0.25)
+				await _fill_bar(min(e["build"], e["target"]), e["target"])
+			"goal":
+				_say("[color=gold][b]GOAL![/b][/color]", false)
+				await get_tree().create_timer(SettingsState.t(0.8)).timeout
+			"ran_through":
+				## Their kick-off / ball won, then a break with nothing in the way.
+				pitch_strip.show_their_ball_at(e["index"], "Nobody back!")
+				build_bar.visible = true
+				build_bar.modulate = Color(1.0, 0.35, 0.35)   ## red: no defence at all
+				build_bar.max_value = 1
+				build_bar.value = 0
+				build_label.text = "Holding 0 / 0, nobody back!"
+				_say("Nobody back! It's a counter-attack!", false)
+				await get_tree().create_timer(SettingsState.t(0.6)).timeout
+			"they_break":
+				pitch_strip.show_their_ball_at(e["index"], "Nobody back!")
+				_show_info(e["minute"])
+				_say("They break into %s..." % e["zone"], false)
+				await get_tree().create_timer(SettingsState.t(0.45)).timeout
 
 ## Animate the bar up to a value against a target.
 func _fill_bar(value: int, maximum: int) -> void:
@@ -233,9 +256,7 @@ func refresh_all() -> float:
 	var deal_time: float = hand.refresh()
 	_update_piles()
 	pitch_strip.show_state(pitch)
-	info_label.text = "%s\nOpponent strength %d\n%d' \nYou %d - %d Them\nEnergy %d" % [
-			LeagueState.current_tournament_name(), pitch.strength,
-			pitch.minute, pitch.goals, pitch.conceded, pitch.energy]
+	_show_info(pitch.minute)
 	shoot_button.visible = pitch.in_their_box() and not pitch.match_over
 	let_through_button.visible = not pitch.has_ball and not pitch.match_over
 	let_through_button.text = "Let them shoot" if pitch.in_our_box() else "Let them through"
@@ -256,7 +277,16 @@ func refresh_all() -> float:
 	else:
 		build_bar.modulate = Color(0.5, 0.7, 1.0)       ## blue: your hold
 		build_label.text = "Holding %d / %d" % [pitch.build, pitch.target]
+		if pitch.nobody_back():
+			build_bar.modulate = Color(1.0, 0.35, 0.35)
+			build_label.text = "Holding 0 / 0, nobody back!"
 	return deal_time
+	
+## The info panel. Takes the minute so a replay can show the clock ticking.
+func _show_info(minute: int) -> void:
+	info_label.text = "%s\nOpponent strength %d\n%d' \nYou %d - %d Them\nEnergy %d" % [
+			LeagueState.current_tournament_name(), pitch.strength,
+			minute, pitch.goals, pitch.conceded, pitch.energy]
 		
 func describe(events: Array) -> String:
 	var lines: PackedStringArray = []
@@ -269,6 +299,8 @@ func describe(events: Array) -> String:
 				lines.append("%s +%d: build-up %d / %d." % [e["card"], e["power"], e["build"], e["target"]])
 			"carry":
 				lines.append("Momentum carries on: %d towards a press of %d." % [e["build"], e["target"]])
+			"press_changed":
+				lines.append("Their press is now %d (you've built %d)." % [e["target"], e["build"]])
 			"advance":
 				lines.append("Ball moves into %s." % e["zone"])
 			"in_the_box":
@@ -303,6 +335,8 @@ func describe(events: Array) -> String:
 				lines.append("%s +%d: holding %d / %d." % [e["card"], e["power"], e["build"], e["target"]])
 			"they_advance":
 				lines.append("They move into %s." % e["zone"])
+			"they_break":
+				lines.append("They break into %s." % e["zone"])
 			"they_in_box":
 				lines.append("They're in your box with a chance of %d!" % e["quality"])
 			"blocked":
@@ -320,6 +354,12 @@ func describe(events: Array) -> String:
 			# --- General ---
 			"retain":
 				lines.append("Kept the ball: +%d energy, drew %d." % [e["energy"], e["drew"]])
+			"ability":
+				lines.append("[color=gold]%s[/color]" % e["text"])
+			"sure_goal":
+				lines.append("It was always going in!")
+			"ran_through":
+				lines.append("Nobody back! They're straight through to your box.")
 			"bonus":
 				lines.append("Overlap: next card +%d." % e["next_bonus"])
 			"drew":
@@ -376,4 +416,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				LeagueState.current_tournament_index = LeagueState.TOURNAMENTS.size() - 1
 				LeagueState.reset_for_new_tournament()
 				_say("DEBUG: jumped to %s." % LeagueState.current_tournament_name(), false)
+				refresh_all()
+			KEY_L:
+				pitch.minute = 72
+				_say("DEBUG: jumped to 72'. The next action reaches 75'.", false)
 				refresh_all()

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="PlayerCard" format=3 uid="uid://bi5ejbpcefvf3"]
+
+[ext_resource type="Script" uid="uid://b8dxl7yvw3hj" path="res://Scripts/player_card.gd" id="1_3tq28"]
+[ext_resource type="Script" uid="uid://cteov85as3j12" path="res://Scripts/abilities/super_sub_ability.gd" id="1_50ary"]
+
+[sub_resource type="Resource" id="Resource_50ary"]
+script = ExtResource("1_50ary")
+active_from_minute = 75
+on_text = "{name} comes on. Every shot in the box goes in!"
+metadata/_custom_type_script = "uid://cteov85as3j12"
+
+[resource]
+script = ExtResource("1_3tq28")
+display_name = "Super Sub"
+description = "From 75': every shot in the box goes in"
+rarity = "rare"
+ability = SubResource("Resource_50ary")
+metadata/_custom_type_script = "uid://b8dxl7yvw3hj"

@@ -69,6 +69,8 @@ var _box_defence_pile: Array = []
 var _keeper_pile: Array = []
 var _our_keeper_pile: Array = []
 var minute := 0
+var _was_active: Array = []
+var _extra_minutes := 0   ## time used up during an action (e.g. Kitchen Sink run-through)   ## staff whose ability was on after the last action
 var match_over := false
 
 func start() -> void:
@@ -83,6 +85,8 @@ func start() -> void:
 	strength = LeagueState.opponent_strength()
 	_flip_press()
 	minute = 0
+	_was_active.clear()
+	_extra_minutes = 0
 	match_over = false
 
 ## True if you're attacking and nothing in the hand can be played (used for the kick-off redeal).
@@ -114,6 +118,8 @@ func upcoming_defenders() -> Array:
 
 ## Percentage chance YOUR shot of this quality beats their keeper.
 func goal_odds(shot_quality: int) -> int:
+	if _box_shot_always_scores():
+		return 100
 	return _odds_to_beat(shot_quality, _keeper_pile, KEEPER_DECK)
 	
 ## Average chance of scoring with the Shoot button, across every possible roll.
@@ -145,6 +151,8 @@ func is_right_phase(card: ActionCard) -> bool:
 func can_play_here(card: ActionCard) -> bool:
 	if match_over or not is_right_phase(card):
 		return false
+	if not has_ball and nobody_back():
+		return false     ## nobody back: it's down to the keeper
 	if card.play_zones != 0:
 		return card.play_zones & (1 << zone) != 0
 	if card.tag in ["retain", "overlap"]:
@@ -284,7 +292,10 @@ func _attempt_move(card: ActionCard, events: Array) -> void:
 	build += power
 	events.append({"type": "build", "card": card.display_name, "power": power,
 			"build": build, "target": target, "helpers": RunState.squad_helpers(card)})
-	## Break through as many zones as the build-up allows; any overflow carries on.
+	_break_through(events)
+
+## Break through as many zones as the build-up allows; any overflow carries on.
+func _break_through(events: Array) -> void:
 	while build >= target and zone < 4:
 		var overflow := build - target
 		zone += 1
@@ -304,11 +315,27 @@ func _long_shot(card: ActionCard, events: Array) -> void:
 	else:
 		events.append({"type": "long_shot_miss"})
 		zone = 4
-		_start_their_possession()
+		_start_their_possession(events)
 		
 func _flip_press() -> void:
 	build = 0
-	target = roundi(strength * PRESS_WEIGHT[zone])
+	target = _press_target()
+
+## The press you face in the current zone, including any ability that changes it.
+func _press_target() -> int:
+	return roundi(strength * PRESS_WEIGHT[zone] * _press_multiplier())
+
+## Recalculate the press mid-zone, keeping your build-up. If the new target is
+## already beaten, you break through straight away.
+func _recheck_press(events: Array) -> void:
+	if not has_ball or zone == 4:
+		return
+	var new_target := _press_target()
+	if new_target == target:
+		return
+	target = new_target
+	events.append({"type": "press_changed", "build": build, "target": target})
+	_break_through(events)
 
 # ---------- You attacking: their box ----------
 
@@ -348,6 +375,10 @@ func _defender_responds(card: ActionCard, events: Array) -> void:
 	events.append({"type": "defender", "card": d, "effect": effect, "quality": quality})
 
 func _shoot(events: Array) -> void:
+	if _box_shot_always_scores():
+		events.append({"type": "sure_goal"})
+		_score_goal(events)
+		return
 	var save: int = _draw_from(_keeper_pile, KEEPER_DECK)
 	events.append({"type": "shot", "quality": quality, "save": save})
 	if quality > save:
@@ -366,7 +397,7 @@ func _score_goal(events: Array) -> void:
 	events.append({"type": "goal", "goals": goals})
 	fire_coaches("on_goal", events)
 	zone = 2
-	_start_their_possession()
+	_start_their_possession(events)
 
 # ---------- Them attacking ----------
 
@@ -379,7 +410,7 @@ func _lump_clear(card: ActionCard, events: Array) -> void:
 	zone = min(zone + card.base_value, 4)
 	events.append({"type": "lumped", "zone": ZONE_NAMES[zone]})
 	if we_had_it:
-		_start_their_possession()
+		_start_their_possession(events)
 	else:
 		_flip_attack()   ## they keep it, but have to start again from here
 
@@ -457,7 +488,7 @@ func _has_playable_card() -> bool:
 ## You lose the ball where it is.
 func _turnover(events: Array) -> void:
 	events.append({"type": "turnover", "zone": ZONE_NAMES[zone]})
-	_start_their_possession()
+	_start_their_possession(events)
 
 ## You win the ball back where it is.
 func _win_ball(events: Array) -> void:
@@ -475,13 +506,26 @@ func _start_our_possession(events: Array) -> void:
 	else:
 		_flip_press()
 
-func _start_their_possession() -> void:
+func _start_their_possession(events: Array = []) -> void:
 	has_ball = false
 	energy = START_ENERGY
 	next_bonus = 0
 	DeckState.draw(POSSESSION_DRAW)
+	var broke_through := false
+	if nobody_back() and zone > 0:
+		events.append({"type": "ran_through", "index": zone})
+		## Nobody back: they break through zone by zone. Each zone still takes an action's
+		## worth of time, and stops if the clock runs out before they get there.
+		while zone > 0 and minute + MINUTES_PER_ACTION + _extra_minutes < MATCH_LENGTH:
+			zone -= 1
+			_extra_minutes += MINUTES_PER_ACTION
+			events.append({"type": "they_break", "zone": ZONE_NAMES[zone], "index": zone,
+					"minute": min(minute + MINUTES_PER_ACTION + _extra_minutes, MATCH_LENGTH)})
+		broke_through = zone == 0
 	if zone == 0:
 		_set_their_chance()
+		if broke_through:
+			events.append({"type": "they_in_box", "quality": quality})
 	else:
 		_flip_attack()
 
@@ -512,12 +556,17 @@ func _draw_from(pile: Array, source: Array):
 	return pile.pop_back()
 
 ## Every action uses up time. At full time, the match is over.
+## Every action uses up time. At full time, the match is over.
 func _tick_clock(events: Array) -> void:
-	minute += MINUTES_PER_ACTION
+	minute += MINUTES_PER_ACTION + _extra_minutes
+	_extra_minutes = 0
+	_announce_abilities(events)
 	if minute >= MATCH_LENGTH:
 		minute = MATCH_LENGTH
 		match_over = true
 		events.append({"type": "full_time"})
+		return
+	_recheck_press(events)   ## an ability may have just changed the press you're facing
 
 func coins_earned() -> int:
 	var coins := goals * COINS_PER_GOAL
@@ -538,6 +587,43 @@ func fire_coaches(when: String, events: Array) -> void:
 		events.append({"type": "coach", "name": c.display_name,
 				"coins": c.coins * times, "times": times})
 
+# ---------- Abilities ----------
+
+## The abilities switched on right now. Checked live, so a goal can switch one off mid-action.
+func _active_abilities() -> Array:
+	var list: Array = []
+	for s in RunState.squad:
+		if s.ability != null and s.ability.is_active(self):
+			list.append(s.ability)
+	return list
+
+func _box_shot_always_scores() -> bool:
+	return _active_abilities().any(func(a): return a.box_shot_always_scores(self))
+
+func nobody_back() -> bool:
+	return _active_abilities().any(func(a): return a.no_defence(self))
+
+func _press_multiplier() -> float:
+	var total := 1.0
+	for a in _active_abilities():
+		total *= a.press_multiplier(self)
+	return total
+
+## After every action: commentary for any ability that has just switched on or off.
+func _announce_abilities(events: Array) -> void:
+	for s in RunState.squad:
+		if s.ability == null:
+			continue
+		var on: bool = s.ability.is_active(self)
+		var was_on := _was_active.has(s)
+		if on and not was_on:
+			_was_active.append(s)
+			if s.ability.on_text != "":
+				events.append({"type": "ability", "text": s.ability.on_text.replace("{name}", s.display_name)})
+		elif was_on and not on:
+			_was_active.erase(s)
+			if s.ability.off_text != "":
+				events.append({"type": "ability", "text": s.ability.off_text.replace("{name}", s.display_name)})
 
 # ---------- Debug only ----------
 
@@ -546,7 +632,7 @@ func debug_goal() -> Array:
 	goals += 1
 	events.append({"type": "goal", "goals": goals})
 	zone = 2
-	_start_their_possession()
+	_start_their_possession(events)
 	_tick_clock(events)
 	fire_coaches("on_goal",events)
 	return events

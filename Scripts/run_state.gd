@@ -37,7 +37,9 @@ const REWARD_CHOICES := 3
 const PLAYER_POOL:= [
 	"res://Resources/players/the_wall.tres",
 	"res://Resources/players/twinkle_toes.tres",
-	"res://Resources/players/stopper.tres"]
+	"res://Resources/players/stopper.tres",
+	"res://Resources/players/super_sub.tres",
+	"res://Resources/players/kitchen_sink.tres"]
 	
 const COACH_POOL:= [
 	"res://Resources/coaches/attacking_coach.tres",

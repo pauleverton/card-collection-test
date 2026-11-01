@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PlayerCard" format=3 uid="uid://bk6osctcctvox"]
+
+[ext_resource type="Script" uid="uid://b8dxl7yvw3hj" path="res://Scripts/player_card.gd" id="1_1408l"]
+[ext_resource type="Script" uid="uid://j7dhnr7qavi4" path="res://Scripts/abilities/kitchen_sink_ability.gd" id="1_w0qc1"]
+
+[sub_resource type="Resource" id="Resource_w0qc1"]
+script = ExtResource("1_w0qc1")
+press_factor = 0.5
+active_from_minute = 75
+only_when_not_winning = true
+on_text = "{name}: throw the kitchen sink! Everyone forward, nobody back."
+off_text = "{name}: we're ahead. Back into shape!"
+metadata/_custom_type_script = "uid://j7dhnr7qavi4"
+
+[resource]
+script = ExtResource("1_1408l")
+display_name = "Kitchen Sink"
+description = "All out attack from '75, with no defence"
+rarity = "rare"
+ability = SubResource("Resource_w0qc1")
+metadata/_custom_type_script = "uid://b8dxl7yvw3hj"
