@@ -1,0 +1,33 @@
+Team Name,Leagues available,Keeper strength,Defensive Strength,Attacking Strength,Boss?,Boss effect
+The Sunday Leaguers FC,"1,2,3",Very Low,Medium,Low,,
+Cold Wet Tuesday Athletic,"1,2,3,4",Very High,Very High,Low,Yes,Crossing is nullified
+Jumpers for Goalposts FC,"1,2,3,4",High,Medium,Very Low,,
+Hangover Rovers,"1,2,3",Very Low,Very Low,Very Low,,
+Muddy Pitch Wanderers,"1,2,3,4",Very Low,High,Low,,
+Lost Match Ball United,"1,2,3,4",Low,Very Low,High,Yes,Each card played accounts for 6 minutes instead of 3
+Last Minute Ringer FC,"1,2,3,4",Medium,Medium,Medium,,
+Subbed-at-Half-Time Town,"1,2",Medium,Very Low,High,,
+Tactical & Playstyle Clichés,"1,2",Very Low,Low,Medium,Yes,Player's energy reduced to 3
+Park the Bus FC,"4,5,6",High,Very High,Very Low,,
+Route One Athletic,"3,4,5,6",Low,Low,High,,
+Tiki-Taka Town,"4,5,6,7,8",High,Very Low,Very High,Yes,Defensive players are nullified
+Gegenpress United,"5,6,7,8",High,High,Very High,Yes,"Your cards lose 50% of power in your half, but gain 25% in attacking half"
+Inverted Winger Rovers,"6,7,8",Very Low,Medium,Very High,,
+Offside Trap City,"5,6,7,8",High,High,Very Low,,
+High Line Wanderers,"4,5,6,7,8",Medium,Medium,Medium,,
+Overlapping Backs FC,"6,7,8",High,Medium,Medium,Yes,Coaches are nullified
+Physicality & Grit,"5,6,7,8",High,High,Medium,,
+Can-They-Do-It-In-Stoke FC,"1,2,3,4,5",High,Very High,Very Low,Yes,Team size reduced to 2
+Heavy Challenge United,"6,8",High,Very High,High,,
+Fifty-Fifty Athletic,"1,3,5,7",Medium,Low,Very Low,,
+Second Ball Rangers,"2,4,6,8",Medium,High,Medium,,
+Hospital Pass FC,"1,2,3,4",Medium,Medium,Medium,Yes,Opponent takes every kick off
+Put a Shift In Rovers,"2,3,4,5",Medium,Medium,High,,
+Clear It Long City,"5,6,7,8",Low,High,Very Low,Yes,Must win by 2 clear goals to win
+Squeaky Bum Time United,"5,6,7,8",Very High,Medium,Medium,,
+Game of Two Halves FC,"1,3,5,7",Low,High,Very High,,
+Magic of the Cup Athletic,"1,2,3,4,5,6,7,8",Very Low,Very Low,Very High,Yes,Opponent starts 1-0 up
+Early Doors FC,"1,2,3",High,Very Low,High,,
+New Manager Bounce Town,"7,8",Very High,Very High,Very High,,
+Top Corner Wanderers,"7,8",Very High,Very High,Very High,Yes,Shot success increases by 50%
+Clinical Finishers FC,"4,5,6,7,8",Very High,Medium,Very High,,

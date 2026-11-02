@@ -20,7 +20,7 @@ const STARTING_DECK := [
 	"res://Resources/cards/starting_cards/lump_clear.tres",
 	"res://Resources/cards/starting_cards/retain_possession.tres"]
 
-## Cards that can be offered as rewards.
+## Cards that can be offered as rewards, on the shop shelf and in packs.
 const REWARD_POOL := [
 	"res://Resources/cards/starting_cards/short_pass.tres", 
 	"res://Resources/cards/starting_cards/dribble.tres",
@@ -45,6 +45,11 @@ const PLAYER_POOL:= [
 const COACH_POOL:= [
 	"res://Resources/coaches/attacking_coach.tres",
 	"res://Resources/coaches/assistant_manager.tres"]
+
+## Chance of each rarity when generating a card or player (Balatro-style:
+## roll the rarity first, then pick something of that rarity).
+## They don't need to add up to 100: each one is "how many tickets in the hat".
+const RARITY_WEIGHTS := {"common": 60, "uncommon": 25, "rare": 12, "special": 3}
 
 var deck: Array = []
 var matches_played := 0
@@ -74,28 +79,70 @@ func new_run() -> void:
 	matches_played = 0
 	squad.clear()
 
-## Three different random cards from the pool.
+## Up to `count` different cards from REWARD_POOL, weighted by rarity.
+## (Cards you already own can still appear: you can have several copies.)
 func reward_options(count: int = REWARD_CHOICES) -> Array:
-	var pool := REWARD_POOL.duplicate()
-	pool.shuffle()
-	var options := []
-	for path in pool.slice(0, count):
-		options.append(load(path))
-	return options
+	return _pick_by_rarity(_load_pool(REWARD_POOL), count)
 
-## Up to `count` random players/coaches you don't already own.
+## Up to `count` different players/coaches you don't already own, weighted by rarity.
 func staff_for_sale(count: int = 1) -> Array:
-	var pool: Array = PLAYER_POOL + COACH_POOL
-	pool.shuffle()
-	var options := []
-	for path in pool:
-		var staff: StaffCard = load(path)
-		if staff in squad:
+	var available := _load_pool(PLAYER_POOL + COACH_POOL).filter(
+		func(s): return not squad.has(s))
+	return _pick_by_rarity(available, count)
+
+## Load every path in a pool, skipping (with a warning) any file that won't load.
+func _load_pool(paths: Array) -> Array:
+	var loaded := []
+	for path in paths:
+		var res = load(path)
+		if res == null:
+			push_warning("RunState: couldn't load %s, skipped" % path)
 			continue
-		options.append(staff)
-		if options.size() == count:
-			break
-	return options
+		loaded.append(res)
+	return loaded
+
+## Cards store their rarity as `card_rarity`, staff as `rarity`.
+func _rarity_of(item: Resource) -> String:
+	if item is ActionCard:
+		return item.card_rarity
+	return item.rarity
+
+## Pick up to `count` different items. Each slot rolls a rarity first,
+## then picks something of that rarity.
+func _pick_by_rarity(items: Array, count: int) -> Array:
+	## Sort into piles by rarity: {"common": [...], "uncommon": [...]}
+	var piles := {}
+	for item in items:
+		var r := _rarity_of(item)
+		if not piles.has(r):
+			piles[r] = []
+		piles[r].append(item)
+
+	var picked := []
+	while picked.size() < count and not piles.is_empty():
+		var rarity := roll_rarity(piles.keys())
+		var pile: Array = piles[rarity]
+		var item = pile.pick_random()
+		picked.append(item)
+		pile.erase(item)               ## no duplicates in one offer
+		if pile.is_empty():
+			piles.erase(rarity)        ## nothing left of that rarity: stop rolling it
+	return picked
+
+## Pick one rarity from `available`, using RARITY_WEIGHTS.
+## Only pass rarities that still have something in them.
+func roll_rarity(available: Array) -> String:
+	var total := 0
+	for r in available:
+		total += RARITY_WEIGHTS.get(r, 0)
+	if total == 0:
+		return available.pick_random()   ## e.g. a typo'd rarity: just pick any
+	var roll := randi_range(1, total)
+	for r in available:
+		roll -= RARITY_WEIGHTS.get(r, 0)
+		if roll <= 0:
+			return r
+	return available.back()
 
 func add_card(card: ActionCard) -> void:
 	deck.append(card)
