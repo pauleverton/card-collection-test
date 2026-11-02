@@ -16,14 +16,12 @@ func start_new_run() -> void:
 	LeagueState.current_tournament_index = 0
 	LeagueState.reset_for_new_tournament()
 
-func end_run() -> void:
+## Call once when a run finishes. won_all = finished top of the final tournament.
+func end_run(won_all: bool) -> void:
 	var reached := LeagueState.current_tournament_index
 	if reached > best_tournament_ever_reached:
 		best_tournament_ever_reached = reached
-
-	var won_all := LeagueState.is_final_tournament()
 	if won_all:
 		has_won_all_tournaments = true
-
 	total_runs_completed += 1
 	run_ended.emit(reached, won_all)

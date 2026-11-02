@@ -1,66 +1,199 @@
 extends Node
 
 ## Autoload singleton. Register as "LeagueState" in Project Settings > Autoload.
-## Tracks progress through the CURRENT tournament, within the current run.
-## current_tournament_index is run-scoped — reset via CareerState.start_new_run(),
-## never touched directly by a season ending on its own.
+## Tracks the CURRENT season of the run: the 6 teams in it, the fixtures, the table,
+## and every result (yours played, the rest simulated).
+## current_tournament_index is run-scoped: reset via CareerState.start_new_run().
 ##
-## Promotion model: every tournament is MATCHES_PER_SEASON matches long.
-## Earn league points as you go (win/draw/loss), same as a real table. Once
-## the season's matches are used up, hit that season's promotion_target()
-## or better and you're promoted to the next tournament, points reset for
-## the new one. Fall short and the run ends (see CareerState.end_run()).
-
-signal season_complete(final_points: int, promoted: bool)
+## Promotion: finish TOP of the table. There is no points target; instead the
+## favourites chase a points PACE (see _pace), so they usually finish near it and
+## you have to beat them to top spot.
 
 const POINTS_WIN := 3
 const POINTS_DRAW := 1
 const POINTS_LOSS := 0
 
-const DEFAULT_MATCHES_PER_SEASON := 4
+## You + 5 opponents; everyone plays everyone once = 5 matches.
+const TEAMS_PER_LEAGUE := 6
+const DEFAULT_MATCHES_PER_SEASON := TEAMS_PER_LEAGUE - 1
 
-## Points needed for promotion out of tournament index 0. Each tournament
-## after that needs one more point than the last (6, 7, 8, ...) — see
-## promotion_target().
-const BASE_PROMOTION_POINTS := 6
-
-
-
-## Placeholder names — adjust freely. boss_rarity is reserved for a future
-## "toughest opponent of the season" feature; not used by any promotion
-## logic here, promotion is purely points-based now.
+## The team sheet numbers these 1–8 in this order. Cups run as 6-team leagues for now.
 const TOURNAMENTS := [
-	{"name": "Non-League",       "type": "league", "boss_rarity": "bronze"},
-	{"name": "League Two",       "type": "league", "boss_rarity": "bronze"},
-	{"name": "League One",       "type": "league", "boss_rarity": "silver"},
-	{"name": "Championship",     "type": "league", "boss_rarity": "silver", "strength": 1.5},
-	{"name": "Premier League",   "type": "league", "boss_rarity": "gold",   "strength": 1.5},
-	{"name": "Europa League",    "type": "cup",    "boss_rarity": "gold",   "strength": 1.75},
-	{"name": "Champions League", "type": "cup",    "boss_rarity": "gold",   "strength": 2.0},
-	{"name": "World Cup",        "type": "cup",    "boss_rarity": "gold",   "strength": 2.0, "matches": 6},
+	{"name": "Non-League",       "type": "league"},
+	{"name": "League Two",       "type": "league"},
+	{"name": "League One",       "type": "league"},
+	{"name": "Championship",     "type": "league", "strength": 1.5},
+	{"name": "Premier League",   "type": "league", "strength": 1.5},
+	{"name": "Europa League",    "type": "cup",    "strength": 1.75},
+	{"name": "Champions League", "type": "cup",    "strength": 2.0},
+	{"name": "World Cup",        "type": "cup",    "strength": 2.0},
 ]
 
 var current_tournament_index: int = 0   # run-scoped, NOT reset by reset_for_new_tournament()
-var season_points: int = 0              # resets each new tournament
-var matches_played: int = 0             # resets each new tournament
+var matches_played: int = 0             # YOUR matches this season (= rounds played)
 
 ## Opponent strength: the first match of a run, and how fast it grows per match at each stake.
 const BASE_STRENGTH := 40
 const GROWTH_PER_STAKE := [0.06, 0.08, 0.10, 0.12, 0.15]
-## The last match of every season is tougher.
+## Playing the favourites is tougher.
 const BOSS_MULTIPLIER := 1.25
+
 ## Every opponent, read from the team sheet when the game starts.
 const TEAMS_CSV := "res://Resources/data/opponents.csv"
 var all_teams: Array[OpponentTeam] = []
 
+# ---------- The season ----------
+
+## Row 0 of the table is always you.
+const YOU := 0
+const YOUR_NAME := "Your team"
+
+## One Dictionary per team: name, team (OpponentTeam, null for you), played, won,
+## drawn, lost, for, against, points. Index = position in this list, NOT league position.
+var table: Array = []
+## One entry per round; each round is a list of [home, away] table indexes.
+var fixtures: Array = []
+
+## Simulated matches: each side gets SIM_CHANCES chances, each scoring with
+## SIM_GOAL_CHANCE × their attack ÷ the other side's defence/keeper.
+const SIM_CHANCES := 6
+const SIM_GOAL_CHANCE := 0.22
+
+## Favourites' points pace for a season: 9 in league 1, +1 per league after.
+const FAVOURITE_PACE_BASE := 9
+## How much better/worse the favourites play when behind/ahead of their pace.
+const PACE_BEHIND := 1.25
+const PACE_AHEAD := 0.85
+
 func _ready() -> void:
 	all_teams = OpponentTeam.load_all(TEAMS_CSV)
-	## Check: how many teams and favourites each league can pick from.
-	print("LeagueState: loaded %d teams" % all_teams.size())
-	for league in range(1, 6):
-		var teams := all_teams.filter(func(t): return t.can_play_in(league))
-		var favs := teams.filter(func(t): return t.is_favourite)
-		print("  League %d: %d teams, %d favourites" % [league, teams.size(), favs.size()])
+	start_season()
+
+## Pick this season's 5 opponents (one favourite + four others from the teams
+## allowed in this league), make the fixtures and clear the table.
+func start_season() -> void:
+	matches_played = 0
+	var league := current_tournament_index + 1          ## the sheet numbers leagues from 1
+	var eligible := all_teams.filter(func(t): return t.can_play_in(league))
+	var favourites := eligible.filter(func(t): return t.is_favourite)
+	var others := eligible.filter(func(t): return not t.is_favourite)
+	favourites.shuffle()
+	others.shuffle()
+	var opponents := favourites.slice(0, 1)
+	opponents += others.slice(0, TEAMS_PER_LEAGUE - 1 - opponents.size())
+
+	table.clear()
+	table.append(_new_row(YOUR_NAME, null))
+	for t in opponents:
+		table.append(_new_row(t.team_name, t))
+	if table.size() != TEAMS_PER_LEAGUE:
+		push_error("LeagueState: only %d teams can play in league %d" % [table.size(), league])
+	fixtures = _make_fixtures(table.size())
+	if OS.is_debug_build():
+		_print_season()
+
+func _new_row(team_name: String, team: OpponentTeam) -> Dictionary:
+	return {"name": team_name, "team": team, "played": 0, "won": 0, "drawn": 0,
+			"lost": 0, "for": 0, "against": 0, "points": 0}
+
+## Everyone plays everyone once (the "circle method"): keep the first team still,
+## rotate the others one place each round.
+func _make_fixtures(team_count: int) -> Array:
+	var order := range(team_count)          ## [0, 1, 2, 3, 4, 5]
+	var rounds := []
+	for r in team_count - 1:
+		var this_round := []
+		for i in int(team_count / 2.0):
+			this_round.append([order[i], order[team_count - 1 - i]])
+		rounds.append(this_round)
+		order.insert(1, order.pop_back())
+	rounds.shuffle()                        ## so the favourites can be any round
+	return rounds
+
+func _print_season() -> void:
+	print("New season: %s" % current_tournament_name())
+	for r in fixtures.size():
+		print("  Round %d: you vs %s" % [r + 1, _label(_your_opponent_index(r))])
+
+# ---------- Questions the screens ask ----------
+
+func current_tournament() -> Dictionary:
+	return TOURNAMENTS[current_tournament_index]
+
+func current_tournament_name() -> String:
+	return current_tournament().name
+
+func matches_per_season() -> int:
+	return fixtures.size()
+
+func matches_remaining() -> int:
+	return max(0, matches_per_season() - matches_played)
+
+func is_final_tournament() -> bool:
+	return current_tournament_index >= TOURNAMENTS.size() - 1
+
+func your_points() -> int:
+	return table[YOU]["points"]
+
+## The team you play next (null once the season is over).
+func next_opponent() -> OpponentTeam:
+	var i := _your_opponent_index(matches_played)
+	if i < 0:
+		return null
+	return table[i]["team"]
+
+## "Hangover Rovers", or "Cold Wet Tuesday Athletic (favourites)".
+func next_opponent_label() -> String:
+	var i := _your_opponent_index(matches_played)
+	if i < 0:
+		return "nobody"
+	return _label(i)
+
+func _label(i: int) -> String:
+	var team: OpponentTeam = table[i]["team"]
+	if team != null and team.is_favourite:
+		return "%s (favourites)" % table[i]["name"]
+	return table[i]["name"]
+
+## Which table row you play in this round (-1 if there's no such round).
+func _your_opponent_index(round_number: int) -> int:
+	if round_number < 0 or round_number >= fixtures.size():
+		return -1
+	for pair in fixtures[round_number]:
+		if pair[0] == YOU:
+			return pair[1]
+		if pair[1] == YOU:
+			return pair[0]
+	return -1
+
+## The table sorted into league order.
+func standings() -> Array:
+	var rows := table.duplicate()
+	rows.sort_custom(_is_above)
+	return rows
+
+## Points, then goal difference, then goals scored. Still level: you go above
+## (head-to-head isn't checked yet).
+func _is_above(a: Dictionary, b: Dictionary) -> bool:
+	if a["points"] != b["points"]:
+		return a["points"] > b["points"]
+	var gd_a: int = a["for"] - a["against"]
+	var gd_b: int = b["for"] - b["against"]
+	if gd_a != gd_b:
+		return gd_a > gd_b
+	if a["for"] != b["for"]:
+		return a["for"] > b["for"]
+	return a["team"] == null
+
+## League position (1 = top) of a table row.
+func position_of(i: int) -> int:
+	var rows := standings()
+	for p in rows.size():
+		if is_same(rows[p], table[i]):
+			return p + 1
+	return 0
+
+# ---------- Opponent strength ----------
 
 ## Which match of the whole run this is (0 = the first).
 func run_match_number() -> int:
@@ -69,105 +202,106 @@ func run_match_number() -> int:
 		n += TOURNAMENTS[i].get("matches", DEFAULT_MATCHES_PER_SEASON)
 	return n
 
-
-
 ## How strong the current opponent is. Every zone's target is built from this.
 func opponent_strength() -> int:
 	var growth: float = GROWTH_PER_STAKE[CareerState.current_stake_index]
 	var s := BASE_STRENGTH * pow(1.0 + growth, run_match_number())
 	s *= current_tournament().get("strength", 1.0)
-	if matches_remaining() == 1:
+	var opponent := next_opponent()
+	if opponent != null and opponent.is_favourite:
 		s *= BOSS_MULTIPLIER
 	return roundi(s)
 
-func current_tournament() -> Dictionary:
-	return TOURNAMENTS[current_tournament_index]
+# ---------- Results ----------
 
-
-func current_tournament_name() -> String:
-	return current_tournament().name
-
-## How many matches the CURRENT tournament lasts (4 unless the tournament says otherwise).
-func matches_per_season() -> int:
-	return current_tournament().get("matches", DEFAULT_MATCHES_PER_SEASON)
-	
-func matches_remaining() -> int:
-	return max(0, matches_per_season() - matches_played)
-
-func is_final_tournament() -> bool:
-	return current_tournament_index >= TOURNAMENTS.size() - 1
-
-
-## Points needed to be promoted out of the CURRENT tournament — gets one
-## point harder each successive tournament (6, 7, 8, ...).
-func promotion_target() -> int:
-	return BASE_PROMOTION_POINTS + current_tournament_index
-
-
-## True only before ANY match has been played in the current season — this
-## is what gates the transfer market (see locker_room.gd): once it's false,
-## the market stays locked until a new season starts.
-func is_before_first_match_of_season() -> bool:
-	return matches_played == 0
-
-
-## True when the NEXT match played will be this season's decider — the
-## start_match() to decide whether to use current_season_boss's squad and
-## conditions instead of the normal random opponent.
-func is_last_match_of_season() -> bool:
-	return matches_played == matches_per_season() - 1
-
-
-
-## Call after every match in the season — win, draw, or loss, doesn't
-## matter which, the caller (match_attempt.gd) just passes the score.
-## Automatically detects the end of the season (once MATCHES_PER_SEASON
-## matches have been played) and resolves promotion/elimination.
-##
-## Returns a Dictionary: {"season_ended": bool, "promoted": bool, "final_points": int}
-## If season_ended is false, promoted/final_points aren't meaningful yet —
-## that's the normal case, since a season is MATCHES_PER_SEASON matches long.
+## Call after every match with your score. Records your result, simulates the
+## other matches in this round and, after the last round, resolves the season.
+## Returns {"season_ended", "promoted", "final_points", "position",
+##          "standings" (the table, sorted), "results" (this round's scores)}.
+## standings/results are copied BEFORE a promotion starts the next season.
 func record_match_result(player_goals: int, opponent_goals: int) -> Dictionary:
-	if player_goals > opponent_goals:
-		season_points += POINTS_WIN
-	elif player_goals == opponent_goals:
-		season_points += POINTS_DRAW
-	else:
-		season_points += POINTS_LOSS
-
+	var results := []
+	for pair in fixtures[matches_played]:
+		var home: int = pair[0]
+		var away: int = pair[1]
+		if home == YOU:
+			results.append(_record(home, away, player_goals, opponent_goals))
+		elif away == YOU:
+			results.append(_record(home, away, opponent_goals, player_goals))
+		else:
+			results.append(_record(home, away, _sim_goals(home, away), _sim_goals(away, home)))
 	matches_played += 1
 
-	if matches_played < matches_per_season():
-		return {"season_ended": false, "promoted": false, "final_points": season_points}
+	var outcome := {"season_ended": false, "promoted": false,
+			"final_points": your_points(), "position": position_of(YOU),
+			"standings": standings(), "results": results}
+	if matches_played >= matches_per_season():
+		_resolve_season(outcome)
+	return outcome
 
-	return _resolve_season()
+## Add one match to both teams' rows; returns it as a line for the results list.
+func _record(home: int, away: int, home_goals: int, away_goals: int) -> Dictionary:
+	_add_result(table[home], home_goals, away_goals)
+	_add_result(table[away], away_goals, home_goals)
+	return {"home": table[home]["name"], "away": table[away]["name"],
+			"home_goals": home_goals, "away_goals": away_goals,
+			"yours": home == YOU or away == YOU}
 
+func _add_result(row: Dictionary, scored: int, let_in: int) -> void:
+	row["played"] += 1
+	row["for"] += scored
+	row["against"] += let_in
+	if scored > let_in:
+		row["won"] += 1
+		row["points"] += POINTS_WIN
+	elif scored == let_in:
+		row["drawn"] += 1
+		row["points"] += POINTS_DRAW
+	else:
+		row["lost"] += 1
+		row["points"] += POINTS_LOSS
 
-func _resolve_season() -> Dictionary:
-	var final_points := season_points
-	var promoted := final_points >= promotion_target()
+## Goals `attacker` scores against `defender` in a simulated match.
+func _sim_goals(attacker: int, defender: int) -> int:
+	var a: OpponentTeam = table[attacker]["team"]
+	var d: OpponentTeam = table[defender]["team"]
+	var chance := SIM_GOAL_CHANCE * a.attack * _pace(attacker) \
+			/ ((d.defence + d.keeper) / 2.0 * _pace(defender))
+	chance = clampf(chance, 0.02, 0.8)
+	var goals := 0
+	for i in SIM_CHANCES:
+		if randf() < chance:
+			goals += 1
+	return goals
 
-	if not promoted:
-		season_complete.emit(final_points, false)
-		CareerState.end_run()
-		return {"season_ended": true, "promoted": false, "final_points": final_points}
+## The favourites play better when behind their pace and ease off when ahead.
+## Everyone else just plays to their ratings (1.0).
+func _pace(i: int) -> float:
+	var team: OpponentTeam = table[i]["team"]
+	if team == null or not team.is_favourite:
+		return 1.0
+	var expected := favourite_pace() * float(table[i]["played"]) / matches_per_season()
+	if table[i]["points"] < expected:
+		return PACE_BEHIND
+	if table[i]["points"] > expected:
+		return PACE_AHEAD
+	return 1.0
 
+func favourite_pace() -> int:
+	return mini(FAVOURITE_PACE_BASE + current_tournament_index, matches_per_season() * POINTS_WIN)
+
+## End of season: 1st goes up (or wins the run in the last tournament); anything else ends the run.
+func _resolve_season(outcome: Dictionary) -> void:
+	outcome["season_ended"] = true
+	outcome["promoted"] = outcome["position"] == 1
+	if not outcome["promoted"]:
+		CareerState.end_run(false)
+		return
 	if is_final_tournament():
-		# Hit the target in the LAST tournament — run complete, victory.
-		season_complete.emit(final_points, true)
-		CareerState.end_run()
-		return {"season_ended": true, "promoted": true, "final_points": final_points}
-
+		CareerState.end_run(true)            ## top of the last one: run won
+		return
 	current_tournament_index += 1
-	season_complete.emit(final_points, true)
 	reset_for_new_tournament()
-	return {"season_ended": true, "promoted": true, "final_points": final_points}
-
 
 func reset_for_new_tournament() -> void:
-	season_points = 0
-	matches_played = 0
-
-## True if even winning every remaining match can't reach the target.
-func is_target_out_of_reach() -> bool:
-	return season_points + matches_remaining() * POINTS_WIN < promotion_target()
+	start_season()

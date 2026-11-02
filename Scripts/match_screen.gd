@@ -37,7 +37,7 @@ func _ready() -> void:
 	shoot_button.pressed.connect(_on_shoot)
 	continue_button.pressed.connect(_on_continue)
 	full_time_panel.visible = false
-	_say("Kick-off. Beat the Press to move up the pitch.")
+	_say("Kick-off against %s. Beat the Press to move up the pitch." % LeagueState.next_opponent_label())
 	for p in RunState.squad:
 		var ui = PLAYER_UI.instantiate()
 		ui.setup(p)
@@ -183,14 +183,10 @@ func _show_full_time() -> void:
 
 	## Read these BEFORE recording the result: promotion moves you to the next tournament.
 	var tournament := LeagueState.current_tournament_name()
-	var target := LeagueState.promotion_target()
+	var opponent := LeagueState.next_opponent()
+	var opponent_name := opponent.team_name if opponent != null else "Them"
 	was_final_tournament = LeagueState.is_final_tournament()
 	league_result = LeagueState.record_match_result(pitch.goals, pitch.conceded)
-
-	## Can't reach the target any more, even by winning every remaining match: end it now.
-	if not league_result["season_ended"] and LeagueState.is_target_out_of_reach():
-		league_result = {"season_ended": true, "promoted": false, "final_points": LeagueState.season_points}
-		CareerState.end_run()
 
 	var result := "LOSS"
 	if pitch.goals > pitch.conceded:
@@ -199,23 +195,51 @@ func _show_full_time() -> void:
 		result = "DRAW"
 
 	full_time_background.color = Color(0.1, 0.1, 0.1, 0.9)   # normal: dark
+	var position: String = _ordinal(league_result["position"])
+	var points: int = league_result["final_points"]
 	var league_line := ""
 	if not league_result["season_ended"]:
-		league_line = "%s: %d pts, %d matches left (need %d)" % [
-				tournament, LeagueState.season_points, LeagueState.matches_remaining(), target]
+		league_line = "%s: %s with %d pts, %d matches left" % [
+				tournament, position, points, LeagueState.matches_remaining()]
 	elif league_result["promoted"] and was_final_tournament:
-		league_line = "%s won with %d pts. YOU'VE WON EVERYTHING!" % [tournament, league_result["final_points"]]
+		league_line = "%s champions with %d pts. YOU'VE WON EVERYTHING!" % [tournament, points]
 		full_time_background.color = Color("b8902e")   # won it all: gold
 		continue_button.text = "Start a new run"
 	elif league_result["promoted"]:
-		league_line = "Season over: %d pts. PROMOTED from %s!" % [league_result["final_points"], tournament]
+		league_line = "CHAMPIONS! Promoted from %s with %d pts!" % [tournament, points]
 	else:
-		league_line = "Season over: %d pts, needed %d. RUN OVER." % [league_result["final_points"], target]
+		league_line = "Season over: finished %s with %d pts. Only 1st goes up. RUN OVER." % [position, points]
 		full_time_background.color = Color("8b1e1e")   # run over: red
 		continue_button.text = "Start a new run"
 
-	full_time_label.text = "FULL TIME\n\nYou %d - %d Them   (%s)\n\n%s\n\n+%d coins   (total %d)" % [
-			pitch.goals, pitch.conceded, result, league_line, coins, CoinState.coins]
+	full_time_label.text = "FULL TIME\n\nYou %d - %d %s   (%s)\n\n%s\n\n%s\n\n%s\n\n+%d coins   (total %d)" % [
+			pitch.goals, pitch.conceded, opponent_name, result, league_line,
+			_other_results_text(league_result["results"]),
+			_table_text(league_result["standings"]), coins, CoinState.coins]
+	full_time_panel.visible = true
+
+## The rest of this round's scores, one per line.
+func _other_results_text(results: Array) -> String:
+	var lines: PackedStringArray = []
+	for r in results:
+		if not r["yours"]:
+			lines.append("%s %d - %d %s" % [r["home"], r["home_goals"], r["away_goals"], r["away"]])
+	return "\n".join(lines)
+
+## The league table as text (a proper table view comes with the hub).
+func _table_text(rows: Array) -> String:
+	var lines: PackedStringArray = []
+	for i in rows.size():
+		var r: Dictionary = rows[i]
+		lines.append("%d. %s   %d pts   (%+d)" % [i + 1, r["name"], r["points"], r["for"] - r["against"]])
+	return "\n".join(lines)
+
+func _ordinal(n: int) -> String:
+	match n:
+		1: return "1st"
+		2: return "2nd"
+		3: return "3rd"
+	return "%dth" % n
 	full_time_panel.visible = true
 
 func _on_continue() -> void:
@@ -284,9 +308,9 @@ func refresh_all() -> float:
 	
 ## The info panel. Takes the minute so a replay can show the clock ticking.
 func _show_info(minute: int) -> void:
-	info_label.text = "%s\nOpponent strength %d\n%d' \nYou %d - %d Them\nEnergy %d" % [
-			LeagueState.current_tournament_name(), pitch.strength,
-			minute, pitch.goals, pitch.conceded, pitch.energy]
+	info_label.text = "%s\nvs %s\nStrength %d\n%d' \nYou %d - %d Them\nEnergy %d" % [
+			LeagueState.current_tournament_name(), LeagueState.next_opponent_label(),
+			pitch.strength, minute, pitch.goals, pitch.conceded, pitch.energy]
 		
 func describe(events: Array) -> String:
 	var lines: PackedStringArray = []
