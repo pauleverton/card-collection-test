@@ -15,7 +15,7 @@ metadata/_custom_type_script = "uid://domqwl3t6o5kn"
 [resource]
 script = ExtResource("1_55fsd")
 display_name = "Park the bus"
-description = "Everyone back to defend, no attacking cards possibleW"
+description = "Everyone back to defend, no attacking cards possible"
 rarity = "rare"
 ability = SubResource("Resource_4dt8h")
 metadata/_custom_type_script = "uid://b8dxl7yvw3hj"

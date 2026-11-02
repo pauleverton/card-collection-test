@@ -442,5 +442,5 @@ func _debug_add_players() -> void:
 		ui.setup(p)
 		ui.disabled = true          ## display only during a match
 		squad_bar.add_child(ui)
-	_say("DEBUG: added Super Sub and Kitchen Sink.", false)
+	_say("DEBUG: added 3 players.", false)
 	refresh_all()

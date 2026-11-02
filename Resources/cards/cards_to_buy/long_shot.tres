@@ -7,6 +7,7 @@ script = ExtResource("1_wo622")
 display_name = "Long Shot"
 energy_cost = 2
 tag = "long_shot"
+card_type = "attacking"
 card_rarity = "uncommon"
 base_value = 0
 usable_when = "attacking"
