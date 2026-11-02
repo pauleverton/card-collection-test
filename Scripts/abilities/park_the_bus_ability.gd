@@ -1,7 +1,6 @@
 class_name ParkTheBusAbility
 extends Ability
-## Park the Bus: everyone behind the ball. Much easier to win it back,
-## but with the ball the only thing you can do is try a Long Shot.
+## Park the Bus: everyone behind the ball. Much easier to win it back, but all attacking cards are nullified
 
 ## Fraction of the normal hold target. The default 1.0 does nothing on purpose:
 ## type the real value in the Inspector so it's always saved in the file.

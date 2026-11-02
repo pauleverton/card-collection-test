@@ -39,7 +39,8 @@ const PLAYER_POOL:= [
 	"res://Resources/players/twinkle_toes.tres",
 	"res://Resources/players/stopper.tres",
 	"res://Resources/players/super_sub.tres",
-	"res://Resources/players/kitchen_sink.tres"]
+	"res://Resources/players/kitchen_sink.tres",
+	"res://Resources/players/park_the_bus.tres"]
 	
 const COACH_POOL:= [
 	"res://Resources/coaches/attacking_coach.tres",
