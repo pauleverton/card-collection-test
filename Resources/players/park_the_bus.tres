@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PlayerCard" format=3 uid="uid://dp4hf11a7l5ot"]
+
+[ext_resource type="Script" uid="uid://domqwl3t6o5kn" path="res://Scripts/abilities/park_the_bus_ability.gd" id="1_4dt8h"]
+[ext_resource type="Script" uid="uid://b8dxl7yvw3hj" path="res://Scripts/player_card.gd" id="1_55fsd"]
+
+[sub_resource type="Resource" id="Resource_4dt8h"]
+script = ExtResource("1_4dt8h")
+hold_factor = 0.5
+active_from_minute = 60
+when_score = "winning"
+on_text = "{name}: park the bus! Everyone behind the ball"
+off_text = "{name}: they're level. We have to go again!"
+metadata/_custom_type_script = "uid://domqwl3t6o5kn"
+
+[resource]
+script = ExtResource("1_55fsd")
+display_name = "Park the bus"
+description = "Everyone back to defend, no attacking cards possibleW"
+rarity = "rare"
+ability = SubResource("Resource_4dt8h")
+metadata/_custom_type_script = "uid://b8dxl7yvw3hj"

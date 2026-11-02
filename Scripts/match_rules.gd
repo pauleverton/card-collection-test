@@ -153,6 +153,8 @@ func can_play_here(card: ActionCard) -> bool:
 		return false
 	if not has_ball and nobody_back():
 		return false     ## nobody back: it's down to the keeper
+	if not _abilities_allow(card):
+		return false     ## an ability has switched this card off
 	if card.play_zones != 0:
 		return card.play_zones & (1 << zone) != 0
 	if card.tag in ["retain", "overlap"]:
@@ -327,15 +329,28 @@ func _press_target() -> int:
 
 ## Recalculate the press mid-zone, keeping your build-up. If the new target is
 ## already beaten, you break through straight away.
+## Recalculate the press (attacking) or hold (defending) mid-zone, keeping the bar's progress.
+## If the new target is already reached, you break through / win the ball straight away.
 func _recheck_press(events: Array) -> void:
-	if not has_ball or zone == 4:
+	if zone == 4 and has_ball:
 		return
-	var new_target := _press_target()
-	if new_target == target:
+	if zone == 0 and not has_ball:
 		return
-	target = new_target
-	events.append({"type": "press_changed", "build": build, "target": target})
-	_break_through(events)
+	if has_ball:
+		var new_target := _press_target()
+		if new_target == target:
+			return
+		target = new_target
+		events.append({"type": "press_changed", "build": build, "target": target})
+		_break_through(events)
+	else:
+		var new_target := _hold_target()
+		if new_target == target:
+			return
+		target = new_target
+		events.append({"type": "hold_changed", "build": build, "target": target})
+		if build >= target:
+			_win_ball(events)
 
 # ---------- You attacking: their box ----------
 
@@ -438,7 +453,11 @@ func _they_advance(events: Array) -> void:
 
 func _flip_attack() -> void:
 	build = 0
-	target = roundi(strength * ATTACK_WEIGHT[zone])
+	target = _hold_target()
+
+## The hold you need in the current zone to win the ball, including abilities.
+func _hold_target() -> int:
+	return roundi(strength * ATTACK_WEIGHT[zone] * _hold_multiplier())
 	
 func _set_their_chance() -> void:
 	quality = _draw_from(_their_chance_pile, THEIR_CHANCE_DECK)
@@ -608,6 +627,15 @@ func _press_multiplier() -> float:
 	for a in _active_abilities():
 		total *= a.press_multiplier(self)
 	return total
+
+func _hold_multiplier() -> float:
+	var total := 1.0
+	for a in _active_abilities():
+		total *= a.hold_multiplier(self)
+	return total
+
+func _abilities_allow(card: ActionCard) -> bool:
+	return _active_abilities().all(func(a): return a.allows_card(self, card))
 
 ## After every action: commentary for any ability that has just switched on or off.
 func _announce_abilities(events: Array) -> void:

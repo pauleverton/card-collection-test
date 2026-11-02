@@ -7,7 +7,7 @@ extends Resource
 @export var display_name: String
 @export var energy_cost: int = 1
 @export var tag: String = "pass"
-@export var card_type: String = "attacking"
+@export var card_type: String = ""
 @export_enum("common","uncommon","rare","special") var card_rarity:String="common"
 @export var base_value: int = 10
 @export var draw_count: int = 0

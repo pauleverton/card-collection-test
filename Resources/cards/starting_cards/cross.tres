@@ -6,6 +6,7 @@
 script = ExtResource("1_3y67c")
 display_name = "Cross"
 tag = "cross"
+card_type = "attacking"
 base_value = 30
 usable_when = "attacking"
 description = "Cross the ball"

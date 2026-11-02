@@ -301,6 +301,8 @@ func describe(events: Array) -> String:
 				lines.append("Momentum carries on: %d towards a press of %d." % [e["build"], e["target"]])
 			"press_changed":
 				lines.append("Their press is now %d (you've built %d)." % [e["target"], e["build"]])
+			"hold_changed":
+				lines.append("Their attack needs holding to %d now (you've held %d)." % [e["target"], e["build"]])
 			"advance":
 				lines.append("Ball moves into %s." % e["zone"])
 			"in_the_box":
@@ -418,6 +420,27 @@ func _unhandled_input(event: InputEvent) -> void:
 				_say("DEBUG: jumped to %s." % LeagueState.current_tournament_name(), false)
 				refresh_all()
 			KEY_L:
-				pitch.minute = 72
-				_say("DEBUG: jumped to 72'. The next action reaches 75'.", false)
+				pitch.minute = 57
+				_say("DEBUG: jumped to 57", false)
 				refresh_all()
+			KEY_P:
+				_debug_add_players()
+
+## Debug: add Super Sub and Kitchen Sink to the squad (and the squad bar) for testing.
+const DEBUG_PLAYERS := [
+	"res://Resources/players/super_sub.tres",
+	"res://Resources/players/kitchen_sink.tres",
+	"res://Resources/players/park_the_bus.tres"]
+
+func _debug_add_players() -> void:
+	for path in DEBUG_PLAYERS:
+		if RunState.squad.any(func(s): return s.resource_path == path):
+			continue      ## already in the squad
+		var p: PlayerCard = load(path)
+		RunState.squad.append(p)
+		var ui = PLAYER_UI.instantiate()
+		ui.setup(p)
+		ui.disabled = true          ## display only during a match
+		squad_bar.add_child(ui)
+	_say("DEBUG: added Super Sub and Kitchen Sink.", false)
+	refresh_all()
