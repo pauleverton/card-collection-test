@@ -49,6 +49,18 @@ const BASE_STRENGTH := 40
 const GROWTH_PER_STAKE := [0.06, 0.08, 0.10, 0.12, 0.15]
 ## The last match of every season is tougher.
 const BOSS_MULTIPLIER := 1.25
+## Every opponent, read from the team sheet when the game starts.
+const TEAMS_CSV := "res://Resources/data/opponents.csv"
+var all_teams: Array[OpponentTeam] = []
+
+func _ready() -> void:
+	all_teams = OpponentTeam.load_all(TEAMS_CSV)
+	## Check: how many teams and favourites each league can pick from.
+	print("LeagueState: loaded %d teams" % all_teams.size())
+	for league in range(1, 6):
+		var teams := all_teams.filter(func(t): return t.can_play_in(league))
+		var favs := teams.filter(func(t): return t.is_favourite)
+		print("  League %d: %d teams, %d favourites" % [league, teams.size(), favs.size()])
 
 ## Which match of the whole run this is (0 = the first).
 func run_match_number() -> int:
@@ -56,6 +68,8 @@ func run_match_number() -> int:
 	for i in current_tournament_index:
 		n += TOURNAMENTS[i].get("matches", DEFAULT_MATCHES_PER_SEASON)
 	return n
+
+
 
 ## How strong the current opponent is. Every zone's target is built from this.
 func opponent_strength() -> int:
