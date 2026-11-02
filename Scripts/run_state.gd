@@ -54,6 +54,7 @@ const RARITY_WEIGHTS := {"common": 60, "uncommon": 25, "rare": 12, "special": 3}
 var deck: Array = []
 var matches_played := 0
 var squad: Array = []          ## players AND coaches
+var team_name := ""            ## built on the main menu; "" = use the default name
 const MAX_PLAYERS := 5
 const MAX_COACHES := 2
 
@@ -78,6 +79,7 @@ func new_run() -> void:
 		deck.append(load(path))
 	matches_played = 0
 	squad.clear()
+	team_name = ""
 
 ## Up to `count` different cards from REWARD_POOL, weighted by rarity.
 ## (Cards you already own can still appear: you can have several copies.)

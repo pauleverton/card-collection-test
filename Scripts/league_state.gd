@@ -48,6 +48,12 @@ var all_teams: Array[OpponentTeam] = []
 const YOU := 0
 const YOUR_NAME := "Your team"
 
+## Your team's name: the one built on the menu, or YOUR_NAME if there isn't one.
+func your_name() -> String:
+	if RunState.team_name != "":
+		return RunState.team_name
+	return YOUR_NAME
+
 ## One Dictionary per team: name, team (OpponentTeam, null for you), played, won,
 ## drawn, lost, for, against, points. Index = position in this list, NOT league position.
 var table: Array = []
@@ -83,7 +89,7 @@ func start_season() -> void:
 	opponents += others.slice(0, TEAMS_PER_LEAGUE - 1 - opponents.size())
 
 	table.clear()
-	table.append(_new_row(YOUR_NAME, null))
+	table.append(_new_row(your_name(), null))
 	for t in opponents:
 		table.append(_new_row(t.team_name, t))
 	if table.size() != TEAMS_PER_LEAGUE:

@@ -15,12 +15,15 @@ const PLAYER_UI = preload("res://Scenes/player_card_view.tscn")
 @onready var squad_bar = $SquadBar
 @onready var build_bar = $BuildBar
 @onready var build_label = $BuildBar/BuildLabel
+const LEAGUE_TABLE := preload("res://Scenes/league_table_view.tscn")
+
 
 var pitch := MatchRules.new()
 var busy := false
 const PILE_MARGIN := 40       ## gap between the piles and the screen corners
 const OPENING_HAND := 5
 const MAX_REDEALS := 3        ## after this many, an unplayable hand just loses the ball
+const WHISTLE_PAUSE := 1.5      ## seconds on the final score before the full-time panel
 var draw_view := PileView.new()
 var discard_view := PileView.new()
 
@@ -29,6 +32,7 @@ var league_result := {}
 var was_final_tournament := false
 
 func _ready() -> void:
+	info_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN 
 	DeckState.start_match(RunState.deck)
 	DeckState.draw(OPENING_HAND)
 	pitch.start()
@@ -123,9 +127,11 @@ func _after_action(events: Array) -> void:
 	hand.modulate = Color(1, 1, 1, 1)      ## back to normal once it's finished
 	if deal_time > 0.0:
 		await get_tree().create_timer(deal_time).timeout   ## still busy while new cards fly in
-	busy = false
 	if pitch.match_over:
-		_show_full_time()
+		await _blow_whistle()      ## a moment on the final score first
+		_show_full_time()          ## stays busy: nothing can be played after the whistle
+		return
+	busy = false
 
 ## Replay a build-up that broke through: fill the bar to the line, move the ball on, carry the rest.
 func _replay_build(events: Array) -> void:
@@ -177,7 +183,16 @@ func _fill_bar(value: int, maximum: int) -> void:
 
 # ---------- Full time ----------
 
+## The final whistle: score in the headline, cards fade away, short pause.
+func _blow_whistle() -> void:
+	_say("[color=gold][b]FULL TIME![/b]  You %d - %d %s[/color]" % [
+			pitch.goals, pitch.conceded, LeagueState.next_opponent_label()], false)
+	create_tween().tween_property(hand, "modulate:a", 0.0, SettingsState.t(0.6))
+	await get_tree().create_timer(SettingsState.t(WHISTLE_PAUSE)).timeout
+
 func _show_full_time() -> void:
+	if full_time_panel.visible:
+		return                     ## already shown: never record the result twice
 	var coins := pitch.coins_earned()
 	CoinState.add_coins(coins)
 
@@ -194,6 +209,8 @@ func _show_full_time() -> void:
 	elif pitch.goals == pitch.conceded:
 		result = "DRAW"
 
+	full_time_background.visible = true
+	hand.visible = false            
 	full_time_background.color = Color(0.1, 0.1, 0.1, 0.9)   # normal: dark
 	var position: String = _ordinal(league_result["position"])
 	var points: int = league_result["final_points"]
@@ -212,11 +229,16 @@ func _show_full_time() -> void:
 		full_time_background.color = Color("8b1e1e")   # run over: red
 		continue_button.text = "Start a new run"
 
-	full_time_label.text = "FULL TIME\n\nYou %d - %d %s   (%s)\n\n%s\n\n%s\n\n%s\n\n+%d coins   (total %d)" % [
+	full_time_label.text = "FULL TIME\n\nYou %d - %d %s   (%s)\n\n%s\n\n%s\n\n+%d coins   (total %d)" % [
 			pitch.goals, pitch.conceded, opponent_name, result, league_line,
-			_other_results_text(league_result["results"]),
-			_table_text(league_result["standings"]), coins, CoinState.coins]
+			_other_results_text(league_result["results"]), coins, CoinState.coins]
+	var table_view = LEAGUE_TABLE.instantiate()
+	full_time_label.add_sibling(table_view)      ## right under the text, above Continue
+	table_view.refresh(league_result["standings"])
+	
+	full_time_panel.modulate.a = 0.0
 	full_time_panel.visible = true
+	create_tween().tween_property(full_time_panel, "modulate:a", 1.0, SettingsState.t(0.4))
 
 ## The rest of this round's scores, one per line.
 func _other_results_text(results: Array) -> String:
@@ -226,21 +248,12 @@ func _other_results_text(results: Array) -> String:
 			lines.append("%s %d - %d %s" % [r["home"], r["home_goals"], r["away_goals"], r["away"]])
 	return "\n".join(lines)
 
-## The league table as text (a proper table view comes with the hub).
-func _table_text(rows: Array) -> String:
-	var lines: PackedStringArray = []
-	for i in rows.size():
-		var r: Dictionary = rows[i]
-		lines.append("%d. %s   %d pts   (%+d)" % [i + 1, r["name"], r["points"], r["for"] - r["against"]])
-	return "\n".join(lines)
-
 func _ordinal(n: int) -> String:
 	match n:
 		1: return "1st"
 		2: return "2nd"
 		3: return "3rd"
 	return "%dth" % n
-	full_time_panel.visible = true
 
 func _on_continue() -> void:
 	RunState.matches_played += 1
@@ -308,8 +321,8 @@ func refresh_all() -> float:
 	
 ## The info panel. Takes the minute so a replay can show the clock ticking.
 func _show_info(minute: int) -> void:
-	info_label.text = "%s\nvs %s\nStrength %d\n%d' \nYou %d - %d Them\nEnergy %d" % [
-			LeagueState.current_tournament_name(), LeagueState.next_opponent_label(),
+	info_label.text = "%s\n %s vs %s\nStrength %d\n%d'   You %d - %d Them\nEnergy %d" % [
+			LeagueState.current_tournament_name(),LeagueState.your_name(), LeagueState.next_opponent_label(),
 			pitch.strength, minute, pitch.goals, pitch.conceded, pitch.energy]
 		
 func describe(events: Array) -> String:
