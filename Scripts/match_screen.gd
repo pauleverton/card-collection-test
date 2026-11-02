@@ -17,7 +17,6 @@ const PLAYER_UI = preload("res://Scenes/player_card_view.tscn")
 @onready var build_label = $BuildBar/BuildLabel
 const LEAGUE_TABLE := preload("res://Scenes/league_table_view.tscn")
 
-
 var pitch := MatchRules.new()
 var busy := false
 const PILE_MARGIN := 40       ## gap between the piles and the screen corners

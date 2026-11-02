@@ -7,6 +7,17 @@ extends Resource
 ## Placeholders: nothing uses them until opponents feed the match rules.
 const RATING_VALUES := {
 	"very low": 0.7, "low": 0.85, "medium": 1.0, "high": 1.15, "very high": 1.3}
+	
+## Short labels for screens (fixtures list): the same order as RATING_VALUES.
+const RATING_SHORT := {
+	"very low": "VL", "low": "L", "medium": "M", "high": "H", "very high": "VH"}
+
+## A rating multiplier back to its short label (1.15 → "H").
+static func rating_short(value: float) -> String:
+	for word in RATING_VALUES:
+		if is_equal_approx(RATING_VALUES[word], value):
+			return RATING_SHORT[word]
+	return "?"
 
 var team_name := ""
 var leagues: Array[int] = []     ## 1 = Non-League … 5 = Premier League, 6–8 = cups

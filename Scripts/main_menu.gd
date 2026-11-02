@@ -84,17 +84,18 @@ func _show_name_box() -> void:
 		part_labels.append(word)
 		buttons.append(reroll)
 
-	name_preview = Label.new()
-	name_preview.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_preview.add_theme_font_size_override("font_size", 36)
-	name_preview.add_theme_color_override("font_color", GOLD)
-	vbox.add_child(name_preview)
-
 	var reroll_all := Button.new()
 	reroll_all.text = "Reroll all"
 	reroll_all.pressed.connect(_reroll_all)
 	vbox.add_child(reroll_all)
 	buttons.append(reroll_all)
+
+	name_preview = Label.new()
+	name_preview.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_preview.add_theme_font_size_override("font_size", 36)
+	name_preview.add_theme_color_override("font_color", GOLD)
+	vbox.add_child(name_preview)
+	
 
 	var kick_off := Button.new()
 	kick_off.text = "Kick off"

@@ -59,6 +59,8 @@ func your_name() -> String:
 var table: Array = []
 ## One entry per round; each round is a list of [home, away] table indexes.
 var fixtures: Array = []
+## One entry per round played: that round's results (see _record).
+var round_results: Array = []
 
 ## Simulated matches: each side gets SIM_CHANCES chances, each scoring with
 ## SIM_GOAL_CHANCE × their attack ÷ the other side's defence/keeper.
@@ -79,6 +81,7 @@ func _ready() -> void:
 ## allowed in this league), make the fixtures and clear the table.
 func start_season() -> void:
 	matches_played = 0
+	round_results.clear()
 	var league := current_tournament_index + 1          ## the sheet numbers leagues from 1
 	var eligible := all_teams.filter(func(t): return t.can_play_in(league))
 	var favourites := eligible.filter(func(t): return t.is_favourite)
@@ -154,6 +157,23 @@ func next_opponent_label() -> String:
 	if i < 0:
 		return "nobody"
 	return _label(i)
+	
+## Your season round by round: who you play, and your score once it's played.
+## Each entry: {round, opponent (name label), team (OpponentTeam), played, scored, conceded}.
+func your_fixtures() -> Array:
+	var list := []
+	for r in fixtures.size():
+		var i := _your_opponent_index(r)
+		var f := {"round": r + 1, "opponent": _label(i), "team": table[i]["team"],
+				"played": r < round_results.size(), "scored": 0, "conceded": 0}
+		if f["played"]:
+			for res in round_results[r]:
+				if res["yours"]:
+					var you_home: bool = res["home_i"] == YOU
+					f["scored"] = res["home_goals"] if you_home else res["away_goals"]
+					f["conceded"] = res["away_goals"] if you_home else res["home_goals"]
+		list.append(f)
+	return list
 
 func _label(i: int) -> String:
 	var team: OpponentTeam = table[i]["team"]
@@ -223,8 +243,9 @@ func opponent_strength() -> int:
 ## Call after every match with your score. Records your result, simulates the
 ## other matches in this round and, after the last round, resolves the season.
 ## Returns {"season_ended", "promoted", "final_points", "position",
-##          "standings" (the table, sorted), "results" (this round's scores)}.
-## standings/results are copied BEFORE a promotion starts the next season.
+##          "standings" (the table, sorted), "results" (this round's scores),
+##          "fixtures" (your season so far, see your_fixtures)}.
+## standings/results/fixtures are copied BEFORE a promotion starts the next season.
 func record_match_result(player_goals: int, opponent_goals: int) -> Dictionary:
 	var results := []
 	for pair in fixtures[matches_played]:
@@ -236,11 +257,12 @@ func record_match_result(player_goals: int, opponent_goals: int) -> Dictionary:
 			results.append(_record(home, away, opponent_goals, player_goals))
 		else:
 			results.append(_record(home, away, _sim_goals(home, away), _sim_goals(away, home)))
+	round_results.append(results)
 	matches_played += 1
 
 	var outcome := {"season_ended": false, "promoted": false,
 			"final_points": your_points(), "position": position_of(YOU),
-			"standings": standings(), "results": results}
+			"standings": standings(), "results": results, "fixtures": your_fixtures()}
 	if matches_played >= matches_per_season():
 		_resolve_season(outcome)
 	return outcome
@@ -250,6 +272,7 @@ func _record(home: int, away: int, home_goals: int, away_goals: int) -> Dictiona
 	_add_result(table[home], home_goals, away_goals)
 	_add_result(table[away], away_goals, home_goals)
 	return {"home": table[home]["name"], "away": table[away]["name"],
+			"home_i": home, "away_i": away,
 			"home_goals": home_goals, "away_goals": away_goals,
 			"yours": home == YOU or away == YOU}
 
