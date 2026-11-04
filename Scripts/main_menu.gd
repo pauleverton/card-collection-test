@@ -19,6 +19,8 @@ const SPIN_FAST := 0.04            ## seconds per word at the start
 const SPIN_SLOW := 0.16            ## seconds per word just before it stops
 const STAGGER_STEPS := 5           ## Reroll all: each slot spins this many words longer than the one before
 const GOLD := Color("f2c14e")
+const WORD_SIZE := 28              ## font size of the three words
+const PREVIEW_SIZE := 36           ## font size of the full name
 
 var backdrop: ColorRect = null            ## the dark layer behind the name box
 var name_box: PanelContainer = null
@@ -45,8 +47,10 @@ func _on_start_game_pressed() -> void:
 	if name_box == null:
 		_show_name_box()
 
-## A dark layer over the menu, and in the middle: [title + X], three [word + Reroll]
-## rows, the full name, Reroll all, Kick off.
+## A dark layer over the menu, and in the middle: [title + X], three [word ... Reroll]
+## rows, Reroll all, the full name, Kick off. Fixed width: sized for the longest
+## possible name, so rerolling never changes the box. Every row spans the full width,
+## so the words line up on the left and every button lines up on the right.
 func _show_name_box() -> void:
 	backdrop = ColorRect.new()
 	backdrop.color = Color(0, 0, 0, 0.75)        ## also stops clicks reaching the menu
@@ -66,30 +70,36 @@ func _show_name_box() -> void:
 	vbox.add_theme_constant_override("separation", 14)
 
 	buttons.clear()
-	## Top row: the title in the middle, X on the right.
+	## Top row: [spacer] title [X]. The spacer is the same width as the X,
+	## so the title sits in the true middle of the box.
 	var top_row := HBoxContainer.new()
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(44, 44)
 	var title := Label.new()
 	title.text = "Name your team"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.add_theme_font_size_override("font_size", 28)
 	var close := Button.new()
 	close.text = "X"
 	UiStyle.secondary(close)
 	close.custom_minimum_size = Vector2(44, 44)
 	close.pressed.connect(_close_name_box)
+	top_row.add_child(spacer)
 	top_row.add_child(title)
 	top_row.add_child(close)
 	vbox.add_child(top_row)
 	buttons.append(close)
-
+	## Three rows: the word on the left, its Reroll button on the right edge.
 	part_labels.clear()
 	for i in NAME_PARTS.size():
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 16)
 		var word := Label.new()
 		word.text = NAME_PARTS[i].pick_random()
-		word.custom_minimum_size = Vector2(300, 0)
-		word.add_theme_font_size_override("font_size", 28)
+		word.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT    ## words start on one straight line
+		word.size_flags_horizontal = Control.SIZE_EXPAND_FILL    ## takes the spare width, pushing Reroll right
+		word.add_theme_font_size_override("font_size", WORD_SIZE)
 		var reroll := Button.new()
 		reroll.text = "Reroll"
 		UiStyle.secondary(reroll)
@@ -100,7 +110,6 @@ func _show_name_box() -> void:
 		part_labels.append(word)
 		buttons.append(reroll)
 
-
 	var reroll_all := Button.new()
 	reroll_all.text = "Reroll all"
 	UiStyle.secondary(reroll_all)
@@ -110,7 +119,7 @@ func _show_name_box() -> void:
 
 	name_preview = Label.new()
 	name_preview.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_preview.add_theme_font_size_override("font_size", 36)
+	name_preview.add_theme_font_size_override("font_size", PREVIEW_SIZE)
 	name_preview.add_theme_color_override("font_color", GOLD)
 	vbox.add_child(name_preview)
 
@@ -123,8 +132,29 @@ func _show_name_box() -> void:
 
 	name_box.add_child(vbox)
 	$TextureRect.add_child(name_box)
+	_fix_widths(vbox)                            ## needs to be on screen to measure the font
 	name_box.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
+	name_box.grow_horizontal = Control.GROW_DIRECTION_BOTH   ## stays centred
+	name_box.grow_vertical = Control.GROW_DIRECTION_BOTH
 	_update_preview()
+
+## The box gets the width of the longest name the word lists can make
+## (the widest word from each list), so rerolling never changes it.
+func _fix_widths(vbox: VBoxContainer) -> void:
+	var font: Font = name_preview.get_theme_font("font")
+	var longest_words := PackedStringArray()
+	for list in NAME_PARTS:
+		var widest := 0.0
+		var widest_word := ""
+		for w in list:
+			var width := font.get_string_size(w, HORIZONTAL_ALIGNMENT_LEFT, -1, PREVIEW_SIZE).x
+			if width > widest:
+				widest = width
+				widest_word = w
+		longest_words.append(widest_word)
+	var longest_name := font.get_string_size(" ".join(longest_words),
+			HORIZONTAL_ALIGNMENT_LEFT, -1, PREVIEW_SIZE).x
+	vbox.custom_minimum_size.x = longest_name + 20
 
 ## X: close the name box and the dark layer, back to the plain menu.
 func _close_name_box() -> void:
