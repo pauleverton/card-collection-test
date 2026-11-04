@@ -19,24 +19,29 @@ const UPGRADE_PRICE := 60
 @onready var squad_view = $VBox/SquadView
 
 
+## The stock comes from RunState (rolled once per break), so coming back
+## to the shop shows the same shelf, minus anything you've bought.
 func _ready() -> void:
-	for card in RunState.reward_options(3):
+	for card in RunState.shop_cards:
 		var ui = CARD_UI.instantiate()
 		ui.setup(card)
 		ui.text += "\n\n%d coins" % price_of(card)
 		ui.card_clicked.connect(_buy_card.bind(ui))
 		for_sale.add_child(ui)
-	for player in RunState.staff_for_sale(3):
+	for player in RunState.shop_staff:
 		var ui = PLAYER_UI.instantiate()
 		ui.setup(player)
 		ui.text+="\n\n%d coins" % price_of_player(player)
 		ui.player_clicked.connect(_buy_player.bind(ui))
 		for_sale.add_child(ui)
 	pack_button.text = "Open a pack (%d coins)" % PACK_PRICE
+	pack_button.disabled = RunState.shop_pack_opened
 	pack_button.pressed.connect(_buy_pack)
+	leave_button.text = "Back to hub"
 	leave_button.pressed.connect(_leave)
 	_update_header_label()
 	upgrade_button.text = "Upgrade a card (%d coins)" % UPGRADE_PRICE
+	upgrade_button.disabled = RunState.shop_upgrade_used
 	upgrade_button.pressed.connect(_show_deck_for_upgrade)
 	_show_squad()
 
@@ -53,6 +58,7 @@ func _buy_card(card: ActionCard, ui: Button) -> void:
 		return
 	CoinState.deduct_coins(cost)
 	RunState.add_card(card)
+	RunState.shop_cards.erase(card)    ## gone from the stock for this break
 	ui.queue_free()          ## sold: remove it from the shelf
 	_update_header_label()
 
@@ -66,6 +72,7 @@ func _buy_player(player: StaffCard, ui: Button) -> void:
 		return
 	CoinState.deduct_coins(cost)
 	RunState.add_player(player)
+	RunState.shop_staff.erase(player)  ## gone from the stock for this break
 	ui.queue_free()
 	_update_header_label()
 	_show_squad()
@@ -75,6 +82,7 @@ func _buy_pack() -> void:
 		coins_label.text = "Not enough coins! (%d)" % CoinState.coins
 		return
 	CoinState.deduct_coins(PACK_PRICE)
+	RunState.shop_pack_opened = true   ## one pack per break
 	pack_button.disabled = true
 	var i := 0
 	for card in RunState.reward_options(PACK_SIZE):
@@ -92,7 +100,7 @@ func _update_header_label() -> void:
 	coins_label.text = "Coins: %d   |   Deck: %d cards" % [CoinState.coins, RunState.deck.size()]
 
 func _leave() -> void:
-	get_tree().change_scene_to_file("res://Scenes/match_screen.tscn")
+	get_tree().change_scene_to_file("res://Scenes/hub_screen.tscn")
 
 func _show_deck_for_upgrade() -> void:
 	if not CoinState.can_afford(UPGRADE_PRICE):
@@ -115,7 +123,8 @@ func _upgrade(index: int) -> void:
 	RunState.upgrade_card(index)
 	var after: ActionCard = RunState.deck[index]
 	_clear_deck_view()
-	upgrade_button.disabled = true             ## one upgrade per shop visit
+	RunState.shop_upgrade_used = true          ## one upgrade per break
+	upgrade_button.disabled = true
 	_update_header_label()
 	coins_label.text = "Upgraded %s (value %d) → %s (value %d)!   Coins: %d" % [
 			before.display_name, before.base_value, after.display_name, after.base_value, CoinState.coins]

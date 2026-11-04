@@ -14,11 +14,12 @@ func _ready() -> void:
 		ui.setup(card)
 		ui.card_clicked.connect(_on_card_chosen)
 		choices.add_child(ui)
-	skip_button.pressed.connect(_next_match)
+	skip_button.pressed.connect(_go_to_hub)
+	UiStyle.secondary(skip_button)
 
 func _on_card_chosen(card: ActionCard) -> void:
 	RunState.add_card(card)
-	_next_match()
+	_go_to_hub()
 
-func _next_match() -> void:
-	get_tree().change_scene_to_file("res://Scenes/shop_screen.tscn")
+func _go_to_hub() -> void:
+	get_tree().change_scene_to_file("res://Scenes/hub_screen.tscn")

@@ -32,8 +32,8 @@ func refresh(rows: Array = []) -> void:
 		var team: OpponentTeam = r["team"]
 		if team == null:
 			colour = YOUR_COLOUR
-		elif team.is_favourite:
-			colour = FAVOURITE_COLOUR
+#		elif team.is_favourite:
+#			colour = FAVOURITE_COLOUR
 		var goal_difference: int = r["for"] - r["against"]
 		_add_cell("%d. %s" % [i + 1, r["name"]], true, colour)
 		_add_cell(str(r["won"]), false, colour)

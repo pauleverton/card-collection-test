@@ -60,8 +60,12 @@ func _ready() -> void:
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons.add_theme_constant_override("separation", 24)
 	page.add_child(buttons)
-	buttons.add_child(_button("Play next match", _play_next_match))
-	buttons.add_child(_button("Shop", _open_shop))
+	var play := _button("Play next match", _play_next_match)
+	UiStyle.primary(play)
+	buttons.add_child(play)
+	var shop := _button("Shop", _open_shop)
+	UiStyle.secondary(shop)
+	buttons.add_child(shop)
 
 func _label(text: String, font_size: int, colour: Color) -> Label:
 	var label := Label.new()

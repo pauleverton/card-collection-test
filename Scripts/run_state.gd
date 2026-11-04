@@ -55,8 +55,25 @@ var deck: Array = []
 var matches_played := 0
 var squad: Array = []          ## players AND coaches
 var team_name := ""            ## built on the main menu; "" = use the default name
+## Set when a run ends: the main menu then opens the team name box straight away.
+var start_with_team_name := false
 const MAX_PLAYERS := 5
 const MAX_COACHES := 2
+## The shop's stock for the current break between matches. Rolled once by
+## restock_shop() (new run, and after every match), so leaving the shop and
+## coming back shows the same shelf. The pack and the upgrade are once per break.
+const SHOP_CARDS := 3
+const SHOP_STAFF := 3
+var shop_cards: Array = []
+var shop_staff: Array = []
+var shop_pack_opened := false
+var shop_upgrade_used := false
+
+func restock_shop() -> void:
+	shop_cards = reward_options(SHOP_CARDS)
+	shop_staff = staff_for_sale(SHOP_STAFF)
+	shop_pack_opened = false
+	shop_upgrade_used = false
 
 func players() -> Array:
 	return squad.filter(func(s): return s is PlayerCard)
@@ -80,6 +97,7 @@ func new_run() -> void:
 	matches_played = 0
 	squad.clear()
 	team_name = ""
+	restock_shop()
 
 ## Up to `count` different cards from REWARD_POOL, weighted by rarity.
 ## (Cards you already own can still appear: you can have several copies.)

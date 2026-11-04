@@ -20,6 +20,7 @@ const SPIN_SLOW := 0.16            ## seconds per word just before it stops
 const STAGGER_STEPS := 5           ## Reroll all: each slot spins this many words longer than the one before
 const GOLD := Color("f2c14e")
 
+var backdrop: ColorRect = null            ## the dark layer behind the name box
 var name_box: PanelContainer = null
 var part_labels: Array[Label] = []        ## the word currently in each slot
 var name_preview: Label
@@ -35,16 +36,19 @@ func _ready() -> void:
 			speed_option.select(i)
 	speed_option.item_selected.connect(
 			func(i): SettingsState.set_speed(speed_option.get_item_text(i)))
+	if RunState.start_with_team_name:            ## coming from "Start a new run"
+		RunState.start_with_team_name = false
+		_show_name_box()
 
 ## Start new game: build your team name first.
 func _on_start_game_pressed() -> void:
 	if name_box == null:
 		_show_name_box()
 
-## A dark layer over the menu, and in the middle: title, three [word + Reroll] rows,
-## the full name, Reroll all, Kick off.
+## A dark layer over the menu, and in the middle: [title + X], three [word + Reroll]
+## rows, the full name, Reroll all, Kick off.
 func _show_name_box() -> void:
-	var backdrop := ColorRect.new()
+	backdrop = ColorRect.new()
 	backdrop.color = Color(0, 0, 0, 0.75)        ## also stops clicks reaching the menu
 	$TextureRect.add_child(backdrop)
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -61,13 +65,24 @@ func _show_name_box() -> void:
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 14)
 
+	buttons.clear()
+	## Top row: the title in the middle, X on the right.
+	var top_row := HBoxContainer.new()
 	var title := Label.new()
 	title.text = "Name your team"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(title)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var close := Button.new()
+	close.text = "X"
+	UiStyle.secondary(close)
+	close.custom_minimum_size = Vector2(44, 44)
+	close.pressed.connect(_close_name_box)
+	top_row.add_child(title)
+	top_row.add_child(close)
+	vbox.add_child(top_row)
+	buttons.append(close)
 
 	part_labels.clear()
-	buttons.clear()
 	for i in NAME_PARTS.size():
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 16)
@@ -77,6 +92,7 @@ func _show_name_box() -> void:
 		word.add_theme_font_size_override("font_size", 28)
 		var reroll := Button.new()
 		reroll.text = "Reroll"
+		UiStyle.secondary(reroll)
 		reroll.pressed.connect(_reroll.bind(i))
 		row.add_child(word)
 		row.add_child(reroll)
@@ -84,8 +100,10 @@ func _show_name_box() -> void:
 		part_labels.append(word)
 		buttons.append(reroll)
 
+
 	var reroll_all := Button.new()
 	reroll_all.text = "Reroll all"
+	UiStyle.secondary(reroll_all)
 	reroll_all.pressed.connect(_reroll_all)
 	vbox.add_child(reroll_all)
 	buttons.append(reroll_all)
@@ -95,10 +113,10 @@ func _show_name_box() -> void:
 	name_preview.add_theme_font_size_override("font_size", 36)
 	name_preview.add_theme_color_override("font_color", GOLD)
 	vbox.add_child(name_preview)
-	
 
 	var kick_off := Button.new()
 	kick_off.text = "Kick off"
+	UiStyle.primary(kick_off)
 	kick_off.pressed.connect(_start_run)
 	vbox.add_child(kick_off)
 	buttons.append(kick_off)
@@ -107,6 +125,13 @@ func _show_name_box() -> void:
 	$TextureRect.add_child(name_box)
 	name_box.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
 	_update_preview()
+
+## X: close the name box and the dark layer, back to the plain menu.
+func _close_name_box() -> void:
+	backdrop.queue_free()
+	name_box.queue_free()
+	backdrop = null
+	name_box = null                 ## so Start new game opens a fresh box next time
 
 ## Spin one slot: words flash past, slowing down, then it lands on a new word
 ## (never the one it started on) and flashes gold.
@@ -153,10 +178,10 @@ func _team_name() -> String:
 func _update_preview() -> void:
 	name_preview.text = _team_name()
 
-## A fresh run with this team name, then into the first match.
+## A fresh run with this team name, then to the hub.
 func _start_run() -> void:
 	RunState.new_run()                          ## new deck and squad (also clears the name)
 	CoinState.new_run()
 	RunState.team_name = _team_name()
 	CareerState.start_new_run()                 ## back to the first league; new season with your name
-	get_tree().change_scene_to_file("res://Scenes/match_screen.tscn")
+	get_tree().change_scene_to_file("res://Scenes/hub_screen.tscn")

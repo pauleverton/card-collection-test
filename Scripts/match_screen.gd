@@ -11,11 +11,12 @@ extends Control
 @onready var full_time_background = $FullTimePanel/Background
 @onready var commentary_headline = $CommentaryBox/VBox/Headline
 @onready var commentary_log = $CommentaryBox/VBox/Log
-const PLAYER_UI = preload("res://Scenes/player_card_view.tscn")
 @onready var squad_bar = $SquadBar
 @onready var build_bar = $BuildBar
 @onready var build_label = $BuildBar/BuildLabel
+const PLAYER_UI = preload("res://Scenes/player_card_view.tscn")
 const LEAGUE_TABLE := preload("res://Scenes/league_table_view.tscn")
+const COINS_VIEW := preload("res://Scenes/coins_view.tscn")
 
 var pitch := MatchRules.new()
 var busy := false
@@ -38,7 +39,8 @@ func _ready() -> void:
 	hand.card_played.connect(play_card)
 	let_through_button.pressed.connect(_on_let_through)
 	shoot_button.pressed.connect(_on_shoot)
-	continue_button.pressed.connect(_on_continue)
+	continue_button.pressed.connect(_on_continue)	
+	UiStyle.primary(continue_button)       ## full-time: the one main action
 	full_time_panel.visible = false
 	_say("Kick-off against %s. Beat the Press to move up the pitch." % LeagueState.next_opponent_label())
 	for p in RunState.squad:
@@ -197,8 +199,6 @@ func _show_full_time() -> void:
 
 	## Read these BEFORE recording the result: promotion moves you to the next tournament.
 	var tournament := LeagueState.current_tournament_name()
-	var opponent := LeagueState.next_opponent()
-	var opponent_name := opponent.team_name if opponent != null else "Them"
 	was_final_tournament = LeagueState.is_final_tournament()
 	league_result = LeagueState.record_match_result(pitch.goals, pitch.conceded)
 
@@ -209,30 +209,47 @@ func _show_full_time() -> void:
 		result = "DRAW"
 
 	full_time_background.visible = true
-	hand.visible = false            
+	hand.visible = false      
+	squad_bar.visible=false      
 	full_time_background.color = Color(0.1, 0.1, 0.1, 0.9)   # normal: dark
 	var position: String = _ordinal(league_result["position"])
 	var points: int = league_result["final_points"]
-	var league_line := ""
-	if not league_result["season_ended"]:
-		league_line = "%s: %s with %d pts, %d matches left" % [
-				tournament, position, points, LeagueState.matches_remaining()]
-	elif league_result["promoted"] and was_final_tournament:
+	var league_line := ""          ## only filled at the end of a season
+	if league_result["season_ended"] and league_result["promoted"] and was_final_tournament:
 		league_line = "%s champions with %d pts. YOU'VE WON EVERYTHING!" % [tournament, points]
 		full_time_background.color = Color("b8902e")   # won it all: gold
 		continue_button.text = "Start a new run"
-	elif league_result["promoted"]:
+	elif league_result["season_ended"] and league_result["promoted"]:
 		league_line = "CHAMPIONS! Promoted from %s with %d pts!" % [tournament, points]
-	else:
+	elif league_result["season_ended"]:
 		league_line = "Season over: finished %s with %d pts. Only 1st goes up. RUN OVER." % [position, points]
 		full_time_background.color = Color("8b1e1e")   # run over: red
 		continue_button.text = "Start a new run"
 
-	full_time_label.text = "FULL TIME\n\nYou %d - %d %s   (%s)\n\n%s\n\n%s\n\n+%d coins   (total %d)" % [
-			pitch.goals, pitch.conceded, opponent_name, result, league_line,
-			_other_results_text(league_result["results"]), coins, CoinState.coins]
+	var parts := PackedStringArray()
+	parts.append("FULL TIME: %s" % result)
+	if league_line != "":
+		parts.append(league_line)
+	full_time_label.text = "\n\n".join(parts)
+	
+	var coins_view = COINS_VIEW.instantiate()
+	full_time_label.add_sibling(coins_view)            ## under FULL TIME
+	coins_view.show_coins(pitch.coins_parts(), coins, CoinState.coins)
+
+	## This round's results (yours first, your name in gold), then the table.
+	full_time_label.get_parent().add_theme_constant_override("separation", 40)   ## gap between text, results, table, button
+	var results_view := RichTextLabel.new()
+	results_view.bbcode_enabled = true
+	results_view.fit_content = true                    ## grows to fit the lines
+	results_view.custom_minimum_size.x = 900           ## needs a width inside the VBox
+	results_view.add_theme_font_size_override("normal_font_size", 28)
+	results_view.text = _results_bbcode(league_result["results"])
+	coins_view.add_sibling(results_view)               ## under the coins
+
 	var table_view = LEAGUE_TABLE.instantiate()
-	full_time_label.add_sibling(table_view)      ## right under the text, above Continue
+	results_view.add_sibling(table_view)               ## under the results, above Continue
+	table_view.refresh(league_result["standings"])
+	
 	table_view.refresh(league_result["standings"])
 	
 	full_time_panel.modulate.a = 0.0
@@ -240,12 +257,22 @@ func _show_full_time() -> void:
 	create_tween().tween_property(full_time_panel, "modulate:a", 1.0, SettingsState.t(0.4))
 
 ## The rest of this round's scores, one per line.
-func _other_results_text(results: Array) -> String:
-	var lines: PackedStringArray = []
-	for r in results:
-		if not r["yours"]:
-			lines.append("%s %d - %d %s" % [r["home"], r["home_goals"], r["away_goals"], r["away"]])
-	return "\n".join(lines)
+## "League Results:" then every score this round, yours first, your team in gold.
+func _results_bbcode(results: Array) -> String:
+	var lines: PackedStringArray = ["[color=#a6a6a6]League Results:[/color]"]
+	var ordered := results.filter(func(r): return r["yours"]) \
+			+ results.filter(func(r): return not r["yours"])
+	for r in ordered:
+		lines.append("%s %d - %d %s" % [
+				_team_bbcode(r["home"], r["home_i"]), r["home_goals"],
+				r["away_goals"], _team_bbcode(r["away"], r["away_i"])])
+	return "[center]%s[/center]" % "\n".join(lines)
+
+## Your team's name in gold (same as the table); anyone else as normal.
+func _team_bbcode(team_name: String, index: int) -> String:
+	if index == LeagueState.YOU:
+		return "[color=#f2c14e]%s[/color]" % team_name
+	return team_name
 
 func _ordinal(n: int) -> String:
 	match n:
@@ -262,11 +289,14 @@ func _on_continue() -> void:
 		RunState.new_run()
 		CareerState.start_new_run()
 		CoinState.new_run()
+		RunState.start_with_team_name = true     ## menu opens the name box straight away
 		get_tree().change_scene_to_file("res://Scenes/main_menu.tscn")
-	elif pitch.goals > pitch.conceded:
+		return
+	RunState.restock_shop()                  ## a new break: fresh shop stock
+	if pitch.goals > pitch.conceded:
 		get_tree().change_scene_to_file("res://Scenes/reward_screen.tscn")
 	else:
-		get_tree().change_scene_to_file("res://Scenes/shop_screen.tscn")
+		get_tree().change_scene_to_file("res://Scenes/hub_screen.tscn")
 
 # ---------- Screen ----------
 ## The draw pile (bottom-left) and discard pile (bottom-right), made in code.

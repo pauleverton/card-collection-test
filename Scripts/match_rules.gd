@@ -587,17 +587,30 @@ func _tick_clock(events: Array) -> void:
 		return
 	_recheck_press(events)   ## an ability may have just changed the press you're facing
 
-func coins_earned() -> int:
-	var coins := goals * COINS_PER_GOAL
+## Where this match's coins come from, one row each (zero amounts left out):
+## {"count": "3" or "", "label": "Goals (10 each)", "amount": 30}.
+## coins_earned() adds these up, so the rows and the total always match.
+func coins_parts() -> Array:
+	var parts := []
 	if goals > conceded:
-		coins += COINS_WIN
+		parts.append({"count": "", "label": "Win", "amount": COINS_WIN})
 	elif goals == conceded:
-		coins += COINS_DRAW
+		parts.append({"count": "", "label": "Draw", "amount": COINS_DRAW})
 	else:
-		coins += COINS_LOSS
-	coins += bonus_coins
-	return coins
+		parts.append({"count": "", "label": "Loss", "amount": COINS_LOSS})
+	if goals > 0:
+		parts.append({"count": str(goals), "label": "Goals (%d each)" % COINS_PER_GOAL,
+				"amount": goals * COINS_PER_GOAL})
+	if bonus_coins > 0:
+		parts.append({"count": "", "label": "Coach bonus", "amount": bonus_coins})
+	return parts
 
+func coins_earned() -> int:
+	var total := 0
+	for part in coins_parts():
+		total += part["amount"]
+	return total
+	
 ## Fire every coach whose effect happens at this moment, plus any retriggers of it.
 func fire_coaches(when: String, events: Array) -> void:
 	for c in RunState.coaches_for(when):
