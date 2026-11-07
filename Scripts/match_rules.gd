@@ -10,6 +10,9 @@ const PRESS_WEIGHT := [0.8, 0.9, 1.0, 1.2, 1.0]
 const ATTACK_WEIGHT := [1.0, 1.2, 1.0, 0.9, 0.8]
 
 var strength := 40
+## The opponent's ratings (1.0 = the league average). Set at kick-off.
+var their_defence := 1.0   ## scales the press you face when attacking
+var their_attack := 1.0    ## scales the hold you need when defending
 
 
 ## --- You attacking: their box ---
@@ -83,6 +86,9 @@ func start() -> void:
 	quality = 0
 	bonus_coins=0
 	strength = LeagueState.opponent_strength()
+	var opponent := LeagueState.next_opponent()
+	their_defence = opponent.defence if opponent != null else 1.0
+	their_attack = opponent.attack if opponent != null else 1.0
 	_flip_press()
 	minute = 0
 	_was_active.clear()
@@ -323,9 +329,9 @@ func _flip_press() -> void:
 	build = 0
 	target = _press_target()
 
-## The press you face in the current zone, including any ability that changes it.
+## The press you face in the current zone, including their defence and any ability that changes it.
 func _press_target() -> int:
-	return roundi(strength * PRESS_WEIGHT[zone] * _press_multiplier())
+	return roundi(strength * their_defence * PRESS_WEIGHT[zone] * _press_multiplier())
 
 ## Recalculate the press mid-zone, keeping your build-up. If the new target is
 ## already beaten, you break through straight away.
@@ -455,9 +461,9 @@ func _flip_attack() -> void:
 	build = 0
 	target = _hold_target()
 
-## The hold you need in the current zone to win the ball, including abilities.
+## The hold you need in the current zone to win the ball, including their attack and abilities.
 func _hold_target() -> int:
-	return roundi(strength * ATTACK_WEIGHT[zone] * _hold_multiplier())
+	return roundi(strength * their_attack * ATTACK_WEIGHT[zone] * _hold_multiplier())
 	
 func _set_their_chance() -> void:
 	quality = _draw_from(_their_chance_pile, THEIR_CHANCE_DECK)

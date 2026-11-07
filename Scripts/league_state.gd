@@ -66,6 +66,10 @@ var round_results: Array = []
 ## SIM_GOAL_CHANCE × their attack ÷ the other side's defence/keeper.
 const SIM_CHANCES := 6
 const SIM_GOAL_CHANCE := 0.22
+## The simulated matches exaggerate the ratings by this much, so the rest of the table
+## still has clear good and bad teams even when RATING_SPREAD is tight.
+## 1.5 with a spread of 0.1 = steps of 0.15 (exactly how the sim played before).
+const SIM_STRETCH := 1.5
 
 ## Favourites' points pace for a season: 9 in league 1, +1 per league after.
 const FAVOURITE_PACE_BASE := 9
@@ -294,14 +298,18 @@ func _add_result(row: Dictionary, scored: int, let_in: int) -> void:
 func _sim_goals(attacker: int, defender: int) -> int:
 	var a: OpponentTeam = table[attacker]["team"]
 	var d: OpponentTeam = table[defender]["team"]
-	var chance := SIM_GOAL_CHANCE * a.attack * _pace(attacker) \
-			/ ((d.defence + d.keeper) / 2.0 * _pace(defender))
+	var chance := SIM_GOAL_CHANCE * _sim_rating(a.attack) * _pace(attacker) \
+			/ ((_sim_rating(d.defence) + _sim_rating(d.keeper)) / 2.0 * _pace(defender))
 	chance = clampf(chance, 0.02, 0.8)
 	var goals := 0
 	for i in SIM_CHANCES:
 		if randf() < chance:
 			goals += 1
 	return goals
+
+## A rating stretched away from Medium for the simulated matches (see SIM_STRETCH).
+func _sim_rating(value: float) -> float:
+	return 1.0 + (value - 1.0) * SIM_STRETCH
 
 ## The favourites play better when behind their pace and ease off when ahead.
 ## Everyone else just plays to their ratings (1.0).

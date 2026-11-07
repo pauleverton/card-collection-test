@@ -3,10 +3,18 @@ extends Resource
 ## One opponent from the team sheet (Resources/data/opponents.csv).
 ## Plain data: the league table and match rules read these numbers.
 
-## The sheet's words → a multiplier. Medium = 1.0 = today's strength.
-## Placeholders: nothing uses them until opponents feed the match rules.
+## How far apart the ratings are. Each step away from Medium adds or removes this much:
+## 0.1 → Very Low 0.8 / Low 0.9 / Medium 1.0 / High 1.1 / Very High 1.2.
+## Bigger = bigger gap between the best and worst teams in a league. 0 = all the same.
+const RATING_SPREAD := 0.1
+
+## The sheet's words → a multiplier on the league's strength. Medium = 1.0 = the league average.
 const RATING_VALUES := {
-	"very low": 0.7, "low": 0.85, "medium": 1.0, "high": 1.15, "very high": 1.3}
+	"very low": 1.0 - 2 * RATING_SPREAD,
+	"low": 1.0 - RATING_SPREAD,
+	"medium": 1.0,
+	"high": 1.0 + RATING_SPREAD,
+	"very high": 1.0 + 2 * RATING_SPREAD}
 	
 ## Short labels for screens (fixtures list): the same order as RATING_VALUES.
 const RATING_SHORT := {
