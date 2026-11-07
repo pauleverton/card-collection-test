@@ -58,16 +58,16 @@ func show_state(m: MatchRules) -> void:
 		_labels[z].add_theme_color_override("font_color", Color.BLACK)
 		if z == 4:
 			_labels[z].add_theme_font_size_override("font_size", 17)
-			var upcoming := m.upcoming_defenders()
-			var next_up := "nobody! Free shot"
-			if not upcoming.is_empty():
-				next_up = MatchRules.DEFENDER_TEXT[upcoming[0]]
-				if upcoming.size() > 1:
-					next_up += " (+%d more)" % (upcoming.size() - 1)
-			_labels[z].text += "\nChance %d\nNext: %s\nShoot now: %d%%\nWith Shot card: %d%%" % [
-					m.quality, next_up,
-					m.basic_shot_odds(),
-					m.goal_odds(m.quality + 30 + m.next_bonus)]
+			if m.rebound:
+				_labels[z].text += "\nREBOUND!\nChance %d\nShoot now: %d%%\nShots only" % [
+						m.quality, m.basic_shot_odds()]
+			else:
+				_labels[z].text += "\nChance %d\nShoot now: %d%%" % [m.quality, m.basic_shot_odds()]
+				var card_odds := m.shot_card_odds()
+				if card_odds >= 0:
+					_labels[z].text += "\nShot card: %d%%" % card_odds
+				_labels[z].text += "\nLose it: Pass %d%% Drib %d%% Cross %d%%" % [
+						m.box_risk("pass"), m.box_risk("dribble"), m.box_risk("cross")]
 		else:
 			_labels[z].text += "\n\nYOUR BALL\nBuild %d / %d" % [m.build, m.target]
 	else:

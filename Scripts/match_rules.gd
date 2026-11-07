@@ -16,28 +16,26 @@ var their_attack := 1.0    ## scales the hold you need when defending
 
 
 ## --- You attacking: their box ---
-const BOX_DEFENCE_DECK := ["block", "block", "block", "tackle", "tackle",
-		"clearance", "clearance", "slip", "slip"]
-const DEFENDER_TEXT := {
-	"tackle": "Tackle (-30 on the ground, can't stop a cross)",
-	"block": "Block (-20, but a dribble goes round him)",
-	"clearance": "Header (wins a cross if chance 40 or less, no use on the ground)",
-	"slip": "Slip (no effect)"}
-## How much each defender takes off your chance, depending on which card you played.
-const DEFENDER_EFFECT := {
-	"tackle":    {"pass": 30, "dribble": 30, "cross": 0},
-	"block":     {"pass": 20, "dribble": 0, "cross": 20},
-	"clearance": {"pass": 0, "dribble": 0, "cross": 20},
-	"slip":      {"pass": 0, "dribble": 0, "cross": 0}}
-const CLEARED := 99   ## a special result meaning "the defender wins the ball"
-const BOX_HAND_SIZE := 3
-const CLEARANCE_LIMIT := 40
-const BOX_WORK_VALUE := 10   ## what Pass and Dribble add inside the box
-const KEEPER_DECK := [20, 30, 30, 40, 40, 50, 50, 60, 70]
+## Push your luck: every card you play in the box raises the chance but risks losing
+## the ball. Only Shoot (the button or the card) can score.
+const BOX_ENERGY := 3   ## the least energy you have on entering the box (you keep more if you have it)
 const SHOT_COST := 1
-const BOX_ENERGY := 3
+## How much of a card's power goes into the chance in the box (1.0 = full power).
+const BOX_GAIN_SCALE := 0.5
+## Risk (%) of losing the ball with the FIRST card you play in the box...
+const BOX_RISK := {"pass": 20, "dribble": 15, "cross": 25}
+## ...plus this much for every card already played in this attack (defenders get back).
+const BOX_RISK_STEP := 15
+## How much their defence rating moves the box risk. 1 + (rating − 1) × this:
+## 2.0 → Very Low ×0.6, Medium ×1.0, Very High ×1.4. 0 = same against everyone.
+const BOX_RISK_STRETCH := 2.0
+const KEEPER_DECK := [20, 30, 30, 40, 40, 50, 50, 60, 70]
 const BASIC_SHOT_ROLL_MAX := 40   ## a basic shot adds a random 0 to this...
 const BASIC_SHOT_ROLL_STEP := 10  ## ...in steps of this (0, 10, 20, 30, 40)
+## When the keeper saves, this % of the time the ball falls for ONE more shot.
+const REBOUND_CHANCE := 25
+## The chance a rebound shot starts from.
+const REBOUND_QUALITY := 30
 
 ## --- Them attacking ---
 const THEIR_CHANCE_DECK := [30, 40, 40, 50, 50, 60, 60, 70]
@@ -67,8 +65,8 @@ var goals := 0
 var conceded := 0
 var bonus_coins:=0
 var _their_chance_pile: Array = []
-var _box_hand: Array = []
-var _box_defence_pile: Array = []
+var box_cards_played := 0   ## cards played in their box this attack (raises the risk)
+var rebound := false        ## true = the keeper parried it: one more shot, shots only
 var _keeper_pile: Array = []
 var _our_keeper_pile: Array = []
 var minute := 0
@@ -94,6 +92,8 @@ func start() -> void:
 	_was_active.clear()
 	_extra_minutes = 0
 	match_over = false
+	box_cards_played = 0
+	rebound = false
 
 ## True if you're attacking and nothing in the hand can be played (used for the kick-off redeal).
 ## When they kick off you're never stuck, because Let them through is always there, so no redeal.
@@ -115,12 +115,21 @@ func in_their_box() -> bool:
 func in_our_box() -> bool:
 	return not has_ball and zone == 0
 
-func defenders_left() -> int:
-	return _box_hand.size()
+## Risk (%) of losing the ball if you play a card with this tag in their box now,
+## scaled by their defence rating (see BOX_RISK_STRETCH).
+func box_risk(tag: String) -> int:
+	if not BOX_RISK.has(tag):
+		return 0
+	var factor := 1.0 + (their_defence - 1.0) * BOX_RISK_STRETCH
+	return clampi(roundi((BOX_RISK[tag] + BOX_RISK_STEP * box_cards_played) * factor), 0, 100)
 
-## The defenders still to come, in the order they'll respond.
-func upcoming_defenders() -> Array:
-	return _box_hand.duplicate()
+## Your odds with the best Shoot card in your hand (-1 if you haven't got one).
+func shot_card_odds() -> int:
+	var best := -1
+	for card in DeckState.hand:
+		if card.tag == "shot":
+			best = maxi(best, goal_odds(quality + power_of(card)))
+	return best
 
 ## Percentage chance YOUR shot of this quality beats their keeper.
 func goal_odds(shot_quality: int) -> int:
@@ -161,6 +170,8 @@ func can_play_here(card: ActionCard) -> bool:
 		return false     ## nobody back: it's down to the keeper
 	if not _abilities_allow(card):
 		return false     ## an ability has switched this card off
+	if rebound and card.tag != "shot":
+		return false     ## rebound: shots only
 	if card.play_zones != 0:
 		return card.play_zones & (1 << zone) != 0
 	if card.tag in ["retain", "overlap"]:
@@ -182,26 +193,14 @@ func would_succeed(card: ActionCard) -> bool:
 	if card.tag in ["retain", "overlap", "lump_clear"]:
 		return true
 	if has_ball and zone == 4:
-		if card.tag == "shot":
-			return true
-		return box_gain(card) - next_defender_effect(card) > 0
+		return card.tag == "shot"   ## nothing else is ever safe in the box
 	if not has_ball and zone == 0:
 		return quality > MIN_THEIR_CHANCE
 	return build + power_of(card) >= target
 	
-## How much the NEXT defender would take off if you played this card (CLEARED = they win it).
-func next_defender_effect(card: ActionCard) -> int:
-	if _box_hand.is_empty():
-		return 0
-	var d: String = _box_hand[0]
-	if d == "clearance" and card.tag == "cross" and quality <= CLEARANCE_LIMIT:
-		return CLEARED
-	return DEFENDER_EFFECT[d].get(card.tag, 0)
-
-## What this card adds to your chance in the box, before the defender responds.
+## What this card adds to your chance in the box (its full power × BOX_GAIN_SCALE).
 func box_gain(card: ActionCard) -> int:
-	var amount: int = card.base_value if card.tag == "cross" else BOX_WORK_VALUE
-	return amount + next_bonus + RunState.squad_bonus(card)
+	return roundi(power_of(card) * BOX_GAIN_SCALE)
 	
 
 # ---------- Actions ----------
@@ -361,41 +360,34 @@ func _recheck_press(events: Array) -> void:
 # ---------- You attacking: their box ----------
 
 func _enter_box(start_quality: int, events: Array) -> void:
-	energy = BOX_ENERGY
+	energy = maxi(energy, BOX_ENERGY)   ## never lose energy entering the box; at least BOX_ENERGY
 	quality = start_quality
-	_box_hand.clear()
-	for i in BOX_HAND_SIZE:
-		_box_hand.append(_draw_from(_box_defence_pile, BOX_DEFENCE_DECK))
+	box_cards_played = 0
+	rebound = false
 	events.append({"type": "in_the_box", "quality": quality})
 
 func _play_in_box(card: ActionCard, events: Array) -> void:
 	match card.tag:
 		"pass", "dribble", "cross":
-			quality += box_gain(card)
+			var risk := box_risk(card.tag)
+			var gain := box_gain(card)    ## worked out before next_bonus is used up
 			next_bonus = 0
-			events.append({"type": "quality", "card": card.display_name, "quality": quality})
-			_defender_responds(card, events)
+			box_cards_played += 1
+			if randi_range(1, 100) <= risk:
+				events.append({"type": "box_lost", "card": card.display_name, "risk": risk})
+				_turnover(events)
+				return
+			quality += gain
+			events.append({"type": "quality", "card": card.display_name, "gain": gain, "quality": quality})
 		"shot":
-			quality += card.base_value + next_bonus
+			quality += power_of(card)
 			next_bonus = 0
 			_shoot(events)
 		_:
 			events.append({"type": "wrong_phase", "card": card.display_name})
 
-func _defender_responds(card: ActionCard, events: Array) -> void:
-	if _box_hand.is_empty():
-		events.append({"type": "no_defenders"})
-		return
-	var effect := next_defender_effect(card)
-	var d: String = _box_hand.pop_front()
-	if effect == CLEARED:
-		events.append({"type": "headed_clear"})
-		_turnover(events)
-		return
-	quality = max(0, quality - effect)
-	events.append({"type": "defender", "card": d, "effect": effect, "quality": quality})
-
 func _shoot(events: Array) -> void:
+	rebound = false
 	if _box_shot_always_scores():
 		events.append({"type": "sure_goal"})
 		_score_goal(events)
@@ -408,10 +400,15 @@ func _shoot(events: Array) -> void:
 		quality = 20
 		energy += 1
 		events.append({"type": "corner"})
+	elif randi_range(1, 100) <= _rebound_chance():
+		rebound = true
+		quality = REBOUND_QUALITY
+		energy = maxi(energy, SHOT_COST)   ## always enough energy for the rebound shot
+		events.append({"type": "rebound", "quality": quality})
 	else:
 		events.append({"type": "saved"})
 		_turnover(events)
-
+		
 ## Everything that happens when you score, in one place.
 func _score_goal(events: Array) -> void:
 	goals += 1
@@ -652,6 +649,13 @@ func _hold_multiplier() -> float:
 	for a in _active_abilities():
 		total *= a.hold_multiplier(self)
 	return total
+	
+## Chance (%) of a rebound after a save, including abilities (Rebound King).
+func _rebound_chance() -> int:
+	var total := REBOUND_CHANCE
+	for a in _active_abilities():
+		total += a.rebound_bonus(self)
+	return clampi(total, 0, 100)
 
 func _abilities_allow(card: ActionCard) -> bool:
 	return _active_abilities().all(func(a): return a.allows_card(self, card))

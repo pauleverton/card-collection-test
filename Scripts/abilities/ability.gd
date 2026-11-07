@@ -64,3 +64,7 @@ func hold_multiplier(_m: MatchRules) -> float:
 ## Can this card be played at all right now? Lets an ability switch whole groups of cards off.
 func allows_card(_m: MatchRules, _card: ActionCard) -> bool:
 	return true
+
+## Extra % chance of a rebound after the keeper saves (0 = no effect).
+func rebound_bonus(_m: MatchRules) -> int:
+	return 0

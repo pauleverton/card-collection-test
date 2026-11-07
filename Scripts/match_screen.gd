@@ -374,16 +374,11 @@ func describe(events: Array) -> String:
 			"in_the_box":
 				lines.append("Into the box with a chance of %d." % e["quality"])
 			"quality":
-				lines.append("%s: chance now %d." % [e["card"], e["quality"]])
-			"defender":
-				if e["effect"] == 0:
-					lines.append("Beat the %s! Chance stays %d." % [e["card"], e["quality"]])
-				else:
-					lines.append("%s takes %d off. Chance now %d." % [e["card"].capitalize(), e["effect"], e["quality"]])
-			"headed_clear":
-				lines.append("Headed clear!")
-			"no_defenders":
-				lines.append("No defenders left to stop you!")
+				lines.append("%s: +%d, chance now %d." % [e["card"], e["gain"], e["quality"]])
+			"box_lost":
+				lines.append("%s... closed down! (%d%% risk) They've got it." % [e["card"], e["risk"]])
+			"rebound":
+				lines.append("Saved, but it's loose! REBOUND: one more shot from %d." % e["quality"])
 			"basic_shot":
 				lines.append("You hit it... strike quality +%d." % e["roll"])
 			"shot":
