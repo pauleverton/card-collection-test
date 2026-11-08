@@ -38,6 +38,7 @@ var league_result := {}
 var was_final_tournament := false
 
 func _ready() -> void:
+	RunState.start_match_day()        ## uses up appearances; must run before the squad bar is built
 	info_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN 
 	DeckState.start_match(RunState.deck)
 	DeckState.draw(OPENING_HAND)

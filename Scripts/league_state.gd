@@ -62,6 +62,16 @@ var fixtures: Array = []
 ## One entry per round played: that round's results (see _record).
 var round_results: Array = []
 
+## Games each of your players has played THIS season, keyed by the player's file path
+## (so selling and buying a player back doesn't reset their count). Cleared by start_season().
+var appearances_used := {}
+
+func appearances_left(p: PlayerCard) -> int:
+	return maxi(p.max_appearances() - appearances_used.get(p.resource_path, 0), 0)
+
+func use_appearance(p: PlayerCard) -> void:
+	appearances_used[p.resource_path] = appearances_used.get(p.resource_path, 0) + 1
+
 ## Simulated matches: each side gets SIM_CHANCES chances, each scoring with
 ## SIM_GOAL_CHANCE × their attack ÷ the other side's defence/keeper.
 const SIM_CHANCES := 6
@@ -86,6 +96,7 @@ func _ready() -> void:
 func start_season() -> void:
 	matches_played = 0
 	round_results.clear()
+	appearances_used.clear()
 	var league := current_tournament_index + 1          ## the sheet numbers leagues from 1
 	var eligible := all_teams.filter(func(t): return t.can_play_in(league))
 	var favourites := eligible.filter(func(t): return t.is_favourite)

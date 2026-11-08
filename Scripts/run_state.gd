@@ -193,6 +193,13 @@ func match_players() -> Array:
 func match_squad() -> Array:
 	return match_players() + coaches()
 
+## Kick-off: anyone sold or with no games left this season drops out of the team,
+## then everyone still picked uses up one appearance.
+func start_match_day() -> void:
+	picked = match_players().filter(func(p): return LeagueState.appearances_left(p) > 0)
+	for p in picked:
+		LeagueState.use_appearance(p)
+
 func squad_bonus(card: ActionCard) -> int:
 	var total := 0
 	for p in match_players():

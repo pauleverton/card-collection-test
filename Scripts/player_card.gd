@@ -5,6 +5,14 @@ extends StaffCard
 
 @export var bonus: int = 0
 @export var multiplier: float = 1.0
+## Games this player can play per season. 0 = use DEFAULT_APPEARANCES
+## (the dial that moves every ordinary player at once).
+const DEFAULT_APPEARANCES := 3
+@export var appearances: int = 0
+
+func max_appearances() -> int:
+	return appearances if appearances > 0 else DEFAULT_APPEARANCES
+
 
 func bonus_for(card: ActionCard) -> int:
 	return bonus if applies_to(card) else 0
