@@ -26,6 +26,12 @@ const MAX_REDEALS := 3        ## after this many, an unplayable hand just loses 
 const WHISTLE_PAUSE := 1.5      ## seconds on the final score before the full-time panel
 var draw_view := PileView.new()
 var discard_view := PileView.new()
+var box_view := BoxView.new()
+const BOX_VIEW_TOP := 210      ## where the box view sits (it covers the pitch strip)
+const BOX_VIEW_HEIGHT := 290
+const BOX_VIEW_MARGIN := 220   ## gap from the left and right edges
+const BOX_SUSPENSE := 0.9      ## seconds on "Short pass... 30% risk" before the result
+const BOX_RESULT_PAUSE := 0.8  ## seconds on "CLOSED DOWN!" / "+15!" before the screen moves on
 
 ## Filled in at full time by LeagueState, and read by Continue to decide where to go next.
 var league_result := {}
@@ -49,6 +55,7 @@ func _ready() -> void:
 		ui.disabled = true          ## display only during a match
 		squad_bar.add_child(ui)
 	_add_piles()
+	_add_box_view()
 	_kick_off()
 	
 ## Deal the opening hand. If none of it can be played, it goes back and is dealt again
@@ -78,6 +85,7 @@ func _refresh_and_wait() -> void:
 
 func play_card(card: ActionCard) -> void:
 	if busy: return
+	var gamble := _box_gamble_text(card)   ## worked out BEFORE the card changes the risk
 	var events := pitch.play(card)
 	## If the card couldn't be played at all, leave it in the hand.
 	if events[0]["type"] in ["not_now", "no_energy","not_here", "wrong_side"]:
@@ -105,12 +113,19 @@ func play_card(card: ActionCard) -> void:
 			delay += SettingsState.t(0.35)
 	if delay > 0.0:
 		await get_tree().create_timer(delay).timeout   ## let the squad reactions finish first
+	await _box_moment(gamble, events)
 	_after_action(events)
 
 
 func _on_shoot() -> void:
 	if busy: return
-	_after_action(pitch.take_shot())
+	var gamble := "SHOT!  Keeper dives..." if pitch.in_their_box() else ""
+	var events := pitch.take_shot()
+	if events[0]["type"] in ["not_now", "no_energy"]:
+		gamble = ""
+	busy = true
+	await _box_moment(gamble, events)
+	_after_action(events)
 
 func _on_let_through() -> void:
 	if busy: return
@@ -316,12 +331,66 @@ func _update_piles() -> void:
 		discard_view.pulse()
 		draw_view.pulse()
 
+## The big box view, made in code, sitting where the pitch strip is.
+func _add_box_view() -> void:
+	add_child(box_view)
+	move_child(box_view, hand.get_index())   ## behind the hand and the full-time panel
+	box_view.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	box_view.offset_left = BOX_VIEW_MARGIN
+	box_view.offset_right = -BOX_VIEW_MARGIN
+	box_view.offset_top = BOX_VIEW_TOP
+	box_view.offset_bottom = BOX_VIEW_TOP + BOX_VIEW_HEIGHT
+	box_view.visible = false
+
+## The gamble line for a card played in their box ("" = no gamble, show nothing extra).
+func _box_gamble_text(card: ActionCard) -> String:
+	if not pitch.in_their_box() or not pitch.can_play_here(card) or card.energy_cost > pitch.energy:
+		return ""
+	if card.tag == "shot":
+		return "SHOT!  Keeper dives..."
+	var risk := pitch.box_risk(card.tag)
+	if risk <= 0:
+		return ""
+	return "%s...  %d%% chance they close you down" % [card.display_name, risk]
+
+## Hold on the gamble, then flash the result, before the screen moves on.
+func _box_moment(gamble: String, events: Array) -> void:
+	if gamble == "":
+		return
+	box_view.suspense(gamble)
+	await get_tree().create_timer(SettingsState.t(BOX_SUSPENSE)).timeout
+	var result := _box_result(events)
+	if result.is_empty():
+		return
+	box_view.flash(result["text"], result["colour"])
+	await get_tree().create_timer(SettingsState.t(BOX_RESULT_PAUSE)).timeout
+
+## What happened in the box, as one big word.
+func _box_result(events: Array) -> Dictionary:
+	for e in events:
+		match e["type"]:
+			"goal":
+				return {"text": "GOAL!", "colour": Color("f2b233")}
+			"box_lost":
+				return {"text": "CLOSED DOWN!", "colour": Color("e0574a")}
+			"rebound":
+				return {"text": "SAVED... REBOUND!", "colour": Color("f2b233")}
+			"saved":
+				return {"text": "SAVED", "colour": Color("e0574a")}
+			"corner":
+				return {"text": "CORNER!", "colour": Color("6fb7f0")}
+			"quality":
+				return {"text": "+%d!  Chance %d" % [e["gain"], e["quality"]], "colour": Color("7be07b")}
+	return {}
+
 
 func refresh_all() -> float:
 	hand.draw_from = draw_view.centre()
 	var deal_time: float = hand.refresh()
 	_update_piles()
 	pitch_strip.show_state(pitch)
+	box_view.show_state(pitch)
+	pitch_strip.visible = not box_view.visible   ## the box view takes the strip's place
 	_show_info(pitch.minute)
 	shoot_button.visible = pitch.in_their_box() and not pitch.match_over
 	let_through_button.visible = not pitch.has_ball and not pitch.match_over
@@ -385,8 +454,6 @@ func describe(events: Array) -> String:
 				lines.append("SHOT! Chance %d vs keeper %d..." % [e["quality"], e["save"]])
 			"goal":
 				lines.append("[color=gold][b]GOAL![/b] You've scored %d.[/color]" % e["goals"])
-			"corner":
-				lines.append("Tipped round the post. Corner! Chance reset to 20, +1 energy.")
 			"saved":
 				lines.append("Saved.")
 			"turnover":

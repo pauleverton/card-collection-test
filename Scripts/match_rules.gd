@@ -13,6 +13,10 @@ var strength := 40
 ## The opponent's ratings (1.0 = the league average). Set at kick-off.
 var their_defence := 1.0   ## scales the press you face when attacking
 var their_attack := 1.0    ## scales the hold you need when defending
+var level := 1.0           ## strength ÷ BASE_STRENGTH: 1.0 in the first match of a run
+var keeper_scale := 1.0    ## their keeper: level × their keeper rating (see KEEPER_STRETCH)
+## Your shots do NOT scale: the Shoot button roll, the Shoot card, rebounds and corners stay
+## the same all run, so better keepers need better cards and players to beat.
 
 
 ## --- You attacking: their box ---
@@ -30,12 +34,16 @@ const BOX_RISK_STEP := 15
 ## 2.0 → Very Low ×0.6, Medium ×1.0, Very High ×1.4. 0 = same against everyone.
 const BOX_RISK_STRETCH := 2.0
 const KEEPER_DECK := [20, 30, 30, 40, 40, 50, 50, 60, 70]
-const BASIC_SHOT_ROLL_MAX := 40   ## a basic shot adds a random 0 to this...
+const BASIC_SHOT_ROLL_MAX := 40   ## every shot (button or card) adds a random 0 to this...
 const BASIC_SHOT_ROLL_STEP := 10  ## ...in steps of this (0, 10, 20, 30, 40)
 ## When the keeper saves, this % of the time the ball falls for ONE more shot.
 const REBOUND_CHANCE := 25
 ## The chance a rebound shot starts from.
 const REBOUND_QUALITY := 30
+## Their keeper gets better with the league level (strength ÷ BASE_STRENGTH) and their
+## keeper rating, stretched like the box risk: 1 + (rating − 1) × this.
+## 1.5 → Very Low ×0.7, Medium ×1.0, Very High ×1.3. 0 = keeper rating ignored.
+const KEEPER_STRETCH := 1.5
 
 ## --- Them attacking ---
 const THEIR_CHANCE_DECK := [30, 40, 40, 50, 50, 60, 60, 70]
@@ -87,6 +95,9 @@ func start() -> void:
 	var opponent := LeagueState.next_opponent()
 	their_defence = opponent.defence if opponent != null else 1.0
 	their_attack = opponent.attack if opponent != null else 1.0
+	level = float(strength) / LeagueState.BASE_STRENGTH
+	var their_keeper := opponent.keeper if opponent != null else 1.0
+	keeper_scale = level * (1.0 + (their_keeper - 1.0) * KEEPER_STRETCH)
 	_flip_press()
 	minute = 0
 	_was_active.clear()
@@ -124,25 +135,50 @@ func box_risk(tag: String) -> int:
 	return clampi(roundi((BOX_RISK[tag] + BOX_RISK_STEP * box_cards_played) * factor), 0, 100)
 
 ## Your odds with the best Shoot card in your hand (-1 if you haven't got one).
+## A Shoot card is the button's random strike PLUS the card's power, so it always beats the button.
 func shot_card_odds() -> int:
 	var best := -1
 	for card in DeckState.hand:
 		if card.tag == "shot":
-			best = maxi(best, goal_odds(quality + power_of(card)))
+			best = maxi(best, basic_shot_odds_at(quality + power_of(card)))
 	return best
 
 ## Percentage chance YOUR shot of this quality beats their keeper.
 func goal_odds(shot_quality: int) -> int:
 	if _box_shot_always_scores():
 		return 100
-	return _odds_to_beat(shot_quality, _keeper_pile, KEEPER_DECK)
-	
-## Average chance of scoring with the Shoot button, across every possible roll.
-func basic_shot_odds() -> int:
+	var saves: Array = _keeper_pile if not _keeper_pile.is_empty() else KEEPER_DECK
+	var beaten := 0
+	for s in saves:
+		if shot_quality > _keeper_save(s):
+			beaten += 1
+	return roundi(100.0 * beaten / saves.size())
+
+## A keeper card scaled to this opponent (KEEPER_DECK is the first match of a run, Medium keeper).
+func _keeper_save(card: int) -> int:
+	return roundi(card * keeper_scale)
+
+## The random part of every shot (Shoot button and Shoot card). Doesn't scale with the league.
+func _shot_roll() -> int:
+	return randi_range(0, BASIC_SHOT_ROLL_MAX / BASIC_SHOT_ROLL_STEP) * BASIC_SHOT_ROLL_STEP
+
+## Average chance of scoring with the Shoot button from a chance of q, across every roll.
+func basic_shot_odds_at(q: int) -> int:
 	var total := 0
 	for roll in range(0, BASIC_SHOT_ROLL_MAX + 1, BASIC_SHOT_ROLL_STEP):
-		total += goal_odds(quality + roll)
+		total += goal_odds(q + roll)
 	return roundi(float(total) / (BASIC_SHOT_ROLL_MAX / BASIC_SHOT_ROLL_STEP + 1))
+
+## The same from your current chance.
+func basic_shot_odds() -> int:
+	return basic_shot_odds_at(quality)
+	
+## The Shoot button's smallest and largest roll (for the screen).
+func basic_shot_roll_low() -> int:
+	return 0
+
+func basic_shot_roll_high() -> int:
+	return BASIC_SHOT_ROLL_MAX
 
 ## Percentage chance THEIR current chance beats your keeper.
 func their_goal_odds() -> int:
@@ -180,7 +216,9 @@ func can_play_here(card: ActionCard) -> bool:
 		return zone <= 1
 	if has_ball:
 		if zone == 4:
-			return card.tag in ["pass", "dribble", "cross", "shot"]
+			if card.tag in ["pass", "dribble", "cross"]:
+				return energy - card.energy_cost >= SHOT_COST   ## always keep enough to shoot
+			return card.tag == "shot"
 		return card.tag in ["pass", "dribble", "long_ball"]
 	if zone == 0:
 		return card.tag in ["block", "tackle"]
@@ -254,7 +292,7 @@ func take_shot() -> Array:
 		events.append({"type": "no_energy"})
 		return events
 	energy -= SHOT_COST
-	var roll := randi_range(0, BASIC_SHOT_ROLL_MAX / BASIC_SHOT_ROLL_STEP) * BASIC_SHOT_ROLL_STEP
+	var roll := _shot_roll()
 	quality += roll
 	events.append({"type": "basic_shot", "roll": roll, "quality": quality})
 	_shoot(events)
@@ -332,8 +370,6 @@ func _flip_press() -> void:
 func _press_target() -> int:
 	return roundi(strength * their_defence * PRESS_WEIGHT[zone] * _press_multiplier())
 
-## Recalculate the press mid-zone, keeping your build-up. If the new target is
-## already beaten, you break through straight away.
 ## Recalculate the press (attacking) or hold (defending) mid-zone, keeping the bar's progress.
 ## If the new target is already reached, you break through / win the ball straight away.
 func _recheck_press(events: Array) -> void:
@@ -380,8 +416,10 @@ func _play_in_box(card: ActionCard, events: Array) -> void:
 			quality += gain
 			events.append({"type": "quality", "card": card.display_name, "gain": gain, "quality": quality})
 		"shot":
-			quality += power_of(card)
+			var roll := _shot_roll()          ## the same random strike as the button...
+			quality += power_of(card) + roll  ## ...plus the card's power on top
 			next_bonus = 0
+			events.append({"type": "basic_shot", "roll": roll, "quality": quality})
 			_shoot(events)
 		_:
 			events.append({"type": "wrong_phase", "card": card.display_name})
@@ -392,14 +430,10 @@ func _shoot(events: Array) -> void:
 		events.append({"type": "sure_goal"})
 		_score_goal(events)
 		return
-	var save: int = _draw_from(_keeper_pile, KEEPER_DECK)
+	var save: int = _keeper_save(_draw_from(_keeper_pile, KEEPER_DECK))
 	events.append({"type": "shot", "quality": quality, "save": save})
 	if quality > save:
 		_score_goal(events)
-	elif quality == save:
-		quality = 20
-		energy += 1
-		events.append({"type": "corner"})
 	elif randi_range(1, 100) <= _rebound_chance():
 		rebound = true
 		quality = REBOUND_QUALITY
@@ -577,7 +611,6 @@ func _draw_from(pile: Array, source: Array):
 		pile.shuffle()
 	return pile.pop_back()
 
-## Every action uses up time. At full time, the match is over.
 ## Every action uses up time. At full time, the match is over.
 func _tick_clock(events: Array) -> void:
 	minute += MINUTES_PER_ACTION + _extra_minutes

@@ -5,5 +5,6 @@ extends RefCounted
 ## every dropdown (cards and players) reads from these.
 
 const TAGS := ["pass", "dribble", "long_ball", "cross", "shot", "tackle",
-		"track_back", "block", "overlap", "retain", "lump_clear","long_shot"]
-const TYPES := ["attacking", "defending", "move", "utility"]
+		"track_back", "block", "overlap", "retain", "lump_clear","switch",
+		"long_shot","stepover","nutmeg","cruyff_turn"]
+const TYPES := ["attacking", "defending", "move", "utility","skills"]
