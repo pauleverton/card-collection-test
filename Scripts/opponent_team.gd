@@ -26,6 +26,13 @@ static func rating_short(value: float) -> String:
 		if is_equal_approx(RATING_VALUES[word], value):
 			return RATING_SHORT[word]
 	return "?"
+	
+## A rating multiplier back to its word (1.1 → "High").
+static func rating_word(value: float) -> String:
+	for word in RATING_VALUES:
+		if is_equal_approx(RATING_VALUES[word], value):
+			return word.capitalize()
+	return "?"
 
 var team_name := ""
 var leagues: Array[int] = []     ## 1 = Non-League … 5 = Premier League, 6–8 = cups

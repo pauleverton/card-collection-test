@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://iqrmjmmnr24q"]
+
+[ext_resource type="Script" uid="uid://u3g2h58n5v6b" path="res://Scripts/team_sheet_screen.gd" id="1_oaxbw"]
+
+[node name="TeamSheetScreen" type="Control" unique_id=1117554733]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_oaxbw")

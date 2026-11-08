@@ -143,16 +143,16 @@ func _pick_by_rarity(items: Array, count: int) -> Array:
 			piles[r] = []
 		piles[r].append(item)
 
-	var picked := []
-	while picked.size() < count and not piles.is_empty():
+	var chosen := []
+	while chosen.size() < count and not piles.is_empty():
 		var rarity := roll_rarity(piles.keys())
 		var pile: Array = piles[rarity]
 		var item = pile.pick_random()
-		picked.append(item)
+		chosen.append(item)
 		pile.erase(item)               ## no duplicates in one offer
 		if pile.is_empty():
 			piles.erase(rarity)        ## nothing left of that rarity: stop rolling it
-	return picked
+	return chosen
 
 ## Pick one rarity from `available`, using RARITY_WEIGHTS.
 ## Only pass rarities that still have something in them.
@@ -177,7 +177,7 @@ func remove_card(card: ActionCard) -> void:
 
 func add_player(staff: StaffCard) -> void:
 	squad.append(staff)
-	## TEMPORARY (until the squad screen): a new player is picked if there's room.
+	## A new player goes straight into the team if there's room (change it on the team sheet).
 	if staff is PlayerCard and match_players().size() < MATCHDAY_PLAYERS:
 		picked.append(staff)
 
@@ -193,10 +193,13 @@ func match_players() -> Array:
 func match_squad() -> Array:
 	return match_players() + coaches()
 
-## Kick-off: anyone sold or with no games left this season drops out of the team,
-## then everyone still picked uses up one appearance.
-func start_match_day() -> void:
+## Drop anyone from the team who has been sold or has no games left this season.
+func tidy_picked() -> void:
 	picked = match_players().filter(func(p): return LeagueState.appearances_left(p) > 0)
+
+## Kick-off: tidy the team, then everyone still picked uses up one appearance.
+func start_match_day() -> void:
+	tidy_picked()
 	for p in picked:
 		LeagueState.use_appearance(p)
 

@@ -82,7 +82,7 @@ func _button(text: String, action: Callable) -> Button:
 	return button
 
 func _play_next_match() -> void:
-	get_tree().change_scene_to_file("res://Scenes/match_screen.tscn")
+	get_tree().change_scene_to_file("res://Scenes/team_sheet_screen.tscn")
 
 func _open_shop() -> void:
 	get_tree().change_scene_to_file("res://Scenes/shop_screen.tscn")
