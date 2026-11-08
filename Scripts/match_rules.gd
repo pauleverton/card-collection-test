@@ -660,7 +660,7 @@ func fire_coaches(when: String, events: Array) -> void:
 ## The abilities switched on right now. Checked live, so a goal can switch one off mid-action.
 func _active_abilities() -> Array:
 	var list: Array = []
-	for s in RunState.squad:
+	for s in RunState.match_squad():
 		if s.ability != null and s.ability.is_active(self):
 			list.append(s.ability)
 	return list
@@ -695,7 +695,7 @@ func _abilities_allow(card: ActionCard) -> bool:
 
 ## After every action: commentary for any ability that has just switched on or off.
 func _announce_abilities(events: Array) -> void:
-	for s in RunState.squad:
+	for s in RunState.match_squad():
 		if s.ability == null:
 			continue
 		var on: bool = s.ability.is_active(self)

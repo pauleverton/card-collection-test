@@ -49,7 +49,7 @@ func _ready() -> void:
 	UiStyle.primary(continue_button)       ## full-time: the one main action
 	full_time_panel.visible = false
 	_say("Kick-off against %s. Beat the Press to move up the pitch." % LeagueState.next_opponent_label())
-	for p in RunState.squad:
+	for p in RunState.match_squad():
 		var ui = PLAYER_UI.instantiate()
 		ui.setup(p)
 		ui.disabled = true          ## display only during a match
@@ -565,7 +565,7 @@ func _debug_add_players() -> void:
 		if RunState.squad.any(func(s): return s.resource_path == path):
 			continue      ## already in the squad
 		var p: PlayerCard = load(path)
-		RunState.squad.append(p)
+		RunState.picked.append(p)   ## debug ignores the matchday limit, like MAX_PLAYERS
 		var ui = PLAYER_UI.instantiate()
 		ui.setup(p)
 		ui.disabled = true          ## display only during a match

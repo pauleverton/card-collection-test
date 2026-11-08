@@ -57,7 +57,11 @@ var squad: Array = []          ## players AND coaches
 var team_name := ""            ## built on the main menu; "" = use the default name
 ## Set when a run ends: the main menu then opens the team name box straight away.
 var start_with_team_name := false
-const MAX_PLAYERS := 5
+const MAX_PLAYERS := 7         ## players you can OWN
+## How many of your players take the pitch in one match. Coaches don't count: they always play.
+const MATCHDAY_PLAYERS := 3
+## The players picked for the next match (always a subset of the players in `squad`).
+var picked: Array = []
 const MAX_COACHES := 2
 ## The shop's stock for the current break between matches. Rolled once by
 ## restock_shop() (new run, and after every match), so leaving the shop and
@@ -96,6 +100,7 @@ func new_run() -> void:
 		deck.append(load(path))
 	matches_played = 0
 	squad.clear()
+	picked.clear()
 	team_name = ""
 	restock_shop()
 
@@ -172,20 +177,32 @@ func remove_card(card: ActionCard) -> void:
 
 func add_player(staff: StaffCard) -> void:
 	squad.append(staff)
+	## TEMPORARY (until the squad screen): a new player is picked if there's room.
+	if staff is PlayerCard and match_players().size() < MATCHDAY_PLAYERS:
+		picked.append(staff)
 
 func remove_player(staff: StaffCard) -> void:
 	squad.erase(staff)
+	picked.erase(staff)
+
+## The players actually playing the next match (picked AND still owned).
+func match_players() -> Array:
+	return picked.filter(func(p): return squad.has(p))
+
+## Everyone taking part in a match: the picked players plus every coach.
+func match_squad() -> Array:
+	return match_players() + coaches()
 
 func squad_bonus(card: ActionCard) -> int:
 	var total := 0
-	for p in players():
+	for p in match_players():
 		total += p.bonus_for(card)
 	return total
 
 ## All matching player multipliers, multiplied together.
 func squad_multiplier(card: ActionCard) -> float:
 	var total := 1.0
-	for p in players():
+	for p in match_players():
 		if p.applies_to(card):
 			total *= p.multiplier
 	return total
@@ -213,7 +230,7 @@ func coaches_for(when: String) -> Array:
 ## Names of everyone who boosts this card (for the commentary).
 func squad_helpers(card: ActionCard) -> PackedStringArray:
 	var names: PackedStringArray = []
-	for s in squad:
+	for s in match_squad():
 		if s.affects(card):
 			names.append(s.display_name)
 	return names
