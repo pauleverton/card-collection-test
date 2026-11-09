@@ -11,7 +11,7 @@ func _ready() -> void:
 		RunState.matches_played, RunState.deck.size()]
 	for card in RunState.reward_options():
 		var ui = CARD_UI.instantiate()
-		ui.setup(card)
+		ui.setup(card, 1.3)
 		ui.card_clicked.connect(_on_card_chosen)
 		choices.add_child(ui)
 	skip_button.pressed.connect(_go_to_hub)

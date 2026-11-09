@@ -398,12 +398,12 @@ func refresh_all() -> float:
 	let_through_button.text = "Let them shoot" if pitch.in_our_box() else "Let them through"
 	for card_ui in hand.get_children():
 		if not pitch.can_play_here(card_ui.card):
-			card_ui.modulate = Color(1, 1, 1, 0.3)      ## can't be played here
+			card_ui.set_play_state("blocked")      ## can't be played here
 		elif pitch.would_succeed(card_ui.card):
-			card_ui.modulate = Color(0.6, 1.0, 0.6)     ## gets you through
+			card_ui.set_play_state("through")      ## gets you through
 		else:
-			card_ui.modulate = Color(1, 1, 1, 1)        ## playable, adds to the bar
-		## The build-up / hold bar: hidden inside either box, where the chance works differently.
+			card_ui.set_play_state("normal")       ## playable, adds to the bar
+	## The build-up / hold bar: hidden inside either box, where the chance works differently.
 	build_bar.visible = not pitch.match_over and not pitch.in_their_box() and not pitch.in_our_box()
 	build_bar.max_value = pitch.target
 	create_tween().tween_property(build_bar, "value", pitch.build, SettingsState.t(0.3))

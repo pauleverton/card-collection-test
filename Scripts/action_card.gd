@@ -20,7 +20,8 @@ extends Resource
 @export_range(0.0, 1.0, 0.01) var chance: float = 0.0
 @export_multiline var description: String
 @export var upgrades_to: ActionCard
-
+## Optional artwork. Empty = the card face simply leaves it out.
+@export var art: Texture2D
 
 ## Turns tag and card_type into dropdowns built from CardTags, so there's only one list.
 func _validate_property(property: Dictionary) -> void:
