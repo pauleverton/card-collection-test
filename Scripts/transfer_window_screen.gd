@@ -4,10 +4,10 @@ extends Control
 ## (free: players only), plus "Scout again": the old list's pins pop out and its reports drop
 ## to the floor, then the new reports are pinned up one by one (the price goes up each time).
 ## Signing someone pulls his report off the board: it tugs on its pin, tears free (a scrap of its
-## top edge stays under the pin, which bounces), lifts and swings loose, then is carried down to
-## your squad, whose new tile flashes gold. Nothing else on the board moves.
-## Your squad along the bottom: click to sell. "Start the season" goes to the hub.
-## Everything is built in code; the scene is just this root node.
+## top edge stays under the pin, which bounces), lifts and swings loose, then flies into his slot
+## in your squad, which flashes gold. Nothing else on the board moves.
+## Your squad along the bottom: 7 player slots and 2 coach slots; click one to sell.
+## "Start the season" goes to the hub. Everything is built in code; the scene is just this root node.
 ## Each report sits in a plain holder (not a container), so it can tilt, move and scale.
 
 const BACKGROUND := Color("241c16")
@@ -15,6 +15,8 @@ const CORK := Color("b98a5a")
 const CORK_FRAME := Color("6b4a2e")
 const STRIP := Color("1a1510")
 const STRIP_EDGE := Color("3a2e22")
+const SLOT_FILL := Color("120e0a")       ## an empty squad slot
+const SLOT_LABEL := Color("5a4a3a")
 const PAPER := Color("fbf8ef")
 const INK := Color("232323")
 const SOFT := Color("4a4f4b")
@@ -34,16 +36,17 @@ const RARITY_COLOURS := {"common": Color("5a635c"), "uncommon": Color("2b5bc4"),
 		"rare": Color("c9302c"), "special": Color("c99a2e")}
 const REPORT_SIZE := Vector2(250, 300)
 const NOTE_SIZE := Vector2(200, 220)
-## 180 wide = a full squad (7 players + 2 coaches) fits on one row.
+## 180 wide = 7 player slots + 2 coach slots fit on one row.
 const OWNED_SIZE := Vector2(180, 118)
 const REST_TILT := 1.5           ## reports rest at a random tilt up to this (degrees)
 ## Pulling a report off the board (seconds, scaled by the game speed setting).
 const TUG_TIME := 0.05           ## each wiggle on the pin (4 of them)
 const LIFT_TIME := 0.16          ## tearing free and lifting towards you
-const FLY_TIME := 0.42           ## carried down to the squad strip
-const ARRIVE_FLASH := Color(1.7, 1.45, 0.7)   ## the new squad tile flashes gold
+const FLY_TIME := 0.42           ## carried down into his squad slot
+const FLY_SCALE := 0.45          ## how small the report is when it lands
+const ARRIVE_FLASH := Color(1.7, 1.45, 0.7)   ## his new squad slot flashes gold
 ## Scout again: the old list comes down...
-const PIN_POP_TIME := 0.25        ## a pin popping out
+const PIN_POP_TIME := 0.12       ## a pin popping out
 const FALL_TIME := 0.6           ## a report dropping to the floor
 const FALL_GAP := 0.1            ## between one report and the next
 const FALL_DISTANCE := 1000.0    ## how far it drops (px): well past the bottom of the screen
@@ -59,9 +62,11 @@ var _marker: Font
 var _hand: Font
 var coins_label: Label
 var message_label: Label
-var squad_heading: Label
+var players_heading: Label
+var coaches_heading: Label
 var board_row: HBoxContainer
-var squad_row: HBoxContainer
+var players_row: HBoxContainer   ## 7 player slots
+var coaches_row: HBoxContainer   ## 2 coach slots
 var _paid_holders: Array = []    ## the transfer list's reports (in their holders)
 var _paid_slots: Array = []      ## the transfer list's empty pins (signed players)
 var busy := false                ## true while a report is moving on or off the board
@@ -113,17 +118,32 @@ func _ready() -> void:
 	board_row.add_theme_constant_override("separation", 52)
 	cork.add_child(board_row)
 
-	## Your squad: click to sell.
+	## Your squad: 7 player slots | 2 coach slots. Click one to sell.
 	var strip := _panel(STRIP, STRIP_EDGE, 1, 12, 16)
 	page.add_child(strip)
-	var strip_box := VBoxContainer.new()
-	strip_box.add_theme_constant_override("separation", 10)
-	strip.add_child(strip_box)
-	squad_heading = _text("", null, 20, HEADING)
-	strip_box.add_child(squad_heading)
-	squad_row = HBoxContainer.new()
-	squad_row.add_theme_constant_override("separation", 10)
-	strip_box.add_child(squad_row)
+	var strip_row := HBoxContainer.new()
+	strip_row.add_theme_constant_override("separation", 20)
+	strip.add_child(strip_row)
+	var players_box := VBoxContainer.new()
+	players_box.add_theme_constant_override("separation", 10)
+	players_heading = _text("", null, 20, HEADING)
+	players_box.add_child(players_heading)
+	players_row = HBoxContainer.new()
+	players_row.add_theme_constant_override("separation", 10)
+	players_box.add_child(players_row)
+	strip_row.add_child(players_box)
+	var divider := ColorRect.new()
+	divider.color = STRIP_EDGE
+	divider.custom_minimum_size.x = 2
+	strip_row.add_child(divider)
+	var coaches_box := VBoxContainer.new()
+	coaches_box.add_theme_constant_override("separation", 10)
+	coaches_heading = _text("", null, 20, HEADING)
+	coaches_box.add_child(coaches_heading)
+	coaches_row = HBoxContainer.new()
+	coaches_row.add_theme_constant_override("separation", 10)
+	coaches_box.add_child(coaches_row)
+	strip_row.add_child(coaches_box)
 
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -169,18 +189,32 @@ func _build_board() -> void:
 	note_holder.add_child(_scout_note())
 	board_row.add_child(note_holder)
 
-## The squad strip, the heading counts and the coins.
+## The squad: players fill the 7 player slots, coaches the 2 coach slots; the rest show as empty.
 func _refresh_squad() -> void:
-	for child in squad_row.get_children():
-		squad_row.remove_child(child)       ## out now, so the new tiles' positions are right straight away
-		child.queue_free()
-	for s in RunState.squad:
-		squad_row.add_child(_owned_tile(s))
-	for i in RunState.MAX_PLAYERS + RunState.MAX_COACHES - RunState.squad.size():
-		squad_row.add_child(_empty_tile())
-	squad_heading.text = "YOUR SQUAD  ·  PLAYERS %d / %d  ·  COACHES %d / %d  ·  CLICK TO SELL FOR HALF" % [
-			RunState.players().size(), RunState.MAX_PLAYERS, RunState.coaches().size(), RunState.MAX_COACHES]
+	_fill_row(players_row, RunState.players(), RunState.MAX_PLAYERS, "PLAYER", GOLD)
+	_fill_row(coaches_row, RunState.coaches(), RunState.MAX_COACHES, "COACH", BLUE)
+	players_heading.text = "PLAYERS  %d / %d  ·  CLICK TO SELL FOR HALF" % [
+			RunState.players().size(), RunState.MAX_PLAYERS]
+	coaches_heading.text = "COACHES  %d / %d" % [RunState.coaches().size(), RunState.MAX_COACHES]
 	coins_label.text = "%d coins" % CoinState.coins
+
+func _fill_row(row: HBoxContainer, staff: Array, places: int, label: String, edge: Color) -> void:
+	for child in row.get_children():
+		row.remove_child(child)             ## out now, so slot positions are right straight away
+		child.queue_free()
+	for s in staff:
+		row.add_child(_owned_tile(s, edge))
+	for i in places - staff.size():
+		row.add_child(_empty_tile(label))
+
+## The row and slot a member of staff sits in (null if there's no slot for him).
+func _slot_of(s: StaffCard) -> Control:
+	var row := coaches_row if s is CoachCard else players_row
+	var list := RunState.coaches() if s is CoachCard else RunState.players()
+	var index := list.find(s)
+	if index < 0 or index >= row.get_child_count():
+		return null
+	return row.get_child(index)
 
 # ---------- Buying and selling ----------
 
@@ -188,7 +222,7 @@ func _buy(s: StaffCard, free: bool, report: Button) -> void:
 	if busy:
 		return
 	if RunState.squad_full_for(s):
-		message_label.text = "Squad full: sell someone first"
+		message_label.text = "No %s slot free: sell someone first" % ("coach" if s is CoachCard else "player")
 		return
 	var cost := 0 if free else RunState.staff_price(s)
 	if not CoinState.can_afford(cost):
@@ -202,14 +236,15 @@ func _buy(s: StaffCard, free: bool, report: Button) -> void:
 	message_label.text = "Signed: %s" % s.display_name
 	coins_label.text = "%d coins" % CoinState.coins
 	busy = true
-	await _pull_off(report, FREE_GREEN if free else PIN_RED)
+	await _pull_off(report, FREE_GREEN if free else PIN_RED, _slot_of(s))
 	busy = false
 	_refresh_squad()
 	_flash_new_tile(s)
 
 ## Pull a report off the board: it tugs on its pin, tears free (the scrap and mark appear under
-## the pin, which bounces), lifts towards you and swings loose, then is carried to the squad strip.
-func _pull_off(report: Button, pin_colour: Color) -> void:
+## the pin, which bounces), lifts towards you and swings loose, then flies into `landing`
+## (his empty squad slot), shrinking onto it.
+func _pull_off(report: Button, pin_colour: Color, landing: Control) -> void:
 	var holder := report.get_parent()
 	var row := holder.get_parent()
 	var slot := _empty_slot(pin_colour, false)   ## just the pin for now: it tears in a moment
@@ -221,6 +256,12 @@ func _pull_off(report: Button, pin_colour: Color) -> void:
 	_lift_out(report)
 	row.remove_child(holder)
 	holder.queue_free()
+	## Where to land: the middle of his squad slot (the report turns about its top-middle pin,
+	## so aim that point half a shrunken report above the slot's centre).
+	var target := players_row.global_position
+	if landing != null:
+		var centre := landing.global_position + landing.size / 2.0
+		target = centre - Vector2(REPORT_SIZE.x / 2.0, REPORT_SIZE.y * FLY_SCALE / 2.0)
 	var t := create_tween()
 	## 1. Tug: it wiggles on its pin.
 	for angle in [-4.0, 4.0, -3.0, 0.0]:
@@ -232,15 +273,13 @@ func _pull_off(report: Button, pin_colour: Color) -> void:
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	t.parallel().tween_property(report, "rotation_degrees", 14.0, SettingsState.t(LIFT_TIME))
 	t.parallel().tween_property(report, "position:y", report.position.y - 24, SettingsState.t(LIFT_TIME))
-	## 3. Carried down to the squad strip, shrinking, fading at the end.
-	var target := squad_row.global_position + Vector2(squad_row.size.x / 2.0 - REPORT_SIZE.x / 2.0,
-			-REPORT_SIZE.y * 0.3)
+	## 3. Into his squad slot, shrinking and straightening, fading as it lands.
 	t.tween_property(report, "global_position", target, SettingsState.t(FLY_TIME)) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	t.parallel().tween_property(report, "rotation_degrees", -8.0, SettingsState.t(FLY_TIME))
-	t.parallel().tween_property(report, "scale", Vector2(0.45, 0.45), SettingsState.t(FLY_TIME))
-	t.parallel().tween_property(report, "modulate:a", 0.0, SettingsState.t(FLY_TIME * 0.5)) \
-			.set_delay(SettingsState.t(FLY_TIME * 0.5))
+	t.parallel().tween_property(report, "rotation_degrees", 0.0, SettingsState.t(FLY_TIME))
+	t.parallel().tween_property(report, "scale", Vector2(FLY_SCALE, FLY_SCALE), SettingsState.t(FLY_TIME))
+	t.parallel().tween_property(report, "modulate:a", 0.0, SettingsState.t(FLY_TIME * 0.4)) \
+			.set_delay(SettingsState.t(FLY_TIME * 0.6))
 	await t.finished
 	report.queue_free()
 
@@ -255,12 +294,11 @@ func _tear(slot: Control) -> void:
 	create_tween().tween_property(pin, "scale", Vector2.ONE, SettingsState.t(0.2)) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
-## The newly signed player's tile flashes gold as his report arrives.
+## The newly signed player's slot flashes gold as his report lands in it.
 func _flash_new_tile(s: StaffCard) -> void:
-	var index := RunState.squad.find(s)
-	if index < 0 or index >= squad_row.get_child_count():
+	var tile := _slot_of(s)
+	if tile == null:
 		return
-	var tile: Control = squad_row.get_child(index)
 	tile.modulate = ARRIVE_FLASH
 	create_tween().tween_property(tile, "modulate", Color.WHITE, SettingsState.t(0.5))
 
@@ -499,15 +537,15 @@ func _scout_note() -> Button:
 
 # ---------- The squad strip ----------
 
-func _owned_tile(s: StaffCard) -> Button:
+## A filled slot: his name, what he does, the sell price, with a solid gold (player) or blue (coach) edge.
+func _owned_tile(s: StaffCard, edge: Color) -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = OWNED_SIZE
 	button.focus_mode = Control.FOCUS_NONE
-	var edge := BLUE if s is CoachCard else GOLD
 	for state in ["normal", "hover", "pressed"]:
 		var style := _box_style(Color("1e2a22") if state != "hover" else Color("2a3a2e"), 10)
 		style.border_color = edge
-		style.set_border_width_all(2)
+		style.set_border_width_all(3)
 		button.add_theme_stylebox_override(state, style)
 	var box := _inner_box(button, 10)
 	box.add_child(_text(s.display_name.to_upper(), null, 19, Color.WHITE))
@@ -524,13 +562,18 @@ func _owned_tile(s: StaffCard) -> Button:
 	button.pressed.connect(_sell.bind(s))
 	return button
 
-func _empty_tile() -> Panel:
-	var tile := Panel.new()
+## An empty slot: a dark inset box with a faint "PLAYER" or "COACH".
+func _empty_tile(label: String) -> PanelContainer:
+	var tile := PanelContainer.new()
 	tile.custom_minimum_size = OWNED_SIZE
-	var style := _box_style(Color(0, 0, 0, 0), 10)
+	var style := _box_style(SLOT_FILL, 10)
 	style.border_color = STRIP_EDGE
 	style.set_border_width_all(2)
 	tile.add_theme_stylebox_override("panel", style)
+	var word := _text(label, null, 18, SLOT_LABEL)
+	word.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	word.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	tile.add_child(word)
 	return tile
 
 # ---------- Helpers ----------
