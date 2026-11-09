@@ -13,7 +13,6 @@ extends Control
 @onready var commentary_log = $CommentaryBox/VBox/Log
 @onready var build_bar = $BuildBar
 @onready var build_label = $BuildBar/BuildLabel
-const PLAYER_UI = preload("res://Scenes/player_card_view.tscn")
 const LEAGUE_TABLE := preload("res://Scenes/league_table_view.tscn")
 const COINS_VIEW := preload("res://Scenes/coins_view.tscn")
 
@@ -27,6 +26,8 @@ var discard_view := PileView.new()
 var box_view := BoxView.new()
 var scoreboard := ScoreboardView.new()
 var squad_bar := VBoxContainer.new()     ## the matchday squad, down the left
+var squad_tiles: Array = []              ## the SquadTileViews in squad_bar (not the headings)
+var _dugout_heading: Control = null      ## players always go above this
 var energy_label := Label.new()
 var stage := Control.new()               ## holds the whole match screen, see _build_layout()
 const BOX_SUSPENSE := 0.9      ## seconds on "Short pass... 30% risk" before the result
@@ -48,6 +49,10 @@ const DRAW_RECT := Rect2(32, 898, 110, 150)          ## bottom-left
 const ENERGY_RECT := Rect2(162, 948, 170, 60)        ## next to the draw pile
 const DISCARD_RECT := Rect2(1778, 898, 110, 150)     ## bottom-right
 const ACTION_RECT := Rect2(1588, 918, 170, 110)      ## Shoot or Let them through (never both at once)
+const SQUAD_GAP := 8                                 ## space between the tiles and headings
+const PLAYERS_COLOUR := Color("f2b233")              ## "ON THE PITCH" heading
+const COACHES_COLOUR := Color("7fb2f0")              ## "DUGOUT" heading
+const HEADING_NOTE := Color("8fa190")
 
 ## Filled in at full time by LeagueState, and read by Continue to decide where to go next.
 var league_result := {}
@@ -65,11 +70,7 @@ func _ready() -> void:
 	UiStyle.primary(continue_button)       ## full-time: the one main action
 	full_time_panel.visible = false
 	_say("Kick-off against %s. Beat the Press to move up the pitch." % LeagueState.next_opponent_label())
-	for p in RunState.match_squad():
-		var ui = PLAYER_UI.instantiate()
-		ui.setup(p)
-		ui.disabled = true          ## display only during a match
-		squad_bar.add_child(ui)
+	_build_squad()
 	_build_layout()
 	_kick_off()
 	
@@ -114,12 +115,12 @@ func play_card(card: ActionCard) -> void:
 	## Players react once per trigger; a coach shouts "Again!" between rounds.
 	var triggers := 1 + RunState.retriggers_for_card(card)
 	var again_uis := []
-	for ui in squad_bar.get_children():
+	for ui in squad_tiles:
 		if ui.player is CoachCard and ui.player.applies_to(card):
 			for i in ui.player.retriggers:
 				again_uis.append(ui)
 	for t in triggers:
-		for ui in squad_bar.get_children():
+		for ui in squad_tiles:
 			if ui.player is PlayerCard and ui.player.affects(card):
 				ui.react(ui.player.effect_label(), delay)
 				delay += SettingsState.t(0.25)
@@ -366,7 +367,6 @@ func _build_layout() -> void:
 	_place(info_label, ROUND_RECT)
 
 	## Middle: squad | bar + pitch (or the box view) | commentary.
-	squad_bar.add_theme_constant_override("separation", 10)
 	_place(squad_bar, SQUAD_RECT)
 	_place(build_bar, BAR_RECT)
 	_place(pitch_strip, PITCH_RECT)
@@ -396,6 +396,44 @@ func _build_layout() -> void:
 	_place(let_through_button, ACTION_RECT)
 	hand.custom_minimum_size = Vector2.ZERO
 	_place(hand, HAND_RECT)
+
+## The matchday squad down the left: players under ON THE PITCH, coaches under DUGOUT.
+func _build_squad() -> void:
+	squad_bar.add_theme_constant_override("separation", SQUAD_GAP)
+	var players := RunState.match_players()
+	squad_bar.add_child(_squad_heading("ON THE PITCH",
+			"%d / %d" % [players.size(), RunState.MATCHDAY_PLAYERS], PLAYERS_COLOUR))
+	for p in players:
+		_add_squad_tile(p)
+	if not RunState.coaches().is_empty():
+		_dugout_heading = _squad_heading("DUGOUT", "coaches always play", COACHES_COLOUR)
+		squad_bar.add_child(_dugout_heading)
+		for c in RunState.coaches():
+			_add_squad_tile(c)
+
+func _add_squad_tile(staff: StaffCard) -> void:
+	var tile := SquadTileView.new()
+	tile.setup(staff)
+	squad_bar.add_child(tile)
+	if staff is PlayerCard and _dugout_heading != null:
+		squad_bar.move_child(tile, _dugout_heading.get_index())   ## players stay above the dugout
+	squad_tiles.append(tile)
+
+## A heading row: title on the left, a small note on the right.
+func _squad_heading(title: String, note: String, colour: Color) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	var title_label := Label.new()
+	title_label.text = title
+	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_label.add_theme_font_size_override("font_size", 18)
+	title_label.add_theme_color_override("font_color", colour)
+	row.add_child(title_label)
+	var note_label := Label.new()
+	note_label.text = note
+	note_label.add_theme_font_size_override("font_size", 15)
+	note_label.add_theme_color_override("font_color", HEADING_NOTE)
+	row.add_child(note_label)
+	return row
 
 ## Put a piece on the stage at a fixed place and size.
 func _place(node: Control, rect: Rect2) -> void:
@@ -463,6 +501,8 @@ func refresh_all() -> float:
 	pitch_strip.show_state(pitch)
 	box_view.show_state(pitch)
 	pitch_strip.visible = not box_view.visible   ## the box view takes the strip's place
+	for tile in squad_tiles:
+		tile.show_state(pitch)                   ## ability chips: ON / FROM 75' / WHEN LOSING
 	_show_info(pitch.minute)
 	shoot_button.visible = pitch.in_their_box() and not pitch.match_over
 	let_through_button.visible = not pitch.has_ball and not pitch.match_over
@@ -641,9 +681,6 @@ func _debug_add_players() -> void:
 			continue      ## already in the squad
 		var p: PlayerCard = load(path)
 		RunState.picked.append(p)   ## debug ignores the matchday limit, like MAX_PLAYERS
-		var ui = PLAYER_UI.instantiate()
-		ui.setup(p)
-		ui.disabled = true          ## display only during a match
-		squad_bar.add_child(ui)
+		_add_squad_tile(p)
 	_say("DEBUG: added 3 players.", false)
 	refresh_all()
