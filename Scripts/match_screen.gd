@@ -11,7 +11,6 @@ extends Control
 @onready var full_time_background = $FullTimePanel/Background
 @onready var commentary_headline = $CommentaryBox/VBox/Headline
 @onready var commentary_log = $CommentaryBox/VBox/Log
-@onready var squad_bar = $SquadBar
 @onready var build_bar = $BuildBar
 @onready var build_label = $BuildBar/BuildLabel
 const PLAYER_UI = preload("res://Scenes/player_card_view.tscn")
@@ -20,18 +19,35 @@ const COINS_VIEW := preload("res://Scenes/coins_view.tscn")
 
 var pitch := MatchRules.new()
 var busy := false
-const PILE_MARGIN := 40       ## gap between the piles and the screen corners
 const OPENING_HAND := 5
 const MAX_REDEALS := 3        ## after this many, an unplayable hand just loses the ball
 const WHISTLE_PAUSE := 1.5      ## seconds on the final score before the full-time panel
 var draw_view := PileView.new()
 var discard_view := PileView.new()
 var box_view := BoxView.new()
-const BOX_VIEW_TOP := 210      ## where the box view sits (it covers the pitch strip)
-const BOX_VIEW_HEIGHT := 290
-const BOX_VIEW_MARGIN := 220   ## gap from the left and right edges
+var scoreboard := ScoreboardView.new()
+var squad_bar := VBoxContainer.new()     ## the matchday squad, down the left
+var energy_label := Label.new()
+var stage := Control.new()               ## holds the whole match screen, see _build_layout()
 const BOX_SUSPENSE := 0.9      ## seconds on "Short pass... 30% risk" before the result
 const BOX_RESULT_PAUSE := 0.8  ## seconds on "CLOSED DOWN!" / "+15!" before the screen moves on
+
+## ---------- Layout ----------
+## Everything sits on a 1920×1080 "stage" kept in the middle of the window, so a wider
+## window just adds background at the sides. Each Rect2 is (left, top, width, height).
+const STAGE_SIZE := Vector2(1920, 1080)
+const BACKGROUND := Color("0e1812")
+const SCOREBOARD_RECT := Rect2(0, 16, 1920, 170)     ## centred at the top
+const ROUND_RECT := Rect2(32, 26, 420, 80)           ## league + round, top-left corner
+const SQUAD_RECT := Rect2(32, 186, 300, 580)         ## players, then coaches, down the left
+const BAR_RECT := Rect2(356, 186, 1208, 44)          ## build-up / hold bar, above the pitch
+const PITCH_RECT := Rect2(356, 244, 1208, 522)       ## the pitch, and the box view in the same place
+const COMMENTARY_RECT := Rect2(1588, 186, 300, 580)  ## down the right
+const HAND_RECT := Rect2(356, 770, 1208, 310)        ## centred under the pitch
+const DRAW_RECT := Rect2(32, 898, 110, 150)          ## bottom-left
+const ENERGY_RECT := Rect2(162, 948, 170, 60)        ## next to the draw pile
+const DISCARD_RECT := Rect2(1778, 898, 110, 150)     ## bottom-right
+const ACTION_RECT := Rect2(1588, 918, 170, 110)      ## Shoot or Let them through (never both at once)
 
 ## Filled in at full time by LeagueState, and read by Continue to decide where to go next.
 var league_result := {}
@@ -39,7 +55,6 @@ var was_final_tournament := false
 
 func _ready() -> void:
 	RunState.start_match_day()        ## uses up appearances; must run before the squad bar is built
-	info_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN 
 	DeckState.start_match(RunState.deck)
 	DeckState.draw(OPENING_HAND)
 	pitch.start()
@@ -55,8 +70,7 @@ func _ready() -> void:
 		ui.setup(p)
 		ui.disabled = true          ## display only during a match
 		squad_bar.add_child(ui)
-	_add_piles()
-	_add_box_view()
+	_build_layout()
 	_kick_off()
 	
 ## Deal the opening hand. If none of it can be played, it goes back and is dealt again
@@ -325,15 +339,73 @@ func _on_continue() -> void:
 		get_tree().change_scene_to_file(RunState.next_break_screen())
 
 # ---------- Screen ----------
-## The draw pile (bottom-left) and discard pile (bottom-right), made in code.
-func _add_piles() -> void:
+## Build the screen: make the stage, then move every piece onto it at its Rect2 (see Layout).
+## Pieces added later are drawn on top, so the hand goes last (cards hover over everything).
+func _build_layout() -> void:
+	$ColorRect.color = BACKGROUND
+	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage.anchor_left = 0.5
+	stage.anchor_right = 0.5
+	stage.anchor_top = 0.5
+	stage.anchor_bottom = 0.5
+	stage.offset_left = -STAGE_SIZE.x / 2
+	stage.offset_right = STAGE_SIZE.x / 2
+	stage.offset_top = -STAGE_SIZE.y / 2
+	stage.offset_bottom = STAGE_SIZE.y / 2
+	add_child(stage)
+	move_child(stage, full_time_panel.get_index())   ## behind the full-time panel
+
+	## Top: scoreboard in the middle, league and round in the corner.
+	var opponent := LeagueState.next_opponent()
+	scoreboard.setup(LeagueState.your_name(),
+			opponent.team_name if opponent else "Them",
+			opponent != null and opponent.is_favourite)
+	_place(scoreboard, SCOREBOARD_RECT)
+	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	info_label.add_theme_font_size_override("font_size", 22)
+	_place(info_label, ROUND_RECT)
+
+	## Middle: squad | bar + pitch (or the box view) | commentary.
+	squad_bar.add_theme_constant_override("separation", 10)
+	_place(squad_bar, SQUAD_RECT)
+	_place(build_bar, BAR_RECT)
+	_place(pitch_strip, PITCH_RECT)
+	_place(box_view, PITCH_RECT)
+	box_view.visible = false
+	commentary_headline.add_theme_font_size_override("normal_font_size", 22)
+	commentary_headline.fit_content = false          ## fixed height: a narrow column made it huge
+	commentary_headline.custom_minimum_size.y = 110
+	commentary_log.size_flags_vertical = Control.SIZE_EXPAND_FILL   ## the log fills the column
+	$CommentaryBox.clip_contents = true
+	_place($CommentaryBox, COMMENTARY_RECT)
+
+	## Bottom: draw pile + energy | hand | action button + discard pile.
 	draw_view.setup("Draw", Color("2f5d8a"))
 	discard_view.setup("Discard", Color("5a4a3a"))
-	for pile in [draw_view, discard_view]:
-		add_child(pile)
-		move_child(pile, hand.get_index())   ## behind the hand and the full-time panel
-	draw_view.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, PILE_MARGIN)
-	discard_view.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, PILE_MARGIN)
+	_place(draw_view, DRAW_RECT)
+	_place(discard_view, DISCARD_RECT)
+	energy_label.add_theme_font_size_override("font_size", 34)
+	energy_label.add_theme_color_override("font_color", Color("f2b233"))
+	_place(energy_label, ENERGY_RECT)
+	shoot_button.text = "SHOOT\n1 energy"
+	UiStyle.primary(shoot_button)
+	UiStyle.secondary(let_through_button)
+	for button in [shoot_button, let_through_button]:
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART   ## long labels wrap instead of widening
+	_place(shoot_button, ACTION_RECT)
+	_place(let_through_button, ACTION_RECT)
+	hand.custom_minimum_size = Vector2.ZERO
+	_place(hand, HAND_RECT)
+
+## Put a piece on the stage at a fixed place and size.
+func _place(node: Control, rect: Rect2) -> void:
+	if node.get_parent() == null:
+		stage.add_child(node)
+	elif node.get_parent() != stage:
+		node.reparent(stage, false)
+	node.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	node.position = rect.position
+	node.size = rect.size
 
 func _update_piles() -> void:
 	draw_view.set_count(DeckState.draw_pile.size())
@@ -341,17 +413,6 @@ func _update_piles() -> void:
 	if DeckState.take_reshuffled():
 		discard_view.pulse()
 		draw_view.pulse()
-
-## The big box view, made in code, sitting where the pitch strip is.
-func _add_box_view() -> void:
-	add_child(box_view)
-	move_child(box_view, hand.get_index())   ## behind the hand and the full-time panel
-	box_view.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	box_view.offset_left = BOX_VIEW_MARGIN
-	box_view.offset_right = -BOX_VIEW_MARGIN
-	box_view.offset_top = BOX_VIEW_TOP
-	box_view.offset_bottom = BOX_VIEW_TOP + BOX_VIEW_HEIGHT
-	box_view.visible = false
 
 ## The gamble line for a card played in their box ("" = no gamble, show nothing extra).
 func _box_gamble_text(card: ActionCard) -> String:
@@ -428,11 +489,14 @@ func refresh_all() -> float:
 			build_label.text = "Holding 0 / 0, nobody back!"
 	return deal_time
 	
-## The info panel. Takes the minute so a replay can show the clock ticking.
+## Scoreboard, round and energy. Takes the minute so a replay can show the clock ticking.
 func _show_info(minute: int) -> void:
-	info_label.text = "%s\n %s vs %s\nStrength %d\n%d'   You %d - %d Them\nEnergy %d" % [
-			LeagueState.current_tournament_name(),LeagueState.your_name(), LeagueState.next_opponent_label(),
-			pitch.strength, minute, pitch.goals, pitch.conceded, pitch.energy]
+	scoreboard.show_score(pitch.goals, pitch.conceded, minute)
+	info_label.text = "%s\nRound %d of %d · %s in the table" % [
+			LeagueState.current_tournament_name().to_upper(),
+			LeagueState.matches_played + 1, LeagueState.matches_per_season(),
+			_ordinal(LeagueState.position_of(LeagueState.YOU))]
+	energy_label.text = "Energy %d" % pitch.energy
 		
 func describe(events: Array) -> String:
 	var lines: PackedStringArray = []
