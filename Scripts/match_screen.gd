@@ -134,7 +134,7 @@ func play_card(card: ActionCard) -> void:
 			delay += SettingsState.t(0.35)
 	if delay > 0.0:
 		await get_tree().create_timer(delay).timeout   ## let the squad reactions finish first
-	await _box_moment(gamble, events)
+	await _box_moment(gamble, events, card.tag)
 	_after_action(events)
 
 
@@ -492,7 +492,8 @@ func _box_gamble_text(card: ActionCard) -> String:
 	return "%s...  %d%% chance they close you down" % [card.display_name, risk]
 
 ## Hold on the gamble, then flash the result, before the screen moves on.
-func _box_moment(gamble: String, events: Array) -> void:
+## tag = the card played (pass / dribble / cross), so the box drawing can show the right move.
+func _box_moment(gamble: String, events: Array, tag: String = "") -> void:
 	if gamble == "":
 		return
 	box_view.suspense(gamble)
@@ -500,25 +501,25 @@ func _box_moment(gamble: String, events: Array) -> void:
 	var result := _box_result(events)
 	if result.is_empty():
 		return
-	box_view.flash(result["text"], result["colour"])
+	box_view.flash(result["text"], result["colour"], result["kind"], tag)
 	await get_tree().create_timer(SettingsState.t(BOX_RESULT_PAUSE)).timeout
 
-## What happened in the box, as one big word.
+## What happened in the box, as one big word, plus its kind (for the box drawing).
 func _box_result(events: Array) -> Dictionary:
 	for e in events:
 		match e["type"]:
 			"goal":
-				return {"text": "GOAL!", "colour": Color("f2b233")}
+				return {"text": "GOAL!", "colour": Color("f2b233"), "kind": "goal"}
 			"box_lost":
-				return {"text": "CLOSED DOWN!", "colour": Color("e0574a")}
+				return {"text": "CLOSED DOWN!", "colour": Color("e0574a"), "kind": "lost"}
 			"rebound":
-				return {"text": "SAVED... REBOUND!", "colour": Color("f2b233")}
+				return {"text": "SAVED... REBOUND!", "colour": Color("f2b233"), "kind": "rebound"}
 			"saved":
-				return {"text": "SAVED", "colour": Color("e0574a")}
+				return {"text": "SAVED", "colour": Color("e0574a"), "kind": "saved"}
 			"corner":
-				return {"text": "CORNER!", "colour": Color("6fb7f0")}
+				return {"text": "CORNER!", "colour": Color("6fb7f0"), "kind": ""}
 			"quality":
-				return {"text": "+%d!  Chance %d" % [e["gain"], e["quality"]], "colour": Color("7be07b")}
+				return {"text": "+%d!  Chance %d" % [e["gain"], e["quality"]], "colour": Color("7be07b"), "kind": "gain"}
 	return {}
 
 

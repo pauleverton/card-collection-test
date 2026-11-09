@@ -18,6 +18,10 @@ const STRIP_EDGE := Color("3a2e22")
 const SLOT_FILL := Color("120e0a")       ## an empty squad slot
 const SLOT_LABEL := Color("5a4a3a")
 const PAPER := Color("fbf8ef")
+const COACH_PAPER := Color("e9f0fa")     ## coaches are on pale blue index cards...
+const COACH_BLUE := Color("2b5bc4")      ## ...with a blue pin and header
+const RULED_LINE := Color(0.17, 0.36, 0.77, 0.16)
+const TIMED_GREEN := Color("1f7a3e")     ## "FROM 75'" on paper
 const INK := Color("232323")
 const SOFT := Color("4a4f4b")
 const TAPE := Color(0.94, 0.9, 0.75, 0.92)
@@ -34,10 +38,12 @@ const SCRAP_WIDTH := 48.0        ## the torn scrap left under the pin
 const SCRAP_DEPTH := Vector2(6, 20)   ## how far its torn edge reaches below the card's top (min, max)
 const RARITY_COLOURS := {"common": Color("5a635c"), "uncommon": Color("2b5bc4"),
 		"rare": Color("c9302c"), "special": Color("c99a2e")}
-const REPORT_SIZE := Vector2(250, 300)
-const NOTE_SIZE := Vector2(200, 220)
-## 180 wide = 7 player slots + 2 coach slots fit on one row.
-const OWNED_SIZE := Vector2(180, 118)
+const REPORT_SIZE := Vector2(270, 400)
+const NOTE_SIZE := Vector2(220, 300)
+const BADGE_SIZE := 56           ## the card-type badge on a report
+## 182 wide = 7 player slots + 2 coach slots fit on one row.
+const OWNED_SIZE := Vector2(182, 160)
+const TILE_BADGE_SIZE := 24      ## the badge on a squad tile
 const REST_TILT := 1.5           ## reports rest at a random tilt up to this (degrees)
 ## Pulling a report off the board (seconds, scaled by the game speed setting).
 const TUG_TIME := 0.05           ## each wiggle on the pin (4 of them)
@@ -115,7 +121,7 @@ func _ready() -> void:
 	var cork := _panel(CORK, CORK_FRAME, 14, 8, 24)
 	page.add_child(cork)
 	board_row = HBoxContainer.new()
-	board_row.add_theme_constant_override("separation", 52)
+	board_row.add_theme_constant_override("separation", 44)
 	cork.add_child(board_row)
 
 	## Your squad: 7 player slots | 2 coach slots. Click one to sell.
@@ -236,7 +242,7 @@ func _buy(s: StaffCard, free: bool, report: Button) -> void:
 	message_label.text = "Signed: %s" % s.display_name
 	coins_label.text = "%d coins" % CoinState.coins
 	busy = true
-	await _pull_off(report, FREE_GREEN if free else PIN_RED, _slot_of(s))
+	await _pull_off(report, FREE_GREEN if free else (COACH_BLUE if s is CoachCard else PIN_RED), _slot_of(s))
 	busy = false
 	_refresh_squad()
 	_flash_new_tile(s)
@@ -251,7 +257,7 @@ func _pull_off(report: Button, pin_colour: Color, landing: Control) -> void:
 	row.add_child(slot)
 	row.move_child(slot, holder.get_index())     ## in his exact place
 	_paid_holders.erase(holder)
-	if pin_colour == PIN_RED:
+	if pin_colour != FREE_GREEN:
 		_paid_slots.append(slot)                 ## a transfer-list slot: Scout again clears it
 	_lift_out(report)
 	row.remove_child(holder)
@@ -448,6 +454,7 @@ func _empty_slot(pin_colour: Color, torn: bool) -> Control:
 	var slot := Control.new()
 	slot.custom_minimum_size = REPORT_SIZE
 	slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.set_meta("paper", COACH_PAPER if pin_colour == COACH_BLUE else PAPER)   ## the scrap's colour
 	if torn:
 		_add_mark(slot)
 		_add_scrap(slot)
@@ -481,18 +488,33 @@ func _add_scrap(slot: Control) -> void:
 	slot.add_child(shadow)
 	var scrap := Polygon2D.new()
 	scrap.polygon = points
-	scrap.color = PAPER
+	scrap.color = slot.get_meta("paper", PAPER)
 	scrap.position = centre
 	slot.add_child(scrap)
 
-## A pinned scouting report: who, what he does, games a season, rarity, price (or FREE).
+## A pinned scouting report: who, what he does, (when he switches on), then along the bottom
+## his card-type badge, games a season and rarity; the price tag (or FREE) hangs off the corner.
+## Players are on cream paper (red pin, green for free agents); coaches on blue lined index cards.
 func _report(s: StaffCard, free: bool) -> Button:
-	var button := _paper_button(REPORT_SIZE, PAPER)
+	var coach := s is CoachCard
+	var accent := FREE_GREEN if free else (COACH_BLUE if coach else INK)
+	var button := _paper_button(REPORT_SIZE, COACH_PAPER if coach else PAPER)
+	if coach:
+		var lines := RuledLines.new()
+		button.add_child(lines)
+		lines.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var box := _inner_box(button, 20)
-	var kind := "FREE AGENT" if free else ("COACH" if s is CoachCard else "PLAYER")
-	box.add_child(_text("SCOUTING REPORT  ·  " + kind, null, 14, FREE_GREEN if free else INK))
-	box.add_child(_line(FREE_GREEN if free else INK, 2))
-	box.add_child(_text(s.display_name.to_upper(), null, 30, INK))
+	var heading := "COACHING STAFF" if coach else \
+			"SCOUTING REPORT  ·  " + ("FREE AGENT" if free else "PLAYER")
+	var header := _text(heading, null, 14, accent)
+	_fit_one_line(header, REPORT_SIZE.x - 40, 10)
+	box.add_child(header)
+	box.add_child(_line(accent, 2))
+	var name_label := _text(s.display_name.to_upper(), null, 30, INK)
+	_fit_one_line(name_label, REPORT_SIZE.x - 40, 18)
+	box.add_child(name_label)
+	if s.timed_text() != "":
+		box.add_child(_timed_line(s, TypeIcon.CLOCK_GREEN, TIMED_GREEN, SOFT, 15, 18))
 	var desc := _text(s.description, null, 17, INK)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.custom_minimum_size.x = REPORT_SIZE.x - 40
@@ -501,20 +523,47 @@ func _report(s: StaffCard, free: bool) -> Button:
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(spacer)
 	box.add_child(_line(Color(SOFT, 0.5), 1))
-	var games := "Always plays · max %d" % RunState.MAX_COACHES
+	## Bottom: badge | games a season above the rarity stamp.
+	var footer := HBoxContainer.new()
+	footer.add_theme_constant_override("separation", 14)
+	box.add_child(footer)
+	if s.shown_type() != "":
+		footer.add_child(TypeIcon.make(s.shown_type(), BADGE_SIZE, true))
+	var facts := VBoxContainer.new()
+	facts.alignment = BoxContainer.ALIGNMENT_CENTER
+	facts.add_theme_constant_override("separation", 6)
+	footer.add_child(facts)
 	if s is PlayerCard:
-		games = "%d games a season" % s.max_appearances()
-	box.add_child(_text(games, null, 15, SOFT))
+		var games: int = s.max_appearances()
+		facts.add_child(_text("%s  %d games a season" % ["●".repeat(games), games], null, 14, SOFT))
 	var colour: Color = RARITY_COLOURS.get(s.rarity, SOFT)
 	var stamp := _panel(Color(0, 0, 0, 0), colour, 3, 6, 2)
+	var stamp_style: StyleBoxFlat = stamp.get_theme_stylebox("panel")
+	stamp_style.content_margin_left = 8      ## room inside the border so the word isn't cut off
+	stamp_style.content_margin_right = 8
 	stamp.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	stamp.add_child(_text(s.rarity.to_upper(), null, 18, colour))
-	box.add_child(stamp)
-	_pin(button, FREE_GREEN if free else PIN_RED)
+	stamp.add_child(_text(s.rarity.to_upper(), null, 15, colour))
+	facts.add_child(stamp)
+	_pin(button, FREE_GREEN if free else (COACH_BLUE if coach else PIN_RED))
 	_tag(button, "FREE" if free else "%d coins" % RunState.staff_price(s), free)
 	_ignore_mouse(button)
 	button.pressed.connect(func(): _buy(s, free, button))
 	return button
+
+## The clock line for someone who switches on later: (clock) FROM 75' · any score.
+## On a squad tile it's shorter: (clock) 75' · LOSING.
+func _timed_line(s: StaffCard, clock: Color, ink: Color, soft: Color, font_size: int,
+		icon_size: int, short: bool = false) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 5)
+	row.add_child(TypeIcon.make("clock", icon_size, false, clock))
+	if short:
+		var when := s.when_text().replace("when ", "").to_upper()
+		row.add_child(_text("%d' · %s" % [s.ability.active_from_minute, when], null, font_size, ink))
+	else:
+		row.add_child(_text(s.timed_text(), null, font_size, ink))
+		row.add_child(_text("·  " + s.when_text(), null, font_size, soft))
+	return row
 
 ## The yellow "Scout again" note: a new transfer list, a little dearer each time.
 func _scout_note() -> Button:
@@ -525,10 +574,6 @@ func _scout_note() -> Button:
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.custom_minimum_size.x = NOTE_SIZE.x - 36
 	box.add_child(note)
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_child(spacer)
-	box.add_child(_text("NEXT ONE: %d" % (RunState.scout_cost() + RunState.SCOUT_STEP), null, 15, SOFT))
 	_pin(button, FREE_GREEN)
 	_tag(button, "%d coins" % RunState.scout_cost(), false)
 	_ignore_mouse(button)
@@ -537,7 +582,8 @@ func _scout_note() -> Button:
 
 # ---------- The squad strip ----------
 
-## A filled slot: his name, what he does, the sell price, with a solid gold (player) or blue (coach) edge.
+## A filled slot: his name, his badge (and clock if he switches on later), what he does,
+## games a season and the sell price, with a solid gold (player) or blue (coach) edge.
 func _owned_tile(s: StaffCard, edge: Color) -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = OWNED_SIZE
@@ -548,8 +594,20 @@ func _owned_tile(s: StaffCard, edge: Color) -> Button:
 		style.set_border_width_all(3)
 		button.add_theme_stylebox_override(state, style)
 	var box := _inner_box(button, 10)
-	box.add_child(_text(s.display_name.to_upper(), null, 19, Color.WHITE))
-	var desc := _text(s.description, null, 13, Color("b9c4b8"))
+	box.add_theme_constant_override("separation", 5)
+	var name_label := _text(s.display_name.to_upper(), null, 18, Color.WHITE)
+	_fit_one_line(name_label, OWNED_SIZE.x - 20, 13)
+	box.add_child(name_label)
+	var marks := HBoxContainer.new()
+	marks.add_theme_constant_override("separation", 7)
+	marks.custom_minimum_size.y = TILE_BADGE_SIZE
+	box.add_child(marks)
+	if s.shown_type() != "":
+		marks.add_child(TypeIcon.make(s.shown_type(), TILE_BADGE_SIZE, true))
+	if s.timed_text() != "":
+		marks.add_child(_timed_line(s, TypeIcon.CLOCK_GREEN_LIGHT, TypeIcon.CLOCK_GREEN_LIGHT,
+				TypeIcon.CLOCK_GREEN_LIGHT, 12, 14, true))
+	var desc := _text(s.description, null, 12, Color("b9c4b8"))
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.custom_minimum_size.x = OWNED_SIZE.x - 20
 	desc.max_lines_visible = 2
@@ -557,7 +615,14 @@ func _owned_tile(s: StaffCard, edge: Color) -> Button:
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(spacer)
-	box.add_child(_text("Sell · %d coins" % RunState.sell_price(s), null, 15, GOLD))
+	var bottom := HBoxContainer.new()
+	box.add_child(bottom)
+	var games := _text("", null, 12, Color("8fa190"))
+	if s is PlayerCard:
+		games.text = "●".repeat(s.max_appearances())
+	games.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bottom.add_child(games)
+	bottom.add_child(_text("Sell · %d coins" % RunState.sell_price(s), null, 14, GOLD))
 	_ignore_mouse(button)
 	button.pressed.connect(_sell.bind(s))
 	return button
@@ -659,9 +724,32 @@ func _text(words: String, font: Font, font_size: int, colour: Color) -> Label:
 	label.add_theme_color_override("font_color", colour)
 	return label
 
+## Shrink a label's font until its text fits `width` on one line (down to min_size).
+## If it still doesn't fit, the end is trimmed with "…" rather than spilling over the edge.
+func _fit_one_line(label: Label, width: float, min_size: int) -> void:
+	var font := label.get_theme_font("font")
+	var font_size := label.get_theme_font_size("font_size")
+	while font_size > min_size and font.get_string_size(label.text,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > width:
+		font_size -= 1
+	label.add_theme_font_size_override("font_size", font_size)
+	label.clip_text = true
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+
 ## Clicks go to the button, not the pieces inside it.
 func _ignore_mouse(node: Node) -> void:
 	for child in node.get_children():
 		if child is Control:
 			child.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_ignore_mouse(child)
+
+## Faint ruled lines across a coach's index card (drawn behind everything on it).
+class RuledLines extends Control:
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		var y := 27.0
+		while y < size.y:
+			draw_line(Vector2(0, y), Vector2(size.x, y), RULED_LINE, 1.0)
+			y += 28.0

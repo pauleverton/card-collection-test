@@ -15,4 +15,5 @@ display_name = "Super Sub"
 description = "From 75': every shot in the box goes in"
 rarity = "rare"
 ability = SubResource("Resource_50ary")
+badge_type = "attacking"
 metadata/_custom_type_script = "uid://b8dxl7yvw3hj"

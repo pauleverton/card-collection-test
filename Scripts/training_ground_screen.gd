@@ -20,12 +20,12 @@ const NEW_CARD_FACTOR := 1.3      ## the three new cards
 const PREVIEW_FACTOR := 0.95      ## before / after in the side panel
 const PREVIEW_WIDTH := 420
 const TITLES := {"new_card": "New card", "upgrade": "Upgrade a card",
-		"cut": "Cut a card", "duplicate": "Duplicate a card"}
+		"cut": "Remove a card", "duplicate": "Duplicate a card"}
 const HINTS := {"new_card": "Pick one to add to your deck.",
 		"upgrade": "Pick a card to improve. Greyed cards have no upgrade yet.",
 		"cut": "Pick a card to take out of your deck for good.",
 		"duplicate": "Pick a card to add a second copy of."}
-const ACTION_WORDS := {"upgrade": "Upgrade", "cut": "Cut", "duplicate": "Duplicate"}
+const ACTION_WORDS := {"upgrade": "Upgrade", "cut": "Remove", "duplicate": "Duplicate"}
 
 var _activity := ""
 var _selected := -1               ## index in RunState.deck

@@ -26,7 +26,7 @@ const DISABLED := Color(1, 1, 1, 0.5)
 const ACTIVITIES := {
 	"new_card": ["New card", "Pick one of %d new cards for your deck." % RunState.TRAINING_NEW_CARDS],
 	"upgrade": ["Upgrade a card", "Pick one card in your deck and improve it."],
-	"cut": ["Cut a card", "Take one card out of your deck for good."],
+	"cut": ["Remove a card", "Take one card out of your deck for good."],
 	"duplicate": ["Duplicate a card", "Pick one card in your deck and add a copy."]}
 
 func _ready() -> void:

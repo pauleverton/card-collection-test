@@ -18,4 +18,5 @@ display_name = "Park the bus"
 description = "Everyone back to defend, no attacking cards possible"
 rarity = "rare"
 ability = SubResource("Resource_4dt8h")
+badge_type = "defending"
 metadata/_custom_type_script = "uid://b8dxl7yvw3hj"

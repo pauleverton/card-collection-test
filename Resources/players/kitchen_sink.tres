@@ -18,4 +18,5 @@ display_name = "Kitchen Sink"
 description = "All out attack from '60, with no defence"
 rarity = "rare"
 ability = SubResource("Resource_w0qc1")
+badge_type = "attacking"
 metadata/_custom_type_script = "uid://b8dxl7yvw3hj"

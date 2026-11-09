@@ -4,9 +4,10 @@
 
 [resource]
 script = ExtResource("1_oak6u")
+bonus = 20
 display_name = "Twinkle Toes"
 description = "Dribbling +20"
 rarity = "uncommon"
 boosts_tags = "dribble"
-bonus = 20
+badge_type = "move"
 metadata/_custom_type_script = "uid://b8dxl7yvw3hj"

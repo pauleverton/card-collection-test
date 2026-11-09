@@ -26,6 +26,7 @@ const RARITY_COLOURS := {"common": Color("9aa59b"), "uncommon": Color("3e8fd0"),
 const ART_SHARE := 0.35          ## share of the card's height the artwork gets, when it has some
 ## Font sizes at factor 1.0.
 const NAME_SIZE := 20
+const NAME_MIN_SIZE := 12        ## long names shrink down to this to stay on one line
 const VALUE_SIZE := 44
 const VALUE_SIZE_WITH_ART := 30
 const DESC_SIZE := 13
@@ -133,7 +134,10 @@ func _band(data: ActionCard, colour: Color) -> PanelContainer:
 	var name_label := _label(data.display_name.to_upper(), NAME_SIZE, Color.WHITE)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	## One line, never wrapped, so every band is the same height. The room left for the name
+	## is the card's width minus the margins (8 each side), the cost circle and the gap.
+	var room := (BASE_SIZE.x - 16 - COIN_SIZE - 6) * _factor
+	_fit_on_one_line(name_label, room)
 	row.add_child(name_label)
 	return band
 
@@ -194,6 +198,18 @@ func _label(words: String, font_size: int, colour: Color) -> Label:
 	label.add_theme_font_size_override("font_size", int(font_size * _factor))
 	label.add_theme_color_override("font_color", colour)
 	return label
+
+## Shrink a label's font until its text fits `width` on one line (down to NAME_MIN_SIZE).
+## If it still doesn't fit, the end is trimmed with "…" rather than wrapping.
+func _fit_on_one_line(label: Label, width: float) -> void:
+	var font := label.get_theme_font("font")
+	var font_size := NAME_SIZE
+	while font_size > NAME_MIN_SIZE and font.get_string_size(label.text,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, int(font_size * _factor)).x > width:
+		font_size -= 1
+	label.add_theme_font_size_override("font_size", int(font_size * _factor))
+	label.clip_text = true
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 
 ## Clicks and hovers go to the card (the button), not the pieces inside it.
 func _ignore_mouse(node: Node) -> void:

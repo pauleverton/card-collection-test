@@ -12,6 +12,11 @@ extends StaffCard
 ## Extra triggers for everything matching boosts_type / boosts_tags.
 @export var retriggers: int = 0
 
+## A coach's badge: what he boosts, or else his category.
+func shown_type() -> String:
+	var shown := super.shown_type()
+	return shown if shown != "" else category
+
 func affects(card: ActionCard) -> bool:
 	return retriggers > 0 and applies_to(card)
 

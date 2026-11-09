@@ -19,7 +19,8 @@ const ROW := Color("241414")
 const ROW_EDGE := Color("4a2723")
 const TRACK := Color("140b0a")
 const DRAWING_WIDTH := 480      ## the penalty-area drawing on the left
-const ODDS_SIZE := 72           ## the big % numbers
+const ODDS_SIZE := 56           ## the big % numbers
+const ODDS_WIDTH := 120         ## room for "100%"
 ## Shown under the title, one per card already played in this attack.
 const PRESSURE := ["Defenders still getting back", "They're closing in", "Tight now", "Swarmed"]
 const BUILD_TAGS := ["pass", "dribble", "cross"]
@@ -43,12 +44,14 @@ func _init() -> void:
 	_drawing.custom_minimum_size.x = DRAWING_WIDTH
 	columns.add_child(_drawing)
 
+	## Right column. Everything sits at the top: the bottom ~130px stays empty on purpose,
+	## because a hovered card in your hand lifts up over it.
 	var right := VBoxContainer.new()
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right.add_theme_constant_override("separation", 12)
+	right.add_theme_constant_override("separation", 10)
 	columns.add_child(right)
 
-	## Header: IN THEIR BOX ........ Chance 21, and how close the defenders are underneath.
+	## Header: IN THEIR BOX ........ Chance 21
 	var header := HBoxContainer.new()
 	right.add_child(header)
 	var title := _label("IN THEIR BOX", 34, GOLD)
@@ -56,32 +59,27 @@ func _init() -> void:
 	header.add_child(title)
 	_chance = _label("", 30, Color.WHITE)
 	header.add_child(_chance)
-	_pressure = _label("", 20, GREY)
-	right.add_child(_pressure)
 
-	## SHOOT NOW: the two ways to shoot, sharing the width. They grow taller when
-	## there's nothing to build with, so the column never ends in a gap.
-	right.add_child(_label("SHOOT NOW", 22, GOLD))
+	## SHOOT NOW ........ how close the defenders are
+	var shoot_row := HBoxContainer.new()
+	right.add_child(shoot_row)
+	var shoot_title := _label("SHOOT NOW", 22, GOLD)
+	shoot_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shoot_row.add_child(shoot_title)
+	_pressure = _label("", 20, GREY)
+	shoot_row.add_child(_pressure)
+
+	## The two ways to shoot, side by side: big % on the left of each tile, words on the right.
 	var tiles := HBoxContainer.new()
-	tiles.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tiles.add_theme_constant_override("separation", 14)
 	right.add_child(tiles)
-	var button_tile := _tile()
-	tiles.add_child(button_tile)
-	var button_box := button_tile.get_child(0)
-	button_box.add_child(_label("Shoot button", 22, Color.WHITE))
 	_button_odds = _label("", ODDS_SIZE, GOLD)
-	button_box.add_child(_button_odds)
-	_button_note = _label("", 18, GREY)
-	button_box.add_child(_button_note)
-	_card_tile = _tile()
-	tiles.add_child(_card_tile)
-	var card_box := _card_tile.get_child(0)
-	card_box.add_child(_label("Shoot card", 22, Color.WHITE))
+	_button_note = _label("", 16, GREY)
+	tiles.add_child(_tile("Shoot button", _button_odds, _button_note))
 	_card_odds = _label("", ODDS_SIZE, GOLD)
-	card_box.add_child(_card_odds)
-	_card_note = _label("", 18, GREY)
-	card_box.add_child(_card_note)
+	_card_note = _label("", 16, GREY)
+	_card_tile = _tile("Shoot card", _card_odds, _card_note)
+	tiles.add_child(_card_tile)
 
 	## OR KEEP BUILDING: one row per Pass / Dribble / Cross you could play.
 	_build_title = _label("OR KEEP BUILDING (risky)", 22, RED)
@@ -92,9 +90,12 @@ func _init() -> void:
 
 ## Redraw from the match. Hidden unless you have the ball in their box.
 func show_state(m: MatchRules) -> void:
+	var was_showing := visible
 	visible = m.in_their_box() and not m.match_over
 	if not visible:
 		return
+	if not was_showing:
+		_drawing.new_attack(m.their_defence)     ## a fresh attack: new positions every time
 	_drawing.show_pressure(m.box_cards_played, m.rebound)
 	_chance.text = "Chance %d" % m.quality
 	if m.rebound:
@@ -148,9 +149,11 @@ func show_state(m: MatchRules) -> void:
 func suspense(text: String) -> void:
 	_drawing.say(text, GOLD)
 
-## The result, with a little pop.
-func flash(text: String, colour: Color) -> void:
+## The result, with a little pop, and the move playing out on the drawing.
+## kind: "gain" / "lost" / "goal" / "saved" / "rebound"; tag: the card's tag (pass / dribble / cross).
+func flash(text: String, colour: Color, kind: String = "", tag: String = "") -> void:
 	_drawing.say(text, colour, true)
+	_drawing.act(kind, tag)
 
 ## One Pass / Dribble / Cross: what it adds, your best shot afterwards, and the risk (as a bar).
 func _build_row(m: MatchRules, card: ActionCard) -> PanelContainer:
@@ -198,15 +201,25 @@ func _best_shot_at(m: MatchRules, q: int) -> int:
 			best = maxi(best, m.basic_shot_odds_at(q + m.power_of(card)))
 	return best
 
-## A shooting option tile: a rounded panel holding a centred VBox. Shares the width.
-func _tile() -> PanelContainer:
+## A shooting option tile, sharing the width: the big % on the left, title and note on the right.
+func _tile(title: String, odds: Label, note: Label) -> PanelContainer:
 	var tile := PanelContainer.new()
 	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tile.add_theme_stylebox_override("panel", _box_style(TILE, TILE_EDGE, 1, 12, 18, 14))
-	var box := VBoxContainer.new()
-	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_theme_constant_override("separation", 0)
-	tile.add_child(box)
+	tile.add_theme_stylebox_override("panel", _box_style(TILE, TILE_EDGE, 1, 12, 16, 8))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	tile.add_child(row)
+	odds.custom_minimum_size.x = ODDS_WIDTH
+	odds.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(odds)
+	var words := VBoxContainer.new()
+	words.alignment = BoxContainer.ALIGNMENT_CENTER
+	words.add_theme_constant_override("separation", 2)
+	row.add_child(words)
+	words.add_child(_label(title, 20, Color.WHITE))
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.custom_minimum_size.x = 120
+	words.add_child(note)
 	return tile
 
 func _box_style(fill: Color, border: Color, border_width: int, radius: int,
