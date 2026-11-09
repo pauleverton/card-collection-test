@@ -285,6 +285,12 @@ func record_match_result(player_goals: int, opponent_goals: int) -> Dictionary:
 	if matches_played >= matches_per_season():
 		_resolve_season(outcome)
 	return outcome
+	
+## DEBUG (T key): play every round except the last as wins for you, so the match in progress
+## becomes the season's final one. (The match keeps the opponent ratings it kicked off with.)
+func debug_skip_to_last_round() -> void:
+	while matches_played < matches_per_season() - 1:
+		record_match_result(1, 0)
 
 ## Add one match to both teams' rows; returns it as a line for the results list.
 func _record(home: int, away: int, home_goals: int, away_goals: int) -> Dictionary:

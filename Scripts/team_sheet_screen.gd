@@ -99,14 +99,15 @@ func _ready() -> void:
 	buttons.alignment = BoxContainer.ALIGNMENT_END
 	buttons.add_theme_constant_override("separation", 20)
 	page.add_child(buttons)
-	var back := _button("Back to hub", _back_to_hub)
-	UiStyle.secondary(back)
-	buttons.add_child(back)
 	var kick_off := _button("Kick off", _kick_off)
 	UiStyle.primary(kick_off)
 	buttons.add_child(kick_off)
 
 	_show_team()
+	
+	if RunState.rest_message != "":
+		message_label.text = RunState.rest_message     ## shown once, after a rest day
+		RunState.rest_message = ""	
 
 # ---------- Header ----------
 
@@ -339,6 +340,3 @@ func _ordinal(n: int) -> String:
 
 func _kick_off() -> void:
 	get_tree().change_scene_to_file("res://Scenes/match_screen.tscn")
-
-func _back_to_hub() -> void:
-	get_tree().change_scene_to_file("res://Scenes/hub_screen.tscn")

@@ -131,6 +131,13 @@ func _on_shoot() -> void:
 func _on_let_through() -> void:
 	if busy: return
 	_after_action(pitch.let_them_through())
+	
+## The other team in the match just played, from this round's results.
+func _opponent_name() -> String:
+	for r in league_result.get("results", []):
+		if r["yours"]:
+			return r["away"] if r["home_i"] == LeagueState.YOU else r["home"]
+	return "them"
 
 ## Every action ends here, so the screen update and the full-time check happen in one place.
 func _after_action(events: Array) -> void:
@@ -308,7 +315,8 @@ func _on_continue() -> void:
 		RunState.start_with_team_name = true     ## menu opens the name box straight away
 		get_tree().change_scene_to_file("res://Scenes/main_menu.tscn")
 		return
-	RunState.restock_shop()                  ## a new break: fresh shop stock
+	RunState.last_result = {"scored": pitch.goals, "conceded": pitch.conceded, "opponent": _opponent_name()}
+	RunState.roll_training()                 ## a new week: this week's training activity
 	if season_ended:
 		RunState.start_preseason()           ## promoted: the transfer window opens before the new season
 	if pitch.goals > pitch.conceded:
@@ -546,9 +554,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_F:
 				_after_action(pitch.debug_full_time())
 			KEY_T:
-				LeagueState.current_tournament_index = LeagueState.TOURNAMENTS.size() - 1
-				LeagueState.reset_for_new_tournament()
-				_say("DEBUG: jumped to %s." % LeagueState.current_tournament_name(), false)
+				LeagueState.debug_skip_to_last_round()
+				_say("DEBUG: skipped to the last round of %s (you won the rest)." %
+						LeagueState.current_tournament_name(), false)
 				refresh_all()
 			KEY_L:
 				pitch.minute = 57

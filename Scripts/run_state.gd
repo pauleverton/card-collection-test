@@ -20,7 +20,6 @@ const STARTING_DECK := [
 	"res://Resources/cards/starting_cards/lump_clear.tres",
 	"res://Resources/cards/starting_cards/retain_possession.tres"]
 
-## Cards that can be offered as rewards, on the shop shelf and in packs.
 const REWARD_POOL := [
 	"res://Resources/cards/starting_cards/short_pass.tres", 
 	"res://Resources/cards/starting_cards/dribble.tres",
@@ -63,21 +62,7 @@ const MATCHDAY_PLAYERS := 3
 ## The players picked for the next match (always a subset of the players in `squad`).
 var picked: Array = []
 const MAX_COACHES := 2
-## The shop's stock for the current break between matches. Rolled once by
-## restock_shop() (new run, and after every match), so leaving the shop and
-## coming back shows the same shelf. The pack and the upgrade are once per break.
-const SHOP_CARDS := 3
-const SHOP_STAFF := 3
-var shop_cards: Array = []
-var shop_staff: Array = []
-var shop_pack_opened := false
-var shop_upgrade_used := false
 
-func restock_shop() -> void:
-	shop_cards = reward_options(SHOP_CARDS)
-	shop_staff = staff_for_sale(SHOP_STAFF)
-	shop_pack_opened = false
-	shop_upgrade_used = false
 
 func players() -> Array:
 	return squad.filter(func(s): return s is PlayerCard)
@@ -102,19 +87,13 @@ func new_run() -> void:
 	squad.clear()
 	picked.clear()
 	team_name = ""
-	restock_shop()
 	start_preseason()                ## every run starts with a transfer window
+	roll_training()
 
 ## Up to `count` different cards from REWARD_POOL, weighted by rarity.
 ## (Cards you already own can still appear: you can have several copies.)
 func reward_options(count: int = REWARD_CHOICES) -> Array:
 	return _pick_by_rarity(_load_pool(REWARD_POOL), count)
-
-## Up to `count` different players/coaches you don't already own, weighted by rarity.
-func staff_for_sale(count: int = 1) -> Array:
-	var available := _load_pool(PLAYER_POOL + COACH_POOL).filter(
-		func(s): return not squad.has(s))
-	return _pick_by_rarity(available, count)
 
 ## Load every path in a pool, skipping (with a warning) any file that won't load.
 func _load_pool(paths: Array) -> Array:
@@ -316,8 +295,26 @@ const TRAINING_WEIGHTS := {"new_card": 35, "upgrade": 30, "cut": 25, "duplicate"
 const TRAINING_NEW_CARDS := 3     ## new card week: pick 1 of this many
 var training_activity := ""       ## "new_card", "upgrade", "cut" or "duplicate"
 
+const MIN_DECK := 8               ## Cut can't take the deck below this
+var week_choice := ""             ## "" = not decided yet, "train" or "rest" (reset every week)
+var rest_message := ""            ## shown once on the team sheet after a rest day
+var last_result := {}             ## {scored, conceded, opponent}: the match just played (reward screen)
+
+## A new week: roll this week's activity; nothing chosen yet.
 func roll_training() -> void:
 	training_activity = _weighted_pick(TRAINING_WEIGHTS)
+	week_choice = ""
+
+## Why this week's activity can't be done ("" = it can).
+func training_blocked_reason() -> String:
+	match training_activity:
+		"upgrade":
+			if not deck.any(func(c): return c.can_upgrade()):
+				return "Nothing in your deck can be upgraded yet."
+		"cut":
+			if deck.size() <= MIN_DECK:
+				return "Your deck can't go below %d cards." % MIN_DECK
+	return ""
 
 ## One key from {key: weight}, chosen by weight.
 func _weighted_pick(weights: Dictionary) -> String:
