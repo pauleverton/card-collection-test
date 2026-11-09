@@ -71,6 +71,10 @@ func appearances_left(p: PlayerCard) -> int:
 
 func use_appearance(p: PlayerCard) -> void:
 	appearances_used[p.resource_path] = appearances_used.get(p.resource_path, 0) + 1
+	
+## A rest day: give one used game back (never more than his maximum).
+func give_appearance(p: PlayerCard) -> void:
+	appearances_used[p.resource_path] = maxi(appearances_used.get(p.resource_path, 0) - 1, 0)
 
 ## Simulated matches: each side gets SIM_CHANCES chances, each scoring with
 ## SIM_GOAL_CHANCE × their attack ÷ the other side's defence/keeper.

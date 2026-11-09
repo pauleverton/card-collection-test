@@ -132,9 +132,9 @@ func _rarity_of(item: Resource) -> String:
 		return item.card_rarity
 	return item.rarity
 
-## Pick up to `count` different items. Each slot rolls a rarity first,
+## Pick up to `count` different items. Each slot rolls a rarity first (using `weights`),
 ## then picks something of that rarity.
-func _pick_by_rarity(items: Array, count: int) -> Array:
+func _pick_by_rarity(items: Array, count: int, weights: Dictionary = RARITY_WEIGHTS) -> Array:
 	## Sort into piles by rarity: {"common": [...], "uncommon": [...]}
 	var piles := {}
 	for item in items:
@@ -145,7 +145,7 @@ func _pick_by_rarity(items: Array, count: int) -> Array:
 
 	var chosen := []
 	while chosen.size() < count and not piles.is_empty():
-		var rarity := roll_rarity(piles.keys())
+		var rarity := roll_rarity(piles.keys(), weights)
 		var pile: Array = piles[rarity]
 		var item = pile.pick_random()
 		chosen.append(item)
@@ -154,17 +154,17 @@ func _pick_by_rarity(items: Array, count: int) -> Array:
 			piles.erase(rarity)        ## nothing left of that rarity: stop rolling it
 	return chosen
 
-## Pick one rarity from `available`, using RARITY_WEIGHTS.
+## Pick one rarity from `available`, using `weights` (RARITY_WEIGHTS unless told otherwise).
 ## Only pass rarities that still have something in them.
-func roll_rarity(available: Array) -> String:
+func roll_rarity(available: Array, weights: Dictionary = RARITY_WEIGHTS) -> String:
 	var total := 0
 	for r in available:
-		total += RARITY_WEIGHTS.get(r, 0)
+		total += weights.get(r, 0)
 	if total == 0:
 		return available.pick_random()   ## e.g. a typo'd rarity: just pick any
 	var roll := randi_range(1, total)
 	for r in available:
-		roll -= RARITY_WEIGHTS.get(r, 0)
+		roll -= weights.get(r, 0)
 		if roll <= 0:
 			return r
 	return available.back()
@@ -250,3 +250,72 @@ func upgrade_card(index: int) -> void:
 	var card: ActionCard = deck[index]
 	if card.can_upgrade():
 		deck[index] = card.upgrades_to
+
+# ---------- Transfer window (once a season, before round 1) ----------
+
+const TRANSFER_PAID := 3          ## players and coaches on the transfer list
+const TRANSFER_FREE := 2          ## free agents (players only, never coaches)
+## Free agents lean hard towards common, but anything can turn up.
+const FREE_RARITY_WEIGHTS := {"common": 85, "uncommon": 12, "rare": 2, "special": 1}
+const SCOUT_BASE := 25            ## the first "Scout again" in a window
+const SCOUT_STEP := 10            ## each one after that costs this much more
+var transfer_list: Array = []
+var free_agents: Array = []
+var scouts_used := 0
+
+## Fill the window: free agents first, then the transfer list (never the same player twice).
+func open_transfer_window() -> void:
+	scouts_used = 0
+	var players_left := _load_pool(PLAYER_POOL).filter(func(s): return not squad.has(s))
+	free_agents = _pick_by_rarity(players_left, TRANSFER_FREE, FREE_RARITY_WEIGHTS)
+	_roll_transfer_list()
+
+func _roll_transfer_list() -> void:
+	var pool := _load_pool(PLAYER_POOL + COACH_POOL).filter(
+			func(s): return not squad.has(s) and not free_agents.has(s))
+	transfer_list = _pick_by_rarity(pool, TRANSFER_PAID)
+
+func scout_cost() -> int:
+	return SCOUT_BASE + SCOUT_STEP * scouts_used
+
+## New names on the transfer list; free agents stay. The screen checks and takes the coins.
+func scout_again() -> void:
+	scouts_used += 1
+	_roll_transfer_list()
+
+# ---------- Training (between matches) ----------
+
+const TRAINING_COST := 50
+## This week's activity is picked with these weights (repeats allowed).
+const TRAINING_WEIGHTS := {"new_card": 35, "upgrade": 30, "cut": 25, "duplicate": 10}
+const TRAINING_NEW_CARDS := 3     ## new card week: pick 1 of this many
+var training_activity := ""       ## "new_card", "upgrade", "cut" or "duplicate"
+
+func roll_training() -> void:
+	training_activity = _weighted_pick(TRAINING_WEIGHTS)
+
+## One key from {key: weight}, chosen by weight.
+func _weighted_pick(weights: Dictionary) -> String:
+	var total := 0
+	for k in weights:
+		total += weights[k]
+	var roll := randi_range(1, total)
+	for k in weights:
+		roll -= weights[k]
+		if roll <= 0:
+			return k
+	return weights.keys().back()
+
+## Skipping training: a random player who has played this season gets +1 game.
+## Returns him, or null if everyone is fresh.
+func rest_day() -> PlayerCard:
+	var tired := players().filter(func(p): return LeagueState.appearances_left(p) < p.max_appearances())
+	if tired.is_empty():
+		return null
+	var p: PlayerCard = tired.pick_random()
+	LeagueState.give_appearance(p)
+	return p
+
+## Duplicate week: a second copy of one deck card, placed next to it.
+func duplicate_card(index: int) -> void:
+	deck.insert(index + 1, deck[index])
