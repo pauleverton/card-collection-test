@@ -16,6 +16,8 @@ const SOFT_INK := Color("3a453c")
 const EDGE := Color("ddd7c8")
 const GOLD := Color("f2c14e")
 const THROUGH := Color("3fbf55")         ## outline: this card gets you through
+const THROUGH_WIDTH := 7         ## outline thickness at factor 1.0
+const THROUGH_GLOW := 18         ## how far the green glow spreads (px)
 const BLOCKED := Color(0.5, 0.5, 0.5)    ## greyed out (solid, so the pitch doesn't show through)
 const TYPE_COLOURS := {"attacking": Color("c9302c"), "move": Color("2b5bc4"),
 		"utility": Color("d9822b"), "defending": Color("2f7a3a"), "skills": Color("1f8a8a")}
@@ -67,13 +69,13 @@ func set_play_state(state: String) -> void:
 			_apply_outline(Color(0, 0, 0, 0), 0)
 		"through":
 			modulate = Color.WHITE
-			_apply_outline(THROUGH, int(5 * _factor))
+			_apply_outline(THROUGH, int(THROUGH_WIDTH * _factor))
 		_:
 			modulate = Color.WHITE
 			_apply_outline(Color(0, 0, 0, 0), 0)
 
-## The card's background in every state, with an optional outline. Hover adds a thin gold
-## edge unless the card already has an outline of its own.
+## The card's background in every state, with an optional outline. A THROUGH outline also
+## glows. Hover adds a thin gold edge unless the card already has an outline of its own.
 func _apply_outline(outline: Color, width: int) -> void:
 	for state in ["normal", "hover", "pressed", "disabled"]:
 		var style := StyleBoxFlat.new()
@@ -85,6 +87,10 @@ func _apply_outline(outline: Color, width: int) -> void:
 		if width > 0:
 			style.border_color = outline
 			style.set_border_width_all(width)
+			if outline == THROUGH:
+				style.shadow_color = Color(THROUGH, 0.75)    ## the glow
+				style.shadow_size = int(THROUGH_GLOW * _factor)
+				style.shadow_offset = Vector2.ZERO
 		elif state == "hover":
 			style.border_color = GOLD
 			style.set_border_width_all(2)

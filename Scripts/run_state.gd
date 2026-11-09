@@ -103,6 +103,7 @@ func new_run() -> void:
 	picked.clear()
 	team_name = ""
 	restock_shop()
+	start_preseason()                ## every run starts with a transfer window
 
 ## Up to `count` different cards from REWARD_POOL, weighted by rarity.
 ## (Cards you already own can still appear: you can have several copies.)
@@ -252,6 +253,30 @@ func upgrade_card(index: int) -> void:
 		deck[index] = card.upgrades_to
 
 # ---------- Transfer window (once a season, before round 1) ----------
+
+## Player/coach prices by rarity; selling gets half. One place, so every screen agrees.
+const STAFF_PRICE := {"common": 150, "uncommon": 200, "rare": 300, "special": 500}
+const HUB_SCENE := "res://Scenes/hub_screen.tscn"
+const TRANSFER_SCENE := "res://Scenes/transfer_window_screen.tscn"
+## True from the end of a season (or the start of a run) until "Start the season".
+var transfer_window_due := false
+
+func staff_price(s: StaffCard) -> int:
+	return STAFF_PRICE.get(s.rarity, 150)
+
+func sell_price(s: StaffCard) -> int:
+	return int(staff_price(s) / 2.0)
+
+## A season is about to start: fill the transfer window and send the player there next.
+func start_preseason() -> void:
+	open_transfer_window()
+	transfer_window_due = true
+
+## Where to go after the menu, a match or the reward screen: the transfer window when a
+## season is about to start, otherwise the hub.
+func next_break_screen() -> String:
+	return TRANSFER_SCENE if transfer_window_due else HUB_SCENE
+
 
 const TRANSFER_PAID := 3          ## players and coaches on the transfer list
 const TRANSFER_FREE := 2          ## free agents (players only, never coaches)

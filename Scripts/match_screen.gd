@@ -309,10 +309,12 @@ func _on_continue() -> void:
 		get_tree().change_scene_to_file("res://Scenes/main_menu.tscn")
 		return
 	RunState.restock_shop()                  ## a new break: fresh shop stock
+	if season_ended:
+		RunState.start_preseason()           ## promoted: the transfer window opens before the new season
 	if pitch.goals > pitch.conceded:
 		get_tree().change_scene_to_file("res://Scenes/reward_screen.tscn")
 	else:
-		get_tree().change_scene_to_file("res://Scenes/hub_screen.tscn")
+		get_tree().change_scene_to_file(RunState.next_break_screen())
 
 # ---------- Screen ----------
 ## The draw pile (bottom-left) and discard pile (bottom-right), made in code.

@@ -22,4 +22,4 @@ func _on_card_chosen(card: ActionCard) -> void:
 	_go_to_hub()
 
 func _go_to_hub() -> void:
-	get_tree().change_scene_to_file("res://Scenes/hub_screen.tscn")
+	get_tree().change_scene_to_file(RunState.next_break_screen())

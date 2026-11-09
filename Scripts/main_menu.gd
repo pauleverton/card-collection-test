@@ -214,4 +214,4 @@ func _start_run() -> void:
 	CoinState.new_run()
 	RunState.team_name = _team_name()
 	CareerState.start_new_run()                 ## back to the first league; new season with your name
-	get_tree().change_scene_to_file("res://Scenes/hub_screen.tscn")
+	get_tree().change_scene_to_file(RunState.next_break_screen())   ## a new run: the transfer window
