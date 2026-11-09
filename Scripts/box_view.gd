@@ -2,7 +2,7 @@ class_name BoxView
 extends PanelContainer
 ## The big view of their box (push your luck), shown in place of the pitch strip while
 ## you're in it. Display only: match_screen tells it what to show; MatchRules decides.
-## Three sections: where you are (left), SHOOT NOW (middle), OR KEEP BUILDING (right).
+## Three sections: where you are and SHOOT NOW side by side, OR KEEP BUILDING underneath.
 
 const GOLD := Color("f2b233")
 const GREEN := Color("7be07b")
@@ -28,9 +28,13 @@ var _rows: VBoxContainer
 
 func _init() -> void:
 	add_theme_stylebox_override("panel", _box_style(PANEL, GOLD, 3, 24))
+	## Top row: where you are | SHOOT NOW. Underneath, full width: OR KEEP BUILDING.
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", 28)
+	add_child(outer)
 	var columns := HBoxContainer.new()
 	columns.add_theme_constant_override("separation", 40)
-	add_child(columns)
+	outer.add_child(columns)
 
 	## Left: where you are, and the gamble / result line.
 	var left := VBoxContainer.new()
@@ -72,11 +76,11 @@ func _init() -> void:
 	_card_note = _label("", 18, GREY)
 	card_box.add_child(_card_note)
 
-	## Right: OR KEEP BUILDING, one row per Pass / Dribble / Cross you could play.
+	## Underneath: OR KEEP BUILDING, one row per Pass / Dribble / Cross you could play.
 	var right := VBoxContainer.new()
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right.add_theme_constant_override("separation", 10)
-	columns.add_child(right)
+	outer.add_child(right)
 	_build_title = _label("OR KEEP BUILDING (risky)", 22, RED)
 	right.add_child(_build_title)
 	_rows = VBoxContainer.new()

@@ -42,7 +42,8 @@ const SCOREBOARD_RECT := Rect2(0, 16, 1920, 170)     ## centred at the top
 const ROUND_RECT := Rect2(32, 26, 420, 80)           ## league + round, top-left corner
 const SQUAD_RECT := Rect2(32, 186, 300, 580)         ## players, then coaches, down the left
 const BAR_RECT := Rect2(356, 186, 1208, 44)          ## build-up / hold bar, above the pitch
-const PITCH_RECT := Rect2(356, 244, 1208, 522)       ## the pitch, and the box view in the same place
+const PITCH_RECT := Rect2(356, 244, 1208, 522)       ## the pitch, under the bar
+const BOX_RECT := Rect2(356, 186, 1208, 580)         ## the box view: bar + pitch together (no bar in the box)
 const COMMENTARY_RECT := Rect2(1588, 186, 300, 580)  ## down the right
 const HAND_RECT := Rect2(356, 770, 1208, 310)        ## centred under the pitch
 const DRAW_RECT := Rect2(32, 898, 110, 150)          ## bottom-left
@@ -53,6 +54,10 @@ const SQUAD_GAP := 8                                 ## space between the tiles 
 const PLAYERS_COLOUR := Color("f2b233")              ## "ON THE PITCH" heading
 const COACHES_COLOUR := Color("7fb2f0")              ## "DUGOUT" heading
 const HEADING_NOTE := Color("8fa190")
+const BUILD_COLOUR := Color("f2b233")                ## bar: your build-up
+const HOLD_COLOUR := Color("5fbf77")                 ## bar: holding their attack
+const NOBODY_BACK_COLOUR := Color("e0574a")          ## bar: no defence at all
+var _bar_fill := StyleBoxFlat.new()                  ## the bar's coloured part, see _set_bar_colour()
 
 ## Filled in at full time by LeagueState, and read by Continue to decide where to go next.
 var league_result := {}
@@ -176,7 +181,7 @@ func _after_action(events: Array) -> void:
 func _replay_build(events: Array) -> void:
 	if events.any(func(e): return e["type"] == "build"):
 		build_bar.visible = true
-		build_bar.modulate = Color(1.0, 0.75, 0.25)
+		_set_bar_colour(BUILD_COLOUR)
 	for e in events:
 		match e["type"]:
 			"build":
@@ -191,7 +196,7 @@ func _replay_build(events: Array) -> void:
 				await _fill_bar(e["build"], e["target"])
 			"press_changed":
 				build_bar.visible = true
-				build_bar.modulate = Color(1.0, 0.75, 0.25)
+				_set_bar_colour(BUILD_COLOUR)
 				await _fill_bar(min(e["build"], e["target"]), e["target"])
 			"goal":
 				_say("[color=gold][b]GOAL![/b][/color]", false)
@@ -200,7 +205,7 @@ func _replay_build(events: Array) -> void:
 				## Their kick-off / ball won, then a break with nothing in the way.
 				pitch_strip.show_their_ball_at(e["index"], "Nobody back!")
 				build_bar.visible = true
-				build_bar.modulate = Color(1.0, 0.35, 0.35)   ## red: no defence at all
+				_set_bar_colour(NOBODY_BACK_COLOUR)   ## red: no defence at all
 				build_bar.max_value = 1
 				build_bar.value = 0
 				build_label.text = "Holding 0 / 0, nobody back!"
@@ -370,7 +375,8 @@ func _build_layout() -> void:
 	_place(squad_bar, SQUAD_RECT)
 	_place(build_bar, BAR_RECT)
 	_place(pitch_strip, PITCH_RECT)
-	_place(box_view, PITCH_RECT)
+	_place(box_view, BOX_RECT)
+	_style_build_bar()
 	box_view.visible = false
 	commentary_headline.add_theme_font_size_override("normal_font_size", 22)
 	commentary_headline.fit_content = false          ## fixed height: a narrow column made it huge
@@ -396,6 +402,28 @@ func _build_layout() -> void:
 	_place(let_through_button, ACTION_RECT)
 	hand.custom_minimum_size = Vector2.ZERO
 	_place(hand, HAND_RECT)
+
+## The build-up / hold bar: dark track, rounded coloured fill, the numbers written inside it.
+func _style_build_bar() -> void:
+	build_bar.show_percentage = false
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color("0a120d")
+	track.border_color = Color("2b4232")
+	track.set_border_width_all(1)
+	track.set_corner_radius_all(8)
+	build_bar.add_theme_stylebox_override("background", track)
+	_bar_fill.set_corner_radius_all(8)
+	build_bar.add_theme_stylebox_override("fill", _bar_fill)
+	build_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	build_label.offset_left = 16
+	build_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	build_label.add_theme_font_size_override("font_size", 20)
+	build_label.add_theme_color_override("font_color", Color.WHITE)
+	build_label.add_theme_constant_override("outline_size", 6)
+	build_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+
+func _set_bar_colour(colour: Color) -> void:
+	_bar_fill.bg_color = colour
 
 ## The matchday squad down the left: players under ON THE PITCH, coaches under DUGOUT.
 func _build_squad() -> void:
@@ -519,13 +547,13 @@ func refresh_all() -> float:
 	build_bar.max_value = pitch.target
 	create_tween().tween_property(build_bar, "value", pitch.build, SettingsState.t(0.3))
 	if pitch.has_ball:
-		build_bar.modulate = Color(1.0, 0.75, 0.25)     ## amber: your build-up
+		_set_bar_colour(BUILD_COLOUR)
 		build_label.text = "Build-up %d / %d" % [pitch.build, pitch.target]
 	else:
-		build_bar.modulate = Color(0.5, 0.7, 1.0)       ## blue: your hold
+		_set_bar_colour(HOLD_COLOUR)
 		build_label.text = "Holding %d / %d" % [pitch.build, pitch.target]
 		if pitch.nobody_back():
-			build_bar.modulate = Color(1.0, 0.35, 0.35)
+			_set_bar_colour(NOBODY_BACK_COLOUR)
 			build_label.text = "Holding 0 / 0, nobody back!"
 	return deal_time
 	
