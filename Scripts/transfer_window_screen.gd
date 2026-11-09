@@ -1,9 +1,14 @@
 extends Control
 ## The transfer window: once a season, before round 1 (start of a run, and after promotion).
 ## A cork board with the transfer list (paid: players and coaches) and the free agents
-## (free: players only), plus "Scout again" (a new transfer list; the price goes up each time).
-## Your squad along the bottom: click to sell for half. "Start the season" goes to the hub.
+## (free: players only), plus "Scout again": the old list's pins pop out and its reports drop
+## to the floor, then the new reports are pinned up one by one (the price goes up each time).
+## Signing someone pulls his report off the board: it tugs on its pin, tears free (a scrap of its
+## top edge stays under the pin, which bounces), lifts and swings loose, then is carried down to
+## your squad, whose new tile flashes gold. Nothing else on the board moves.
+## Your squad along the bottom: click to sell. "Start the season" goes to the hub.
 ## Everything is built in code; the scene is just this root node.
+## Each report sits in a plain holder (not a container), so it can tilt, move and scale.
 
 const BACKGROUND := Color("241c16")
 const CORK := Color("b98a5a")
@@ -21,12 +26,32 @@ const PIN_RED := Color("d3302f")
 const HEADING := Color("b8a48c")
 const NOTE_YELLOW := Color("fff59a")
 const NOTE_BLUE := Color("2b5bc4")
+const MARK := Color(0, 0, 0, 0.12)       ## the faint mark a pulled-off report leaves on the cork
+const SCRAP_SHADOW := Color(0, 0, 0, 0.25)
+const SCRAP_WIDTH := 48.0        ## the torn scrap left under the pin
+const SCRAP_DEPTH := Vector2(6, 20)   ## how far its torn edge reaches below the card's top (min, max)
 const RARITY_COLOURS := {"common": Color("5a635c"), "uncommon": Color("2b5bc4"),
 		"rare": Color("c9302c"), "special": Color("c99a2e")}
 const REPORT_SIZE := Vector2(250, 300)
 const NOTE_SIZE := Vector2(200, 220)
 ## 180 wide = a full squad (7 players + 2 coaches) fits on one row.
 const OWNED_SIZE := Vector2(180, 118)
+const REST_TILT := 1.5           ## reports rest at a random tilt up to this (degrees)
+## Pulling a report off the board (seconds, scaled by the game speed setting).
+const TUG_TIME := 0.05           ## each wiggle on the pin (4 of them)
+const LIFT_TIME := 0.16          ## tearing free and lifting towards you
+const FLY_TIME := 0.42           ## carried down to the squad strip
+const ARRIVE_FLASH := Color(1.7, 1.45, 0.7)   ## the new squad tile flashes gold
+## Scout again: the old list comes down...
+const PIN_POP_TIME := 0.25        ## a pin popping out
+const FALL_TIME := 0.6           ## a report dropping to the floor
+const FALL_GAP := 0.1            ## between one report and the next
+const FALL_DISTANCE := 1000.0    ## how far it drops (px): well past the bottom of the screen
+const FALL_SPIN := 30.0          ## up to this much spin as it falls (degrees)
+const FALL_DRIFT := 60.0         ## up to this much sideways drift (px)
+## ...then the new reports are pinned up.
+const PIN_UP_TIME := 0.28        ## a report settling onto the board
+const PIN_UP_GAP := 0.12         ## between one report and the next
 const MARKER_FONT := "res://Images+themes/Themes/permanent_marker.ttf"
 const HAND_FONT := "res://Images+themes/Themes/kalam_bold.ttf"
 
@@ -37,6 +62,9 @@ var message_label: Label
 var squad_heading: Label
 var board_row: HBoxContainer
 var squad_row: HBoxContainer
+var _paid_holders: Array = []    ## the transfer list's reports (in their holders)
+var _paid_slots: Array = []      ## the transfer list's empty pins (signed players)
+var busy := false                ## true while a report is moving on or off the board
 
 func _ready() -> void:
 	_marker = load(MARKER_FONT) if ResourceLoader.exists(MARKER_FONT) else null
@@ -110,27 +138,42 @@ func _ready() -> void:
 	UiStyle.primary(start)
 	buttons.add_child(start)
 
-	_refresh()
+	_build_board()
+	_refresh_squad()
 
-## Rebuild the board and the squad strip from RunState.
-func _refresh() -> void:
-	for row in [board_row, squad_row]:
-		for child in row.get_children():
-			child.queue_free()
-
+## The board, from RunState. A signed player's slot is null: it shows as a torn scrap on a pin.
+## Only rebuilt on open and after Scout again, so buying never moves anything.
+func _build_board() -> void:
+	for child in board_row.get_children():
+		board_row.remove_child(child)       ## out now, not at the end of the frame
+		child.queue_free()
+	_paid_holders.clear()
+	_paid_slots.clear()
 	var paid: Array = []
 	for s in RunState.transfer_list:
-		paid.append(_report(s, false))
-	board_row.add_child(_group("Transfer list", paid, "All signed. Scout again?"))
+		if s == null:
+			var slot := _empty_slot(PIN_RED, true)
+			_paid_slots.append(slot)
+			paid.append(slot)
+		else:
+			var holder := _hold(_report(s, false))
+			_paid_holders.append(holder)
+			paid.append(holder)
+	board_row.add_child(_group("Transfer list", paid))
 	var free: Array = []
 	for s in RunState.free_agents:
-		free.append(_report(s, true))
-	board_row.add_child(_group("Free agents", free, "All signed."))
+		free.append(_hold(_report(s, true)) if s != null else _empty_slot(FREE_GREEN, true))
+	board_row.add_child(_group("Free agents", free))
 	var note_holder := VBoxContainer.new()
 	note_holder.alignment = BoxContainer.ALIGNMENT_CENTER
 	note_holder.add_child(_scout_note())
 	board_row.add_child(note_holder)
 
+## The squad strip, the heading counts and the coins.
+func _refresh_squad() -> void:
+	for child in squad_row.get_children():
+		squad_row.remove_child(child)       ## out now, so the new tiles' positions are right straight away
+		child.queue_free()
 	for s in RunState.squad:
 		squad_row.add_child(_owned_tile(s))
 	for i in RunState.MAX_PLAYERS + RunState.MAX_COACHES - RunState.squad.size():
@@ -141,7 +184,9 @@ func _refresh() -> void:
 
 # ---------- Buying and selling ----------
 
-func _buy(s: StaffCard, free: bool) -> void:
+func _buy(s: StaffCard, free: bool, report: Button) -> void:
+	if busy:
+		return
 	if RunState.squad_full_for(s):
 		message_label.text = "Squad full: sell someone first"
 		return
@@ -151,26 +196,182 @@ func _buy(s: StaffCard, free: bool) -> void:
 		return
 	CoinState.deduct_coins(cost)
 	RunState.add_player(s)
-	RunState.transfer_list.erase(s)
-	RunState.free_agents.erase(s)
+	## Keep his place in the list (null = signed), so the board doesn't shuffle.
+	var list: Array = RunState.free_agents if free else RunState.transfer_list
+	list[list.find(s)] = null
 	message_label.text = "Signed: %s" % s.display_name
-	_refresh()
+	coins_label.text = "%d coins" % CoinState.coins
+	busy = true
+	await _pull_off(report, FREE_GREEN if free else PIN_RED)
+	busy = false
+	_refresh_squad()
+	_flash_new_tile(s)
+
+## Pull a report off the board: it tugs on its pin, tears free (the scrap and mark appear under
+## the pin, which bounces), lifts towards you and swings loose, then is carried to the squad strip.
+func _pull_off(report: Button, pin_colour: Color) -> void:
+	var holder := report.get_parent()
+	var row := holder.get_parent()
+	var slot := _empty_slot(pin_colour, false)   ## just the pin for now: it tears in a moment
+	row.add_child(slot)
+	row.move_child(slot, holder.get_index())     ## in his exact place
+	_paid_holders.erase(holder)
+	if pin_colour == PIN_RED:
+		_paid_slots.append(slot)                 ## a transfer-list slot: Scout again clears it
+	_lift_out(report)
+	row.remove_child(holder)
+	holder.queue_free()
+	var t := create_tween()
+	## 1. Tug: it wiggles on its pin.
+	for angle in [-4.0, 4.0, -3.0, 0.0]:
+		t.tween_property(report, "rotation_degrees", angle, SettingsState.t(TUG_TIME))
+	## 2. It tears free: the report's own pin goes, the scrap appears under the board's pin.
+	t.tween_callback(report.get_node("Pin").hide)
+	t.tween_callback(_tear.bind(slot))
+	t.tween_property(report, "scale", Vector2(1.08, 1.08), SettingsState.t(LIFT_TIME)) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.parallel().tween_property(report, "rotation_degrees", 14.0, SettingsState.t(LIFT_TIME))
+	t.parallel().tween_property(report, "position:y", report.position.y - 24, SettingsState.t(LIFT_TIME))
+	## 3. Carried down to the squad strip, shrinking, fading at the end.
+	var target := squad_row.global_position + Vector2(squad_row.size.x / 2.0 - REPORT_SIZE.x / 2.0,
+			-REPORT_SIZE.y * 0.3)
+	t.tween_property(report, "global_position", target, SettingsState.t(FLY_TIME)) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	t.parallel().tween_property(report, "rotation_degrees", -8.0, SettingsState.t(FLY_TIME))
+	t.parallel().tween_property(report, "scale", Vector2(0.45, 0.45), SettingsState.t(FLY_TIME))
+	t.parallel().tween_property(report, "modulate:a", 0.0, SettingsState.t(FLY_TIME * 0.5)) \
+			.set_delay(SettingsState.t(FLY_TIME * 0.5))
+	await t.finished
+	report.queue_free()
+
+## The moment it tears: the faint mark and the torn scrap appear under the pin, and the pin bounces.
+func _tear(slot: Control) -> void:
+	_add_mark(slot)
+	_add_scrap(slot)
+	var pin: Control = slot.get_node("Pin")
+	slot.move_child(pin, -1)                     ## the pin stays on top of the scrap
+	pin.pivot_offset = pin.size / 2.0
+	pin.scale = Vector2(1.6, 1.6)
+	create_tween().tween_property(pin, "scale", Vector2.ONE, SettingsState.t(0.2)) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## The newly signed player's tile flashes gold as his report arrives.
+func _flash_new_tile(s: StaffCard) -> void:
+	var index := RunState.squad.find(s)
+	if index < 0 or index >= squad_row.get_child_count():
+		return
+	var tile: Control = squad_row.get_child(index)
+	tile.modulate = ARRIVE_FLASH
+	create_tween().tween_property(tile, "modulate", Color.WHITE, SettingsState.t(0.5))
 
 func _sell(s: StaffCard) -> void:
+	if busy:
+		return
 	CoinState.add_coins(RunState.sell_price(s))
 	RunState.remove_player(s)
 	message_label.text = "Sold: %s (+%d)" % [s.display_name, RunState.sell_price(s)]
-	_refresh()
+	_refresh_squad()
+
+# ---------- Scout again ----------
 
 func _scout() -> void:
+	if busy:
+		return
 	var cost := RunState.scout_cost()
 	if not CoinState.can_afford(cost):
 		message_label.text = "Not enough coins to scout again"
 		return
 	CoinState.deduct_coins(cost)
+	coins_label.text = "%d coins" % CoinState.coins
 	RunState.scout_again()
 	message_label.text = "New names on the transfer list"
-	_refresh()
+	busy = true
+	await _clear_transfer_list()
+	_build_board()
+	_refresh_squad()
+	for i in _paid_holders.size():
+		_pin_up(_paid_holders[i], i * PIN_UP_GAP)
+	busy = false
+
+## The old transfer list comes down, left to right: each pin pops out, then its report (or the
+## torn scrap an earlier signing left) drops to the floor, spinning and drifting a little.
+func _clear_transfer_list() -> void:
+	if _paid_holders.is_empty() and _paid_slots.is_empty():
+		return
+	var falling: Array = []
+	var t := create_tween().set_parallel(true)
+	var i := 0
+	## Reports: lift each out of its holder so it can fall past the board.
+	for holder in _paid_holders:
+		var report: Control = holder.get_child(0)
+		_lift_out(report)
+		falling.append(report)
+		var fall := _pop_pin(t, report.get_node("Pin"), i)
+		_drop(t, report, fall)
+		i += 1
+	## Empty slots: the pin pops, the scrap (and its shadow) drops, the faint mark fades.
+	for slot in _paid_slots:
+		var fall := _pop_pin(t, slot.get_node("Pin"), i)
+		for piece in slot.get_children():
+			if piece is Polygon2D:
+				piece.reparent(self)               ## keeps its place on screen, so it can fall past the board
+				falling.append(piece)
+				_drop(t, piece, fall)
+			elif piece is ColorRect:
+				t.tween_property(piece, "modulate:a", 0.0, SettingsState.t(FALL_TIME * 0.5)).set_delay(fall)
+		i += 1
+	await t.finished
+	for piece in falling:
+		piece.queue_free()
+
+## A pin pops out (grows a little, then fades). Returns when, in the tween, the paper should fall.
+func _pop_pin(t: Tween, pin: Control, order: int) -> float:
+	var delay := SettingsState.t(order * FALL_GAP)
+	pin.pivot_offset = pin.size / 2.0
+	t.tween_property(pin, "scale", Vector2(1.5, 1.5), SettingsState.t(PIN_POP_TIME * 0.5)).set_delay(delay)
+	t.tween_property(pin, "modulate:a", 0.0, SettingsState.t(PIN_POP_TIME * 0.5)) \
+			.set_delay(delay + SettingsState.t(PIN_POP_TIME * 0.5))
+	return delay + SettingsState.t(PIN_POP_TIME)
+
+## Something drops to the floor: speeds up like gravity, spins and drifts a little.
+func _drop(t: Tween, thing: CanvasItem, delay: float) -> void:
+	t.tween_property(thing, "position:y", thing.position.y + FALL_DISTANCE, SettingsState.t(FALL_TIME)) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN).set_delay(delay)
+	t.tween_property(thing, "position:x", thing.position.x + randf_range(-FALL_DRIFT, FALL_DRIFT),
+			SettingsState.t(FALL_TIME)).set_delay(delay)
+	t.tween_property(thing, "rotation_degrees", randf_range(-FALL_SPIN, FALL_SPIN),
+			SettingsState.t(FALL_TIME)).set_delay(delay)
+
+## A new report is pinned up: it drops onto the board from slightly above, settles,
+## then its pin pushes in with a little bounce.
+func _pin_up(holder: Control, delay: float) -> void:
+	var report: Control = holder.get_child(0)
+	var pin: Control = report.get_node("Pin")
+	var rest_tilt := report.rotation_degrees
+	report.modulate.a = 0.0
+	report.position = Vector2(0, -40)
+	report.scale = Vector2(1.1, 1.1)
+	report.rotation_degrees = rest_tilt + randf_range(-6.0, 6.0)
+	pin.pivot_offset = pin.size / 2.0
+	pin.scale = Vector2.ZERO
+	var t := create_tween()
+	t.tween_interval(SettingsState.t(delay))
+	t.tween_property(report, "modulate:a", 1.0, SettingsState.t(PIN_UP_TIME * 0.5))
+	t.parallel().tween_property(report, "position", Vector2.ZERO, SettingsState.t(PIN_UP_TIME)) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	t.parallel().tween_property(report, "scale", Vector2.ONE, SettingsState.t(PIN_UP_TIME))
+	t.parallel().tween_property(report, "rotation_degrees", rest_tilt, SettingsState.t(PIN_UP_TIME))
+	t.tween_property(pin, "scale", Vector2(1.5, 1.5), SettingsState.t(0.06))
+	t.tween_property(pin, "scale", Vector2.ONE, SettingsState.t(0.14)) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## Take a report out of its holder and put it on top of the whole screen, in the same spot,
+## so it can move anywhere (fly to the squad, fall to the floor) without being clipped or laid out.
+func _lift_out(report: Control) -> void:
+	var start := report.global_position
+	report.get_parent().remove_child(report)
+	add_child(report)
+	report.global_position = start
 
 func _start_season() -> void:
 	RunState.transfer_window_due = false
@@ -178,8 +379,8 @@ func _start_season() -> void:
 
 # ---------- The board ----------
 
-## A strip of masking tape with a label, then the reports pinned underneath.
-func _group(title: String, items: Array, empty_text: String) -> VBoxContainer:
+## A strip of masking tape with a label, then the reports (or empty pins) underneath.
+func _group(title: String, items: Array) -> VBoxContainer:
 	var group := VBoxContainer.new()
 	group.add_theme_constant_override("separation", 28)
 	var tape := _panel(TAPE, TAPE, 0, 2, 4)
@@ -189,11 +390,62 @@ func _group(title: String, items: Array, empty_text: String) -> VBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 28)
 	group.add_child(row)
-	if items.is_empty():
-		row.add_child(_text(empty_text, _hand, 22, INK))
 	for item in items:
 		row.add_child(item)
 	return group
+
+## A plain holder for a report: it keeps the report's place in the row, while the report
+## inside can tilt, move and scale (containers would reset those). Rests at a slight tilt.
+func _hold(report: Button) -> Control:
+	var holder := Control.new()
+	holder.custom_minimum_size = REPORT_SIZE
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(report)
+	report.pivot_offset = Vector2(REPORT_SIZE.x / 2.0, 0)   ## turns about its pin
+	report.rotation_degrees = randf_range(-REST_TILT, REST_TILT)
+	return holder
+
+## Where a signed player's report was: his pin, and (once torn) a faint mark and a torn scrap.
+func _empty_slot(pin_colour: Color, torn: bool) -> Control:
+	var slot := Control.new()
+	slot.custom_minimum_size = REPORT_SIZE
+	slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if torn:
+		_add_mark(slot)
+		_add_scrap(slot)
+	_pin(slot, pin_colour)
+	return slot
+
+## The faint mark a report leaves on the cork (always behind everything else in the slot).
+func _add_mark(slot: Control) -> void:
+	var mark := ColorRect.new()
+	mark.color = MARK
+	mark.size = REPORT_SIZE
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.add_child(mark)
+	slot.move_child(mark, 0)
+
+## A small torn scrap of the report's top edge, left under the pin: straight along the card's
+## top, ragged along the bottom, never the same twice.
+func _add_scrap(slot: Control) -> void:
+	var half := SCRAP_WIDTH / 2.0
+	var points := PackedVector2Array([Vector2(-half, 0), Vector2(half, 0)])
+	var x := half
+	while x > -half:                             ## walk back along a ragged bottom edge
+		points.append(Vector2(x, randf_range(SCRAP_DEPTH.x, SCRAP_DEPTH.y)))
+		x -= randf_range(4.0, 8.0)
+	points.append(Vector2(-half, randf_range(SCRAP_DEPTH.x, SCRAP_DEPTH.y)))
+	var centre := Vector2(REPORT_SIZE.x / 2.0, 0)   ## the card's top edge, under the pin
+	var shadow := Polygon2D.new()
+	shadow.polygon = points
+	shadow.color = SCRAP_SHADOW
+	shadow.position = centre + Vector2(1, 3)
+	slot.add_child(shadow)
+	var scrap := Polygon2D.new()
+	scrap.polygon = points
+	scrap.color = PAPER
+	scrap.position = centre
+	slot.add_child(scrap)
 
 ## A pinned scouting report: who, what he does, games a season, rarity, price (or FREE).
 func _report(s: StaffCard, free: bool) -> Button:
@@ -223,7 +475,7 @@ func _report(s: StaffCard, free: bool) -> Button:
 	_pin(button, FREE_GREEN if free else PIN_RED)
 	_tag(button, "FREE" if free else "%d coins" % RunState.staff_price(s), free)
 	_ignore_mouse(button)
-	button.pressed.connect(_buy.bind(s, free))
+	button.pressed.connect(func(): _buy(s, free, button))
 	return button
 
 ## The yellow "Scout again" note: a new transfer list, a little dearer each time.
@@ -287,6 +539,7 @@ func _empty_tile() -> Panel:
 func _paper_button(size: Vector2, colour: Color) -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = size
+	button.size = size
 	button.focus_mode = Control.FOCUS_NONE
 	for state in ["normal", "hover", "pressed"]:
 		var style := _box_style(colour, 2)
@@ -311,16 +564,18 @@ func _inner_box(button: Button, padding: int) -> VBoxContainer:
 	margin.add_child(box)
 	return box
 
-## A drawing pin at the top middle.
-func _pin(button: Button, colour: Color) -> void:
+## A drawing pin at the top middle (named "Pin" so a report coming off can leave it behind).
+func _pin(parent: Control, colour: Color) -> void:
 	var pin := Panel.new()
+	pin.name = "Pin"
 	pin.size = Vector2(18, 18)
-	pin.position = Vector2(button.custom_minimum_size.x / 2.0 - 9, -8)
+	pin.position = Vector2(parent.custom_minimum_size.x / 2.0 - 9, -8)
+	pin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style := _box_style(colour, 9)
 	style.shadow_color = Color(0, 0, 0, 0.5)
 	style.shadow_size = 3
 	pin.add_theme_stylebox_override("panel", style)
-	button.add_child(pin)
+	parent.add_child(pin)
 
 ## A price tag hanging off the bottom-right corner (gold, or green for FREE).
 func _tag(button: Button, words: String, free: bool) -> void:
