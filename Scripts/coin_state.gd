@@ -3,7 +3,7 @@ extends Node
 
 signal coins_changed(new_amount: int)
 
-const STARTING_COINS := 1000
+const STARTING_COINS := 300
 var coins: int = STARTING_COINS
 
 func new_run() -> void:

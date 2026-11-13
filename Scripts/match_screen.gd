@@ -135,6 +135,7 @@ func play_card(card: ActionCard) -> void:
 	if delay > 0.0:
 		await get_tree().create_timer(delay).timeout   ## let the squad reactions finish first
 	await _box_moment(gamble, events, card.tag)
+	await _long_shot_moment(events)
 	_after_action(events)
 
 
@@ -503,6 +504,19 @@ func _box_moment(gamble: String, events: Array, tag: String = "") -> void:
 		return
 	box_view.flash(result["text"], result["colour"], result["kind"], tag)
 	await get_tree().create_timer(SettingsState.t(BOX_RESULT_PAUSE)).timeout
+
+## A long shot from outside the box: a moment of suspense, the ball flies at goal on the
+## pitch, then GOAL! or WIDE! before the screen moves on.
+func _long_shot_moment(events: Array) -> void:
+	if not events.any(func(e): return e["type"] == "long_shot"):
+		return
+	_say("[b]LONG SHOT![/b]  He's gone for it...", false)
+	await get_tree().create_timer(SettingsState.t(BOX_SUSPENSE)).timeout
+	var scored := events.any(func(e): return e["type"] == "goal")
+	var flight: float = pitch_strip.shoot(scored)
+	if scored:
+		_say("[color=gold][b]GOAL![/b][/color]", false)
+	await get_tree().create_timer(flight + SettingsState.t(BOX_RESULT_PAUSE)).timeout
 
 ## What happened in the box, as one big word, plus its kind (for the box drawing).
 func _box_result(events: Array) -> Dictionary:

@@ -29,6 +29,11 @@ const BALL_MOVE_TIME := 0.25  ## the ball sliding from zone to zone (game-speed 
 const TAG_SIZE := 18
 const NAME_SIZE := 20
 const NOTE_SIZE := 18
+## A shot from outside the box (Long Shot): the ball flies at goal, then GOAL! or WIDE!.
+const SHOT_TIME := 0.55       ## the ball's flight (game-speed scaled)
+const SHOT_ARC := 60.0        ## how high the ball goes on the way (pixels)
+const SHOT_BALL_RADIUS := 8.0 ## the white ball in flight (the box view uses 7)
+const BANNER_SIZE := 110      ## the big GOAL! / WIDE! word
 
 ## Where the ball is drawn: a float, so it can slide between zones.
 var ball_zone := 2.0:
@@ -41,6 +46,19 @@ var _tag := ""                       ## the pill at the top of that zone ("PRESS
 var _note: PackedStringArray = []    ## extra lines under the pill (their chance in your box...)
 var _pill := StyleBoxFlat.new()
 var _ball_tween: Tween
+## The shot in flight: 0 = leaving the boot, 1 = at the goal line. -1 = no shot on screen.
+var shot_progress := -1.0:
+	set(value):
+		shot_progress = value
+		queue_redraw()
+var banner_scale := 1.0:
+	set(value):
+		banner_scale = value
+		queue_redraw()
+var _shot_scored := false
+var _shot_dy := 0.0         ## where it crosses the goal line: share of the pitch height from the middle
+var _banner := ""
+var _banner_colour := GOLD
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -75,6 +93,8 @@ func _show(z: int, ours: bool, tag: String, note: PackedStringArray) -> void:
 	_ours = ours
 	_tag = tag
 	_note = note
+	shot_progress = -1.0     ## any shot on screen is over
+	_banner = ""
 	if _ball_tween:
 		_ball_tween.kill()
 	_ball_tween = create_tween()
@@ -123,11 +143,63 @@ func _draw() -> void:
 	if ahead >= 0 and ahead <= 4:
 		_draw_chevrons(Vector2((ahead + 0.5) * zone_w, h / 2), 1 if _ours else -1, Color(accent, 0.45))
 
-	## The ball.
-	var ball := Vector2((ball_zone + 0.5) * zone_w, h / 2)
-	draw_circle(ball, BALL_RADIUS + 10, Color(accent, 0.25))
-	draw_circle(ball, BALL_RADIUS + 4, DARK)
-	draw_circle(ball, BALL_RADIUS, accent)
+	## The marker: where play is (gold = your ball, red = theirs). It stays put during a shot.
+	var marker := Vector2((ball_zone + 0.5) * zone_w, h / 2)
+	draw_circle(marker, BALL_RADIUS + 10, Color(accent, 0.25))
+	draw_circle(marker, BALL_RADIUS + 4, DARK)
+	draw_circle(marker, BALL_RADIUS, accent)
+
+	## A long shot: a real (white) ball flies from the marker at their goal, like the box view's.
+	if shot_progress >= 0.0:
+		var start := marker + Vector2(BALL_RADIUS + 4, BALL_RADIUS - 2)   ## at the shooter's feet
+		var end := Vector2(w - MARGIN + 6, h / 2 + _shot_dy * (h - 2 * MARGIN))
+		var ground := start.lerp(end, shot_progress)
+		var lift := sin(shot_progress * PI)                  ## 0 on the ground, 1 at the top
+		var ball := ground - Vector2(0, lift * SHOT_ARC)
+		var grow := 1.0 + lift * 0.4                         ## bigger when it's up in the air
+		if shot_progress >= 1.0 and _shot_scored:
+			## The net lights up (drawn first, so the ball shows in it).
+			var goal_h := (h - 2 * MARGIN) * GOAL_WIDTH
+			draw_rect(Rect2(w - MARGIN, h / 2 - goal_h / 2, 12, goal_h), Color(GOLD, 0.8))
+		draw_circle(ground, SHOT_BALL_RADIUS, Color(0, 0, 0, 0.35))   ## shadow on the grass
+		draw_circle(ball, (SHOT_BALL_RADIUS + 2) * grow, DARK)
+		draw_circle(ball, SHOT_BALL_RADIUS * grow, Color.WHITE)
+
+	## GOAL! / WIDE! across the middle of the pitch, the same style as the box view.
+	if _banner != "":
+		var banner_size := int(BANNER_SIZE * banner_scale)
+		var y_base := h / 2 + banner_size * 0.35
+		draw_string_outline(font, Vector2(0, y_base), _banner, HORIZONTAL_ALIGNMENT_CENTER, w,
+				banner_size, 12, DARK)
+		draw_string(font, Vector2(0, y_base), _banner, HORIZONTAL_ALIGNMENT_CENTER, w,
+				banner_size, _banner_colour)
+
+## A shot from where the ball is now at their goal. scored = it goes in, else it flies wide.
+## Returns how long the flight takes, so the screen can wait for it.
+func shoot(scored: bool) -> float:
+	if _ball_tween:
+		_ball_tween.kill()
+	_shot_scored = scored
+	_banner = ""
+	_tag = ""                ## clear the pill and notes so the shot has the pitch to itself
+	_note = []
+	var post := GOAL_WIDTH / 2   ## the goal's half-width, as a share of the pitch height
+	if scored:
+		_shot_dy = randf_range(-post * 0.7, post * 0.7)
+	else:
+		_shot_dy = (post + randf_range(0.08, 0.14)) * (1 if randf() < 0.5 else -1)
+	var time := SettingsState.t(SHOT_TIME)
+	shot_progress = 0.0
+	var t := create_tween()
+	t.tween_property(self, "shot_progress", 1.0, time).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	t.tween_callback(_show_banner)
+	return time
+
+func _show_banner() -> void:
+	_banner = "GOAL!" if _shot_scored else "WIDE!"
+	_banner_colour = GOLD if _shot_scored else RED
+	banner_scale = 1.3
+	create_tween().tween_property(self, "banner_scale", 1.0, SettingsState.t(0.25))
 
 ## Touchlines, halfway line, centre circle, both boxes, six-yard boxes, spots and goals.
 func _draw_markings(w: float, h: float) -> void:
