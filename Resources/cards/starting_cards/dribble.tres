@@ -6,10 +6,11 @@
 [resource]
 script = ExtResource("1_df5el")
 display_name = "Dribble"
-tag = "dribble"
-card_type = "move"
-base_value = 20
-usable_when = "attacking"
 description = "Draw one card"
+card_type = "move"
+tag = "dribble"
+base_value = 20
 upgrades_to = ExtResource("2_donqp")
+usable_when = "attacking"
+play_zones = 31
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

@@ -119,6 +119,9 @@ func show_state(m: MatchRules) -> void:
 	elif m.rebound:
 		_pressure.text = "REBOUND! One more shot"
 		_pressure.add_theme_color_override("font_color", GOLD)
+	elif m.stoppage:
+		_pressure.text = "STOPPAGE TIME! Last shot"
+		_pressure.add_theme_color_override("font_color", GOLD)
 	else:
 		_pressure.text = PRESSURE[mini(m.box_cards_played, PRESSURE.size() - 1)]
 		_pressure.add_theme_color_override("font_color", GREY)
@@ -143,8 +146,13 @@ func show_state(m: MatchRules) -> void:
 		_rows.remove_child(child)
 		child.queue_free()
 	_row_for.clear()
-	if m.rebound or m.penalty:
-		_build_title.text = "PENALTY: NO CARDS, JUST THE KICK" if m.penalty else "REBOUND: SHOTS ONLY"
+	if m.rebound or m.penalty or m.stoppage:
+		if m.penalty:
+			_build_title.text = "PENALTY: NO CARDS, JUST THE KICK"
+		elif m.rebound:
+			_build_title.text = "REBOUND: SHOTS ONLY"
+		else:
+			_build_title.text = "STOPPAGE TIME: SHOTS ONLY"
 		return
 	_build_title.text = "OR KEEP BUILDING (risky)"
 	var seen := []

@@ -7,11 +7,11 @@
 [resource]
 script = ExtResource("1_alg6r")
 display_name = "Shoot"
-tag = "shot"
 card_type = "attacking"
+tag = "shot"
 base_value = 30
-usable_when = "attacking"
-description = "Shoot!"
 upgrades_to = ExtResource("2_1ri6x")
+usable_when = "attacking"
+play_zones = 16
 art = ExtResource("1_olxm7")
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

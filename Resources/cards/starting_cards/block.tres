@@ -6,10 +6,11 @@
 [resource]
 script = ExtResource("1_q4dx1")
 display_name = "Block"
-tag = "block"
-card_type = "defending"
-base_value = 20
-usable_when = "defending"
 description = "Block"
+card_type = "defending"
+tag = "block"
+base_value = 20
 upgrades_to = ExtResource("2_r8pkg")
+usable_when = "defending"
+play_zones = 1
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

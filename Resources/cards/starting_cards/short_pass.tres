@@ -8,4 +8,5 @@ display_name = "Short pass"
 card_type = "move"
 base_value = 30
 usable_when = "attacking"
+play_zones = 31
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

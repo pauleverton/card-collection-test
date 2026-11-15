@@ -78,6 +78,12 @@ const TRACK_BACK_BOX_SCALE := 0.5  ## Track Back in your box lowers the chance b
 ## --- Match clock and rewards ---
 const MATCH_LENGTH := 90
 const MINUTES_PER_ACTION := 3
+## STOPPAGE TIME: if you have the ball at full time and can shoot (in their box, or a Long Shot in
+## their half), you get one last shot. A rebound from it, or a penalty you'd just won, is still
+## played, but the whistle always goes by MATCH_LENGTH + STOPPAGE_MAX (96').
+## The same for them: if they're in your box at full time, their attack is cut to just the shot,
+## you get ONE action to stop it, then they shoot.
+const STOPPAGE_MAX := 6
 const COINS_WIN := 100
 const COINS_DRAW := 50
 const COINS_LOSS := 20
@@ -110,6 +116,7 @@ var minute := 0
 var _was_active: Array = []
 var _extra_minutes := 0   ## time used up during an action (e.g. Kitchen Sink run-through)   ## staff whose ability was on after the last action
 var match_over := false
+var stoppage := false       ## true = stoppage time: shots only (see STOPPAGE_MAX)
 
 func start() -> void:
 	zone = 2
@@ -132,6 +139,7 @@ func start() -> void:
 	_was_active.clear()
 	_extra_minutes = 0
 	match_over = false
+	stoppage = false
 	box_cards_played = 0
 	rebound = false
 	penalty = false
@@ -294,19 +302,31 @@ func can_play_here(card: ActionCard) -> bool:
 		return false     ## a penalty: no cards, just the penalty button
 	if rebound and card.tag != "shot":
 		return false     ## rebound: shots only
-	if card.play_zones != 0:
-		return card.play_zones & (1 << zone) != 0
-	if card.tag in ["retain", "overlap"]:
+	if stoppage and has_ball and card.tag not in ["shot", "long_shot"]:
+		return false     ## your stoppage time: shots only (defending theirs, your cards still work)
+	## WHERE a card can be played is the card's own data: usable_when (checked above) and the
+	## zones ticked in play_zones. No zones ticked = it can't be played anywhere.
+	if card.play_zones & (1 << zone) == 0:
+		return false
+	if not _does_something_here(card):
+		return false     ## safety net: a zone ticked by mistake greys the card out, never wastes it
+	if card.tag == "overlap":
+		return _has_card_to_boost(card)   ## no point (and you'd lose the ball) with nothing to boost
+	if in_their_box() and card.tag in ["pass", "dribble", "cross"]:
+		return energy - card.energy_cost >= SHOT_COST   ## always keep enough to shoot
+	return true
+
+## Do the rules have something for this card to do right here? This mirrors play(): each
+## situation only knows certain tags. A card ticked for a zone where its tag does nothing would
+## otherwise cost energy and say "does nothing here" (or count as a lunge in your box).
+func _does_something_here(card: ActionCard) -> bool:
+	if card.tag in ["overlap", "retain", "lump_clear"]:
 		return true
-	if card.tag == "lump_clear":
-		return zone <= 1
+	if in_their_box():
+		return card.tag in ["pass", "dribble", "cross", "shot"]
 	if has_ball:
-		if zone == 4:
-			if card.tag in ["pass", "dribble", "cross"]:
-				return energy - card.energy_cost >= SHOT_COST   ## always keep enough to shoot
-			return card.tag == "shot"
-		return card.tag in ["pass", "dribble", "long_ball"]
-	if zone == 0:
+		return card.tag in ["pass", "dribble", "long_ball", "long_shot"]
+	if in_our_box():
 		return card.tag in ["block", "tackle", "track_back"]
 	return card.tag in ["tackle", "track_back"]
 	
@@ -326,6 +346,14 @@ func would_succeed(card: ActionCard) -> bool:
 func box_gain(card: ActionCard) -> int:
 	return roundi(power_of(card) * BOX_GAIN_SCALE)
 	
+func _has_card_to_boost(overlap: ActionCard) -> bool:
+	var left := energy - overlap.energy_cost
+	for c in DeckState.hand:
+		if c.tag in ["overlap", "retain"]:
+			continue          ## these don't use the bonus (and checking them could loop forever)
+		if c.energy_cost <= left and can_play_here(c):
+			return true
+	return false
 
 # ---------- Actions ----------
 
@@ -734,8 +762,8 @@ func _their_penalty(events: Array) -> void:
 
 ## After every action: if you're attacking and can't do anything, you lose the ball.
 func _check_out_of_energy(events: Array) -> void:
-	if not has_ball:
-		return
+	if not has_ball or stoppage:
+		return          ## (in stoppage time, losing the ball ends the match anyway)
 	if energy == 0:
 		_turnover(events)
 	elif zone < 4 and not _has_playable_card():
@@ -827,12 +855,37 @@ func _tick_clock(events: Array) -> void:
 	minute += MINUTES_PER_ACTION + _extra_minutes
 	_extra_minutes = 0
 	_announce_abilities(events)
+	if minute >= MATCH_LENGTH and stoppage and in_our_box():
+		_their_move(events)    ## their last shot: you've had your one action to stop it
 	if minute >= MATCH_LENGTH:
-		minute = MATCH_LENGTH
+		if _play_on():
+			if not stoppage:
+				stoppage = true
+				events.append({"type": "stoppage", "theirs": not has_ball})
+				if not has_ball:
+					their_moves = [{"kind": "shot", "gain": 0}]   ## no time to build: straight to the shot
+			return             ## play on: the last shot (or its rebound, or a penalty)
+		minute = mini(minute, MATCH_LENGTH + STOPPAGE_MAX) if stoppage else MATCH_LENGTH
 		match_over = true
 		events.append({"type": "full_time"})
 		return
 	_recheck_press(events)   ## an ability may have just changed the press you're facing
+	_check_out_of_energy(events)   ## ...or switched your cards off (Park the Bus): nothing playable = lose it
+	
+## Full time has come: does play go on? Only for one last shot (see STOPPAGE_MAX).
+func _play_on() -> bool:
+	if minute >= MATCH_LENGTH + STOPPAGE_MAX:
+		return false
+	if not has_ball:
+		return in_our_box() and not stoppage   ## their last shot, if they're in your box
+	if penalty or rebound:
+		return true                  ## a penalty or a rebound is always played
+	if stoppage:
+		return false                 ## you've had your last shot
+	if in_their_box():
+		return energy >= SHOT_COST   ## the Shoot button
+	return DeckState.hand.any(func(c): return c.tag == "long_shot" \
+			and c.energy_cost <= energy and can_play_here(c))
 
 ## Where this match's coins come from, one row each (zero amounts left out):
 ## {"count": "3" or "", "label": "Goals (10 each)", "amount": 30}.
@@ -970,5 +1023,6 @@ func debug_concede() -> Array:
 func debug_full_time() -> Array:
 	var events := []
 	minute = MATCH_LENGTH - MINUTES_PER_ACTION
+	stoppage = true        ## debug F always ends the match (no stoppage time)
 	_tick_clock(events)
 	return events

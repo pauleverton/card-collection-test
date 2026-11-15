@@ -77,11 +77,17 @@ func setup(you: String, them: String, they_are_favourites: bool) -> void:
 	_away_note.add_theme_color_override("font_color", RED if they_are_favourites else DIM)
 
 ## Score and minute. Called whenever the screen refreshes (and during replays).
-func show_score(you: int, them: int, minute: int) -> void:
+## stoppage = true shows "90+1'" even at 90 (the last shot is in stoppage time).
+func show_score(you: int, them: int, minute: int, stoppage: bool = false) -> void:
 	_home_goals.text = str(you)
 	_away_goals.text = str(them)
-	_minute.text = "%d'" % minute
-	_half.text = "1ST HALF" if minute <= HALF_TIME else "2ND HALF"
+	if stoppage or minute > MatchRules.MATCH_LENGTH:
+		var extra := maxi(minute - MatchRules.MATCH_LENGTH, 1)
+		_minute.text = "%d+%d'" % [MatchRules.MATCH_LENGTH, extra]   ## stoppage time
+		_half.text = "STOPPAGE"
+	else:
+		_minute.text = "%d'" % minute
+		_half.text = "1ST HALF" if minute <= HALF_TIME else "2ND HALF"
 
 ## One team: big name, small note underneath, lined up towards the score.
 func _team_block(name_label: Label, note: Label, align: HorizontalAlignment) -> VBoxContainer:

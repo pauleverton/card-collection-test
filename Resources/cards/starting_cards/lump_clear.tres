@@ -5,9 +5,10 @@
 [resource]
 script = ExtResource("1_m4scj")
 display_name = "Lump it!"
-tag = "lump_clear"
+description = "Just clear it "
 card_type = "defending"
+tag = "lump_clear"
 base_value = 3
 usable_when = "defending"
-description = "Just clear it "
+play_zones = 3
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

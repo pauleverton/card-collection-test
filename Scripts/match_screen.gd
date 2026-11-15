@@ -711,7 +711,7 @@ func _let_through_text() -> String:
 
 ## Scoreboard, round and energy. Takes the minute so a replay can show the clock ticking.
 func _show_info(minute: int) -> void:
-	scoreboard.show_score(pitch.goals, pitch.conceded, minute)
+	scoreboard.show_score(pitch.goals, pitch.conceded, minute, pitch.stoppage)
 	info_label.text = "%s\nRound %d of %d · %s in the table" % [
 			LeagueState.current_tournament_name().to_upper(),
 			LeagueState.matches_played + 1, LeagueState.matches_per_season(),
@@ -818,6 +818,11 @@ func describe(events: Array) -> String:
 				lines.append("You can't do that right now.")
 			"full_time":
 				lines.append("[b]FULL TIME![/b]")
+			"stoppage":
+				if e["theirs"]:
+					lines.append("[color=#e04040][b]STOPPAGE TIME![/b] Their last chance: one go to stop it.[/color]")
+				else:
+					lines.append("[color=gold][b]STOPPAGE TIME![/b] One last shot...[/color]")
 			"not_here":
 				lines.append("%s can't be played here." % e["card"])
 			"no_options":

@@ -155,7 +155,8 @@ func show_state(m: MatchRules) -> void:
 		_row_for[LUNGE_KEY] = lunge_row
 		_rows.add_child(lunge_row)
 	if _rows.get_child_count() == 0:
-		_rows.add_child(_label("Nothing you can play: they make their move.", ROW_FONT, DIM))
+		var why := "No energy left" if m.energy == 0 else "Nothing you can play"
+		_rows.add_child(_label("%s: they make their move." % why, ROW_FONT, DIM))
 	_light_rows()
 
 ## The card under the mouse in your hand (null when the mouse leaves).

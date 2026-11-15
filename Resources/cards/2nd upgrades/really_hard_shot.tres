@@ -5,11 +5,12 @@
 [resource]
 script = ExtResource("1_cm8ak")
 display_name = "Really hard Shot"
-energy_cost = 4
-tag = "shot"
+description = "Really hard shot"
 card_type = "attacking"
+tag = "shot"
 card_rarity = "uncommon"
 base_value = 100
+energy_cost = 4
+usable_when = "attacking"
 play_zones = 16
-description = "Really hard shot"
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

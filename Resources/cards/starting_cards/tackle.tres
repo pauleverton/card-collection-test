@@ -5,8 +5,9 @@
 [resource]
 script = ExtResource("1_fyvh5")
 display_name = "Tackle"
-tag = "tackle"
 card_type = "defending"
+tag = "tackle"
 base_value = 30
 usable_when = "defending"
+play_zones = 31
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

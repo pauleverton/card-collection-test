@@ -5,9 +5,10 @@
 [resource]
 script = ExtResource("1_3y67c")
 display_name = "Cross"
-tag = "cross"
+description = "Cross the ball"
 card_type = "attacking"
+tag = "cross"
 base_value = 30
 usable_when = "attacking"
-description = "Cross the ball"
+play_zones = 16
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

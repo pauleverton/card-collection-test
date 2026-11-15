@@ -6,11 +6,12 @@
 [resource]
 script = ExtResource("1_5xwn8")
 display_name = "Hard Shot"
-energy_cost = 3
-tag = "shot"
-card_type = "attacking"
-base_value = 50
-play_zones = 16
 description = "Hard shot"
+card_type = "attacking"
+tag = "shot"
+base_value = 50
+energy_cost = 3
 upgrades_to = ExtResource("2_ni7vp")
+usable_when = "attacking"
+play_zones = 16
 metadata/_custom_type_script = "uid://c7aob23hi7te0"
