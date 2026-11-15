@@ -850,8 +850,9 @@ func _say(text: String, log_it: bool = true) -> void:
 
 # ---------- Debug ----------
 
-## Debug keys, only in the editor:
-## G = you score, C = they score, F = skip to full time, T = jump to the final tournament.
+## Debug keys (editor and debug builds only):
+## G = you score, C = they score, F = skip to full time,
+## T = skip to the last round of this season, L = jump to 57'.
 func _unhandled_input(event: InputEvent) -> void:
 	if not OS.is_debug_build() or pitch.match_over:
 		return
@@ -872,21 +873,3 @@ func _unhandled_input(event: InputEvent) -> void:
 				pitch.minute = 57
 				_say("DEBUG: jumped to 57", false)
 				refresh_all()
-			KEY_P:
-				_debug_add_players()
-
-## Debug: add Super Sub and Kitchen Sink to the squad (and the squad bar) for testing.
-const DEBUG_PLAYERS := [
-	"res://Resources/players/super_sub.tres",
-	"res://Resources/players/kitchen_sink.tres",
-	"res://Resources/players/park_the_bus.tres"]
-
-func _debug_add_players() -> void:
-	for path in DEBUG_PLAYERS:
-		if RunState.squad.any(func(s): return s.resource_path == path):
-			continue      ## already in the squad
-		var p: PlayerCard = load(path)
-		RunState.picked.append(p)   ## debug ignores the matchday limit, like MAX_PLAYERS
-		_add_squad_tile(p)
-	_say("DEBUG: added 3 players.", false)
-	refresh_all()
