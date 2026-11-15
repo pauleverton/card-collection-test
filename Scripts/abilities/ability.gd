@@ -12,14 +12,12 @@ extends Resource
 
 ## When it switches on. 0 = from kick-off.
 @export var active_from_minute: int = 0
-## Only while you're drawing or losing. Switches off again when you go ahead.
 ## Only while the score is like this. "any" = whatever the score.
 @export_enum("any", "winning", "drawing", "losing", "not_winning", "not_losing") var when_score: String = "any"
 ## Commentary when it switches on / off. {name} = the player's name. Blank = no line.
 @export var on_text: String = ""
 @export var off_text: String = ""
 
-## Is it switched on right now?
 ## Is it switched on right now?
 func is_active(m: MatchRules) -> bool:
 	if m.minute < active_from_minute:

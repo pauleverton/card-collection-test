@@ -225,8 +225,6 @@ func _opponent_name() -> String:
 
 ## Every action ends here, so the screen update and the full-time check happen in one place.
 func _after_action(events: Array) -> void:
-	for e in events:
-		print(e)
 	busy = true
 	if events.any(func(e): return e["type"] in ["advance", "they_break"]):
 		await _replay_build(events)
@@ -356,9 +354,6 @@ func _show_full_time() -> void:
 	var table_view = LEAGUE_TABLE.instantiate()
 	results_view.add_sibling(table_view)               ## under the results, above Continue
 	table_view.refresh(league_result["standings"])
-	
-	table_view.refresh(league_result["standings"])
-	
 	full_time_panel.modulate.a = 0.0
 	full_time_panel.visible = true
 	create_tween().tween_property(full_time_panel, "modulate:a", 1.0, SettingsState.t(0.4))

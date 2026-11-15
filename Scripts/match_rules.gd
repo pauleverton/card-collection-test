@@ -15,8 +15,8 @@ var their_defence := 1.0   ## scales the press you face when attacking
 var their_attack := 1.0    ## scales the hold you need when defending
 var level := 1.0           ## strength ÷ BASE_STRENGTH: 1.0 in the first match of a run
 var keeper_scale := 1.0    ## their keeper: level × their keeper rating (see KEEPER_STRETCH)
-## Your shots do NOT scale: the Shoot button roll, the Shoot card, rebounds and corners stay
-## the same all run, so better keepers need better cards and players to beat.
+## Your shots do NOT scale: the Shoot button roll, the Shoot card and rebounds stay the same
+## all run, so better keepers need better cards and players to beat.
 
 
 ## --- You attacking: their box ---
@@ -112,8 +112,8 @@ var their_keeper := 1.0     ## their keeper's rating (Very Low 0.8 ... Very High
 var _keeper_pile: Array = []
 var _our_keeper_pile: Array = []
 var minute := 0
-var _was_active: Array = []
-var _extra_minutes := 0   ## time used up during an action (e.g. Kitchen Sink run-through)   ## staff whose ability was on after the last action
+var _was_active: Array = []   ## staff whose ability was on after the last action
+var _extra_minutes := 0   ## time used up during an action (e.g. Kitchen Sink run-through)
 var match_over := false
 var stoppage := false       ## true = stoppage time: shots only (see STOPPAGE_MAX)
 

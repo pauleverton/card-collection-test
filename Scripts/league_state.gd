@@ -117,8 +117,6 @@ func start_season() -> void:
 	if table.size() != TEAMS_PER_LEAGUE:
 		push_error("LeagueState: only %d teams can play in league %d" % [table.size(), league])
 	fixtures = _make_fixtures(table.size())
-	if OS.is_debug_build():
-		_print_season()
 
 func _new_row(team_name: String, team: OpponentTeam) -> Dictionary:
 	return {"name": team_name, "team": team, "played": 0, "won": 0, "drawn": 0,
@@ -137,11 +135,6 @@ func _make_fixtures(team_count: int) -> Array:
 		order.insert(1, order.pop_back())
 	rounds.shuffle()                        ## so the favourites can be any round
 	return rounds
-
-func _print_season() -> void:
-	print("New season: %s" % current_tournament_name())
-	for r in fixtures.size():
-		print("  Round %d: you vs %s" % [r + 1, _label(_your_opponent_index(r))])
 
 # ---------- Questions the screens ask ----------
 
