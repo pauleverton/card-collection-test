@@ -5,8 +5,6 @@ extends Node
 
 signal run_ended(reached_tournament_index: int, won_all_tournaments: bool)
 
-const STAKES := ["Stake 1", "Stake 2", "Stake 3", "Stake 4", "Stake 5"]  # placeholder names
-
 var current_stake_index: int = 0
 var best_tournament_ever_reached: int = 0
 var total_runs_completed: int = 0

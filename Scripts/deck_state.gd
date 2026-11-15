@@ -41,6 +41,7 @@ func play(card: ActionCard) -> void:
 	hand.erase(card)
 	discard_pile.append(card)
 
+## Next two are not used yet: kept for a planned "recall" card or player (last discarded card back to hand).
 func discard_hand() -> void:
 	discard_pile.append_array(hand)
 	hand.clear()

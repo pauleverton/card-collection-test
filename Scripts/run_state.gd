@@ -53,7 +53,6 @@ const COACH_POOL:= [
 const RARITY_WEIGHTS := {"common": 60, "uncommon": 25, "rare": 12, "special": 3}
 
 var deck: Array = []
-var matches_played := 0
 var squad: Array = []          ## players AND coaches
 var team_name := ""            ## built on the main menu; "" = use the default name
 ## Set when a run ends: the main menu then opens the team name box straight away.
@@ -85,7 +84,6 @@ func new_run() -> void:
 	deck.clear()
 	for path in STARTING_DECK:
 		deck.append(load(path))
-	matches_played = 0
 	squad.clear()
 	picked.clear()
 	team_name = ""

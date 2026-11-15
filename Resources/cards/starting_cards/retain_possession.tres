@@ -10,7 +10,6 @@ card_type = "utility"
 tag = "retain"
 base_value = 1
 energy_cost = 0
-usable_when = "attacking"
 play_zones = 31
 draw_count = 2
 energy_boost = 1

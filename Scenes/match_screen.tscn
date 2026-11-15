@@ -135,13 +135,6 @@ horizontal_alignment = 1
 layout_mode = 2
 text = "Next Match"
 
-[node name="SquadBar" type="HBoxContainer" parent="." unique_id=1721132799]
-layout_mode = 0
-offset_left = 474.0
-offset_top = 35.0
-offset_right = 1443.0
-offset_bottom = 139.0
-
 [node name="BuildBar" type="ProgressBar" parent="." unique_id=493980779]
 layout_mode = 0
 offset_left = 615.0

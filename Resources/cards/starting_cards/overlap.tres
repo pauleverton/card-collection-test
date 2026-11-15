@@ -10,5 +10,5 @@ card_type = "utility"
 tag = "overlap"
 base_value = 20
 usable_when = "attacking"
-play_zones = 31
+play_zones = 30
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

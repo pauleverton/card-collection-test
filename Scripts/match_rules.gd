@@ -61,7 +61,6 @@ const MIN_THEIR_CHANCE := 10   ## you can never block a chance down to nothing (
 ## Their attack is a few moves then a shot. You always see the next move. Block is safe but only
 ## lowers the chance; a challenge can end the attack, but if it fails you're beaten.
 const THEIR_MOVE_GAINS := {"pass": 15, "dribble": 20, "cross": 25}   ## × their attack rating
-const THEIR_MOVE_WORDS := {"pass": "Pass", "dribble": "Dribble", "cross": "Cross", "shot": "Shot"}
 const THEIR_BUILD_MOVES := Vector2i(1, 2)   ## moves before the shot (picked at random in this range)
 const TACKLE_BOX_BASE := 0       ## Tackle: success % = (this + the card's power) ÷ their strength (was 20)
 const LUNGE_CHANCE := 15         ## a desperate lunge (the Lunge button): success % ÷ their strength (was 25)
@@ -178,15 +177,6 @@ func box_risk(tag: String) -> int:
 func box_penalty_chance(tag: String) -> int:
 	return roundi(box_risk(tag) * BOX_FOUL_SHARE.get(tag, 0) / 100.0)
 
-## Your odds with the best Shoot card in your hand (-1 if you haven't got one).
-## A Shoot card is the button's random strike PLUS the card's power, so it always beats the button.
-func shot_card_odds() -> int:
-	var best := -1
-	for card in DeckState.hand:
-		if card.tag == "shot":
-			best = maxi(best, basic_shot_odds_at(quality + power_of(card)))
-	return best
-
 ## Percentage chance YOUR shot of this quality beats their keeper.
 func goal_odds(shot_quality: int) -> int:
 	if _box_shot_always_scores():
@@ -228,13 +218,6 @@ func basic_shot_roll_high() -> int:
 func next_move() -> Dictionary:
 	return their_moves[0] if in_our_box() and not their_moves.is_empty() else {}
 
-## Their next move as a short line for the screen: "Next: Cross +25" / "Next: they shoot".
-func next_move_text() -> String:
-	var move := next_move()
-	if move.is_empty() or move["kind"] == "shot":
-		return "Next: they shoot"
-	return "Next: %s +%d" % [THEIR_MOVE_WORDS[move["kind"]], move["gain"]]
-
 ## How hard their attackers are to tackle in your box: their attack rating × the league level.
 func _box_strength() -> float:
 	return their_attack * (1.0 + (level - 1.0) * TACKLE_LEVEL_STRETCH)
@@ -259,14 +242,6 @@ func is_lunge(card: ActionCard) -> bool:
 func can_lunge() -> bool:
 	return in_our_box() and not match_over and not nobody_back() and energy >= LUNGE_COST \
 			and DeckState.hand.any(func(c): return is_lunge(c))
-
-## Your best tackle % from the cards in your hand (-1 if you haven't got a Tackle).
-func best_tackle_chance() -> int:
-	var best := -1
-	for card in DeckState.hand:
-		if card.tag == "tackle":
-			best = maxi(best, tackle_chance(card))
-	return best
 
 ## Percentage chance THEIR current chance beats your keeper.
 func their_goal_odds() -> int:
@@ -339,7 +314,7 @@ func would_succeed(card: ActionCard) -> bool:
 	if has_ball and zone == 4:
 		return card.tag == "shot"   ## nothing else is ever safe in the box
 	if not has_ball and zone == 0:
-		return not is_lunge(card)   ## proper defending cards glow; lunges are just playable
+		return true   ## only Block, Tackle and Track Back get this far: they always glow
 	return build + power_of(card) >= target
 	
 ## What this card adds to your chance in the box (its full power × BOX_GAIN_SCALE).
@@ -658,8 +633,6 @@ func _defend_in_box(card: ActionCard, events: Array) -> void:
 			events.append({"type": "blocked", "card": card.display_name, "quality": quality})
 		"tackle":
 			_box_challenge(card, tackle_chance(card), TACKLE_FOUL_SHARE, false, events)
-		_:
-			_box_challenge(card, lunge_chance(), LUNGE_FOUL_SHARE, true, events)
 
 ## A tackle or a lunge in your box: win the ball, or be beaten (sometimes a foul: penalty).
 func _box_challenge(card: ActionCard, chance: int, foul_share: int, lunge: bool, events: Array) -> void:

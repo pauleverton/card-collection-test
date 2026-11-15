@@ -67,23 +67,15 @@ func _ready() -> void:
 ## The normal view after every action.
 func show_state(m: MatchRules) -> void:
 	var tag := ""
-	var note: PackedStringArray = []
 	if m.has_ball:
 		tag = "PRESS %d" % m.target
 	elif m.zone == 0:
-		tag = "THEIR CHANCE %d" % m.quality
-		note.append("They score: %d%%" % m.their_goal_odds())
-		if m.nobody_back():
-			note.append("Nobody back: keeper only!")
-		else:
-			note.append(m.next_move_text())
-			var tackle := m.best_tackle_chance()
-			note.append("Tackle: %d%% to win it" % tackle if tackle >= 0 else "Any card: %d%% lunge" % m.lunge_chance())
+		tag = "THEIR CHANCE %d" % m.quality   ## the your-box panel shows the odds here
 	elif m.nobody_back():
 		tag = "NOBODY BACK!"
 	else:
 		tag = "HOLD %d" % m.target
-	_show(m.zone, m.has_ball, tag, note)
+	_show(m.zone, m.has_ball, tag, [])
 
 ## During a replay: your ball, in zone z.
 func show_ball_at(z: int) -> void:

@@ -389,7 +389,6 @@ func _ordinal(n: int) -> String:
 	return "%dth" % n
 
 func _on_continue() -> void:
-	RunState.matches_played += 1
 	var season_ended: bool = league_result["season_ended"]
 	var run_over: bool = season_ended and (not league_result["promoted"] or was_final_tournament)
 	if run_over:
@@ -652,8 +651,6 @@ func _box_result(events: Array) -> Dictionary:
 				return {"text": "SAVED... REBOUND!", "colour": Color("f2b233"), "kind": "rebound"}
 			"saved":
 				return {"text": "SAVED", "colour": Color("e0574a"), "kind": "saved"}
-			"corner":
-				return {"text": "CORNER!", "colour": Color("6fb7f0"), "kind": ""}
 			"quality":
 				return {"text": "+%d!  Chance %d" % [e["gain"], e["quality"]], "colour": Color("7be07b"), "kind": "gain"}
 	return {}
