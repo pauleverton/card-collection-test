@@ -68,3 +68,12 @@ func allows_card(_m: MatchRules, _card: ActionCard) -> bool:
 ## Extra % chance of a rebound after the keeper saves (0 = no effect).
 func rebound_bonus(_m: MatchRules) -> int:
 	return 0
+
+## YOUR keeper saves this % of THEIR penalties instead of the normal 11% (-1 = no effect).
+## If several abilities set one, the highest counts.
+func penalty_save_percent(_m: MatchRules) -> int:
+	return -1
+
+## Extra % chance YOUR keeper saves THEIR penalties, added on top (0 = no effect).
+func penalty_save_bonus(_m: MatchRules) -> int:
+	return 0

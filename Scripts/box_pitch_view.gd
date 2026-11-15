@@ -54,8 +54,16 @@ const DRIBBLE_SIDE := 45.0                 ## ...and up to this far sideways
 const RUN_Y := Vector2(0.30, 0.42)         ## after a pass, the passer runs into space here (shares)
 const CROSS_ARC := 110.0                   ## how high a cross goes
 const SHOT_ARC := 30.0                     ## a shot lifts a little
+const OVER_ARC := 75.0                     ## ...one blazed over the bar lifts a lot
+const WIDE_GAP := Vector2(14, 34)          ## a miss goes this far outside the post (pixels)
 const LUNGE_GAP := 18.0                    ## where the tackler ends up, right next to you
 const REBOUND_SHIFT := Vector2(0.12, 0.18) ## a parry spills this far to one side (share of width)
+## A penalty: everyone but the keeper and the taker waits outside the box, clear of the D.
+const PEN_LINE_Y := 0.63                   ## how far down they stand (share of the height; the box ends at ~0.58)
+const PEN_LEFT := Vector2(0.08, 0.30)      ## left group: from-to across (share of the width)
+const PEN_RIGHT := Vector2(0.70, 0.92)     ## right group
+const PEN_FOUL_TIME := 0.25                ## the foul itself...
+const PEN_CLEAR_TIME := 0.6                ## ...then everyone walking out
 const MOVE_TIME := 0.5                     ## defenders closing in after each card
 const ACT_TIME := 0.45                     ## a pass / dribble / cross / tackle / shot playing out
 const CROSS_TIME:=0.9
@@ -176,12 +184,18 @@ func act(kind: String, tag: String = "") -> void:
 				_dribble()
 		"lost":
 			_lose_ball()
+		"penalty":
+			_penalty()              ## their box: YOU were brought down
 		"goal":
 			_shoot("goal")
 		"saved":
 			_shoot("saved")
 		"rebound":
 			_shoot("rebound")
+		"wide":
+			_shoot("wide")
+		"over":
+			_shoot("over")
 		## Your box (set_ours): your players are the "defenders" here.
 		"block":
 			_block()
@@ -190,7 +204,7 @@ func act(kind: String, tag: String = "") -> void:
 		"beaten":
 			_beaten()
 		"foul":
-			_foul()
+			_penalty()              ## your box: you brought THEM down
 		"move":
 			if tag == "pass":
 				_pass(false)
@@ -198,6 +212,11 @@ func act(kind: String, tag: String = "") -> void:
 				_pass(true)
 			else:
 				_dribble()
+
+## Hide the big text without moving anyone (a penalty: the players stay where they've walked to).
+func quiet() -> void:
+	_status.visible = false
+	queue_redraw()          ## the dark band behind the text is drawn here, so redraw without it
 
 ## Write big text in the band across the drawing. pop = the result (a quick bounce);
 ## otherwise it types out.
@@ -268,6 +287,7 @@ func _lose_ball() -> void:
 
 ## A shot. "goal": in the net, keeper beaten. "saved": the keeper gets to it.
 ## "rebound": he parries it to one side and your other player follows it in.
+## "wide": past the post, keeper dived the other way. "over": a big lift over the bar.
 func _shoot(result: String) -> void:
 	var from: Vector2 = _to["ball"]
 	var keeper: Vector2 = _to["keeper"]
@@ -281,6 +301,14 @@ func _shoot(result: String) -> void:
 			_move({"ball": aim, "keeper": dive}, ACT_TIME, [], SHOT_ARC)
 		"saved":
 			_move({"ball": save, "keeper": save}, ACT_TIME, [], SHOT_ARC)
+		"wide":
+			var side := 1.0 if randf() < 0.5 else -1.0
+			var post := REF_SIZE.x * GOAL_WIDTH / 2
+			var miss := Vector2(REF_SIZE.x / 2 + side * (post + randf_range(WIDE_GAP.x, WIDE_GAP.y)), GOAL_LINE / 2)
+			_move({"ball": miss, "keeper": keeper + Vector2(-side * 30, 0)}, ACT_TIME, [], SHOT_ARC)
+		"over":
+			_move({"ball": Vector2(aim.x, GOAL_LINE / 2), "keeper": keeper + Vector2(randf_range(-20, 20), 0)},
+					ACT_TIME, [], OVER_ARC)
 		"rebound":
 			var side := 1.0 if save.x < REF_SIZE.x / 2 else -1.0
 			var spill := Vector2(REF_SIZE.x / 2 + side * randf_range(REBOUND_SHIFT.x, REBOUND_SHIFT.y) * REF_SIZE.x,
@@ -340,17 +368,47 @@ func _beaten() -> void:
 	var past := _keep_yours(them + Vector2(-line.x * 40, -randf_range(40, 60)))
 	_move({tackler: them + line * 4, _carrier: past, "ball": past + BALL_OFFSET}, ACT_TIME)
 
-## Your box: a foul. Your man is left where he brought him down; the ball goes on the spot.
-func _foul() -> void:
+## A foul in the box (either box): the nearest defender brings the man on the ball down,
+## then the ball goes on the spot and everyone except the keeper and the taker walks out
+## of the box. Works for both boxes: in your box the "carrier" is their attacker.
+func _penalty() -> void:
 	var them: Vector2 = _to[_carrier]
-	var tackler := _nearest_defender(them)
+	var fouler := _nearest_defender(them)
+	if fouler != "":
+		_move({fouler: them + (_to[fouler] - them).normalized() * 10}, PEN_FOUL_TIME)
+	_after(PEN_FOUL_TIME, func():
+		_ball_free = false
+		_move(_clear_the_box(_carrier), PEN_CLEAR_TIME))
+
+## Where everyone stands for a penalty: the taker just behind the ball on the spot, the keeper
+## on his line, and everyone else outside the box in two groups either side of the D
+## (each goes to the side he's already on, so nobody walks across the others).
+func _clear_the_box(taker: String) -> Dictionary:
 	var spot := Vector2(REF_SIZE.x / 2, REF_SIZE.y * SPOT_Y)
-	var targets := {_carrier: spot + Vector2(-12, 34), "ball": spot,
+	var targets := {taker: spot + Vector2(-12, 34), "ball": spot,
 			"keeper": Vector2(REF_SIZE.x / 2, REF_SIZE.y * KEEPER_Y)}
-	if tackler != "":
-		targets[tackler] = them
-	_ball_free = false
-	_move(targets, ACT_TIME)
+	var left := []
+	var right := []
+	var everyone := [_other(taker)]
+	for d in _defenders:
+		everyone.append(d["key"])
+	for key in everyone:
+		if _to[key].x < REF_SIZE.x / 2:
+			left.append(key)
+		else:
+			right.append(key)
+	_line_up(left, PEN_LEFT, targets)
+	_line_up(right, PEN_RIGHT, targets)
+	return targets
+
+## Spread one group evenly along the edge of the box, in the order they're already standing.
+func _line_up(keys: Array, across: Vector2, targets: Dictionary) -> void:
+	keys.sort_custom(func(a, b): return _to[a].x < _to[b].x)
+	for i in keys.size():
+		var t := 0.5 if keys.size() == 1 else float(i) / (keys.size() - 1)
+		var x := lerpf(across.x, across.y, t) * REF_SIZE.x
+		var y := REF_SIZE.y * PEN_LINE_Y + (8.0 if i % 2 == 1 else 0.0)   ## a little staggered
+		targets[keys[i]] = Vector2(x, y)
 
 func _nearest_defender(at: Vector2) -> String:
 	var nearest := ""

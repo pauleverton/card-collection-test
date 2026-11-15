@@ -20,6 +20,7 @@ var pitch := MatchRules.new()
 var busy := false
 const OPENING_HAND := 5
 const MAX_REDEALS := 3        ## after this many, an unplayable hand just loses the ball
+const PENALTY_SUSPENSE := 1.5  ## a penalty holds this many times longer than a normal shot
 const WHISTLE_PAUSE := 1.5      ## seconds on the final score before the full-time panel
 var draw_view := PileView.new()
 var discard_view := PileView.new()
@@ -154,12 +155,42 @@ func play_card(card: ActionCard) -> void:
 
 func _on_shoot() -> void:
 	if busy: return
+	if pitch.penalty:
+		_take_penalty()     ## on a penalty this button takes it
+		return
 	var gamble := "SHOT!  Keeper dives..." if pitch.in_their_box() else ""
 	var events := pitch.take_shot()
 	if events[0]["type"] in ["not_now", "no_energy"]:
 		gamble = ""
 	busy = true
 	await _box_moment(gamble, events)
+	_after_action(events)
+
+## Your keeper saved their penalty: the staff who helped pop, like The Wall's "+10".
+## A keeper who sets the save % shouts "SAVED!"; a helper who adds to it shows his "+5%".
+func _react_penalty_helpers() -> void:
+	var helpers: Array = pitch.penalty_helpers()
+	var delay := 0.0
+	for ui in squad_tiles:
+		if ui.player in helpers:
+			var ability: Ability = ui.player.ability
+			var sets_it: bool = ability.penalty_save_percent(pitch) > MatchRules.PEN_SAVE
+			ui.react("SAVED!" if sets_it else "+%d%%" % ability.penalty_save_bonus(pitch), delay)
+			delay += SettingsState.t(0.25)
+
+## Your penalty: a longer moment of suspense, then the result on the box drawing.
+func _take_penalty() -> void:
+	busy = true
+	var events := pitch.take_penalty()
+	if events[0]["type"] == "not_now":
+		busy = false
+		return
+	hand.modulate = Color(1, 1, 1, 0.4)
+	box_view.suspense("PENALTY...  he steps up")
+	await get_tree().create_timer(SettingsState.t(BOX_SUSPENSE * PENALTY_SUSPENSE)).timeout
+	var result := _box_result(events)
+	box_view.flash(result["text"], result["colour"], result["kind"])
+	await get_tree().create_timer(SettingsState.t(BOX_RESULT_PAUSE)).timeout
 	_after_action(events)
 
 ## Lunge: a random non-defending card from your hand is thrown in. It flies to the discard,
@@ -577,6 +608,17 @@ func _our_box_moment(events: Array) -> void:
 			"foul":
 				our_box_view.flash("FOUL!  PENALTY", BAD_FLASH, "foul")
 				await get_tree().create_timer(SettingsState.t(BOX_RESULT_PAUSE)).timeout
+			"penalty_kick":
+				## Their penalty. A goal is shown by the "conceded" beat that follows.
+				our_box_view.suspense("PENALTY...  your keeper waits")
+				await get_tree().create_timer(SettingsState.t(BOX_SUSPENSE * PENALTY_SUSPENSE)).timeout
+				if e["result"] == "saved":
+					our_box_view.flash("SAVED!", GOOD_FLASH, "saved")
+					_react_penalty_helpers()
+					await get_tree().create_timer(SettingsState.t(BOX_RESULT_PAUSE)).timeout
+				elif e["result"] in ["wide", "over"]:
+					our_box_view.flash("%s!" % e["result"].to_upper(), GOOD_FLASH, e["result"])
+					await get_tree().create_timer(SettingsState.t(BOX_RESULT_PAUSE)).timeout
 			"their_move":
 				our_box_view.flash("THEY %s  +%d" % [e["kind"].to_upper(), e["gain"]], BAD_FLASH, "move", e["kind"])
 				await get_tree().create_timer(SettingsState.t(BOX_RESULT_PAUSE)).timeout
@@ -594,10 +636,18 @@ func _our_box_moment(events: Array) -> void:
 func _box_result(events: Array) -> Dictionary:
 	for e in events:
 		match e["type"]:
+			"penalty_kick":
+				if e["result"] == "goal":
+					return {"text": "GOAL!", "colour": Color("f2b233"), "kind": "goal"}
+				if e["result"] == "saved":
+					return {"text": "SAVED!", "colour": Color("e0574a"), "kind": "saved"}
+				return {"text": "%s!" % e["result"].to_upper(), "colour": Color("e0574a"), "kind": e["result"]}
 			"goal":
 				return {"text": "GOAL!", "colour": Color("f2b233"), "kind": "goal"}
 			"box_lost":
 				return {"text": "CLOSED DOWN!", "colour": Color("e0574a"), "kind": "lost"}
+			"box_fouled":
+				return {"text": "FOUL!  PENALTY!", "colour": Color("f2b233"), "kind": "penalty"}
 			"rebound":
 				return {"text": "SAVED... REBOUND!", "colour": Color("f2b233"), "kind": "rebound"}
 			"saved":
@@ -621,12 +671,13 @@ func refresh_all() -> float:
 		tile.show_state(pitch)                   ## ability chips: ON / FROM 75' / WHEN LOSING
 	_show_info(pitch.minute)
 	shoot_button.visible = pitch.in_their_box() and not pitch.match_over
+	shoot_button.text = "TAKE THE\nPENALTY" if pitch.penalty else "SHOOT\n1 energy"
 	let_through_button.visible = not pitch.has_ball and not pitch.match_over
 	let_through_button.text = _let_through_text()
 	lunge_button.visible = pitch.can_lunge()
 	if not lunge_button.visible:
 		our_box_view.preview_lunge(false)   ## a hidden button can't be hovered
-	lunge_button.text = "LUNGE\nrandom card · %d%%" % pitch.lunge_chance()
+	lunge_button.text = "LUNGE\n1 energy"     ## like SHOOT: the odds are on its row in the panel
 	for card_ui in hand.get_children():
 		if not pitch.can_play_here(card_ui.card) or card_ui.card.energy_cost > pitch.energy:
 			card_ui.set_play_state("blocked")      ## can't be played here, or not enough energy		
@@ -690,6 +741,12 @@ func describe(events: Array) -> String:
 				lines.append("%s: +%d, chance now %d." % [e["card"], e["gain"], e["quality"]])
 			"box_lost":
 				lines.append("%s... closed down! (%d%% risk) They've got it." % [e["card"], e["risk"]])
+			"box_fouled":
+				lines.append("[color=gold]%s... brought down! PENALTY![/color]" % e["card"])
+			"penalty_kick":
+				var taker: String = "Your" if e["ours"] else "Their"
+				var words := {"goal": "scored!", "saved": "saved!", "wide": "wide!", "over": "over the bar!"}
+				lines.append("%s penalty (%d%% to score)... %s" % [taker, e["score"], words[e["result"]]])
 			"rebound":
 				lines.append("Saved, but it's loose! REBOUND: one more shot from %d." % e["quality"])
 			"basic_shot":

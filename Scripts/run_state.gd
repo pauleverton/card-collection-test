@@ -39,11 +39,13 @@ const PLAYER_POOL:= [
 	"res://Resources/players/stopper.tres",
 	"res://Resources/players/super_sub.tres",
 	"res://Resources/players/kitchen_sink.tres",
-	"res://Resources/players/park_the_bus.tres"]
+	"res://Resources/players/park_the_bus.tres",
+	"res://Resources/players/penalty_king.tres"]
 	
 const COACH_POOL:= [
 	"res://Resources/coaches/attacking_coach.tres",
-	"res://Resources/coaches/assistant_manager.tres"]
+	"res://Resources/coaches/assistant_manager.tres",
+	"res://Resources/coaches/penalty_coach.tres"]
 
 ## Chance of each rarity when generating a card or player (Balatro-style:
 ## roll the rarity first, then pick something of that rarity).

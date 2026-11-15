@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="PlayerCard" format=3 uid="uid://dl0gu0f31klrw"]
+
+[ext_resource type="Script" uid="uid://b8dxl7yvw3hj" path="res://Scripts/player_card.gd" id="1_408ee"]
+[ext_resource type="Script" uid="uid://dij4fetrjutw0" path="res://Scripts/abilities/penalty_saver_ability.gd" id="1_fh72e"]
+
+[sub_resource type="Resource" id="Resource_fh72e"]
+script = ExtResource("1_fh72e")
+save_percent = 50
+metadata/_custom_type_script = "uid://dij4fetrjutw0"
+
+[resource]
+script = ExtResource("1_408ee")
+display_name = "Penalty King"
+description = "Saves 50% of penalties"
+rarity = "uncommon"
+ability = SubResource("Resource_fh72e")
+badge_type = "goalkeeper"
+metadata/_custom_type_script = "uid://b8dxl7yvw3hj"

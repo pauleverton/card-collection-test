@@ -32,6 +32,7 @@ const TILE_TITLE_MIN := 14
 var _drawing := BoxPitchView.new()
 var _chance: Label
 var _pressure: Label
+var _button_title: Label
 var _button_odds: Label
 var _button_note: Label
 var _card_tile: PanelContainer
@@ -83,7 +84,8 @@ func _init() -> void:
 	right.add_child(tiles)
 	_button_odds = _label("", ODDS_SIZE, GOLD)
 	_button_note = _label("", 16, GREY)
-	tiles.add_child(_tile(_label("Shoot button", TILE_TITLE_SIZE, Color.WHITE), _button_odds, _button_note))
+	_button_title = _label("Shoot button", TILE_TITLE_SIZE, Color.WHITE)
+	tiles.add_child(_tile(_button_title, _button_odds, _button_note))
 	_card_title = _label("Shoot card", TILE_TITLE_SIZE, Color.WHITE)
 	_card_odds = _label("", ODDS_SIZE, GOLD)
 	_card_note = _label("", 16, GREY)
@@ -106,19 +108,32 @@ func show_state(m: MatchRules) -> void:
 		return
 	if not was_showing:
 		_drawing.new_attack(m.their_defence)     ## a fresh attack: new positions every time
-	_drawing.show_pressure(m.box_cards_played, m.rebound)
-	_chance.text = "Chance %d" % m.quality
-	if m.rebound:
+	if m.penalty:
+		_drawing.quiet()        ## a penalty: everyone stays out of the box, so don't close in
+	else:
+		_drawing.show_pressure(m.box_cards_played, m.rebound)
+	_chance.text = "Penalty" if m.penalty else "Chance %d" % m.quality
+	if m.penalty:
+		_pressure.text = "PENALTY! One shot"
+		_pressure.add_theme_color_override("font_color", GOLD)
+	elif m.rebound:
 		_pressure.text = "REBOUND! One more shot"
 		_pressure.add_theme_color_override("font_color", GOLD)
 	else:
 		_pressure.text = PRESSURE[mini(m.box_cards_played, PRESSURE.size() - 1)]
 		_pressure.add_theme_color_override("font_color", GREY)
 
-	## Shoot button: the chance plus a random roll.
-	_button_odds.text = "%d%%" % m.basic_shot_odds()
-	_button_note.text = "random strike +%d to +%d" % [
-			m.basic_shot_roll_low(), m.basic_shot_roll_high()]
+	## Shoot button: the chance plus a random roll. On a penalty it takes the penalty instead.
+	if m.penalty:
+		var odds: Dictionary = m.your_penalty_odds()
+		_button_title.text = "Penalty"
+		_button_odds.text = "%d%%" % odds["score"]
+		_button_note.text = "saved %d%% · miss %d%%" % [odds["save"], odds["miss"]]
+	else:
+		_button_title.text = "Shoot button"
+		_button_odds.text = "%d%%" % m.basic_shot_odds()
+		_button_note.text = "random strike +%d to +%d" % [
+				m.basic_shot_roll_low(), m.basic_shot_roll_high()]
 
 	## Shoot card: the hovered one, or your best one you can play.
 	_show_card_tile()
@@ -128,8 +143,8 @@ func show_state(m: MatchRules) -> void:
 		_rows.remove_child(child)
 		child.queue_free()
 	_row_for.clear()
-	if m.rebound:
-		_build_title.text = "REBOUND: SHOTS ONLY"
+	if m.rebound or m.penalty:
+		_build_title.text = "PENALTY: NO CARDS, JUST THE KICK" if m.penalty else "REBOUND: SHOTS ONLY"
 		return
 	_build_title.text = "OR KEEP BUILDING (risky)"
 	var seen := []
@@ -168,6 +183,13 @@ func _can_shoot_with(card: ActionCard) -> bool:
 ## The card tile: a hovered Shoot card shows ITS odds; otherwise your best playable one, by name.
 func _show_card_tile() -> void:
 	var m := _m
+	if m.penalty:
+		_set_card_title("Shoot card")
+		_card_odds.text = "—"
+		_card_note.text = "not on a penalty"
+		_card_tile.modulate = Color(1, 1, 1, 0.4)
+		_card_tile.add_theme_stylebox_override("panel", _box_style(TILE, TILE_EDGE, 1, 12, 16, 8))
+		return
 	var card := _hovered_card()
 	var hovering := card != null and card.tag == "shot"
 	if not hovering:
@@ -223,7 +245,7 @@ func suspense(text: String) -> void:
 	_drawing.say(text, GOLD)
 
 ## The result, with a little pop, and the move playing out on the drawing.
-## kind: "gain" / "lost" / "goal" / "saved" / "rebound"; tag: the card's tag (pass / dribble / cross).
+## kind: "gain" / "lost" / "penalty" / "goal" / "saved" / "rebound"; tag: the card's tag (pass / dribble / cross).
 func flash(text: String, colour: Color, kind: String = "", tag: String = "") -> void:
 	_drawing.say(text, colour, true)
 	_drawing.act(kind, tag)
@@ -246,12 +268,19 @@ func _build_row(m: MatchRules, card: ActionCard) -> PanelContainer:
 	var then_label := _label("then shoot %d%%" % _best_shot_at(m, m.quality + gain, energy_left), 18, LIGHT)
 	then_label.custom_minimum_size.x = 150
 	row.add_child(then_label)
-	var risk := m.box_risk(card.tag)
-	row.add_child(_risk_bar(risk))
-	var risk_label := _label("%d%% lose it" % risk, 22, RED)
-	risk_label.custom_minimum_size.x = 120
+	## The risk splits in two: losing it (red) and being fouled = a penalty for you (gold).
+	var pen := m.box_penalty_chance(card.tag)
+	var lose := m.box_risk(card.tag) - pen
+	row.add_child(_risk_bar(lose))
+	var risk_label := _label("%d%% lose it" % lose, 22, RED)
+	risk_label.custom_minimum_size.x = 112
 	risk_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	row.add_child(risk_label)
+	if pen > 0:
+		var pen_label := _label("%d%% pen" % pen, 18, GOLD)
+		pen_label.custom_minimum_size.x = 62
+		pen_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(pen_label)
 	return panel
 
 ## A thin red bar showing the risk out of 100.

@@ -30,6 +30,13 @@ const BOX_GAIN_SCALE := 0.5
 const BOX_RISK := {"pass": 20, "dribble": 15, "cross": 25}
 ## ...plus this much for every card already played in this attack (defenders get back).
 const BOX_RISK_STEP := 15
+## Of the times you LOSE the ball in their box, this % are fouls instead: a penalty for you.
+## Dribbles get fouled most. Tags not listed never win a penalty.
+const BOX_FOUL_SHARE := {"pass": 10, "dribble": 35, "cross": 15}
+## PENALTIES (both teams) don't use the keeper decks or the league level: real-life odds instead.
+const PEN_SAVE := 11              ## % saved by a Medium keeper
+const PEN_MISS := 4               ## % wide or over (the rest go in: 85% against a Medium keeper)
+const PEN_SAVE_PER_STEP := 2      ## each step of THEIR keeper's rating moves the save % by this (Very High: 15%)
 ## How much their defence rating moves the box risk. 1 + (rating − 1) × this:
 ## 2.0 → Very Low ×0.6, Medium ×1.0, Very High ×1.4. 0 = same against everyone.
 const BOX_RISK_STRETCH := 2.0
@@ -66,7 +73,6 @@ const TACKLE_REPEAT := 15        ## −this % for every challenge already tried 
 const TACKLE_FOUL_SHARE := 30    ## % of failed tackles that are fouls (a penalty) (was 25)
 const LUNGE_FOUL_SHARE := 40     ## % of failed lunges that are fouls
 const BEATEN_BONUS := 10         ## failed challenge: their next move happens straight away, +this
-const PENALTY_QUALITY := 60      ## a penalty is a shot from this chance (78% against your keeper)
 const TRACK_BACK_BOX_SCALE := 0.5  ## Track Back in your box lowers the chance by half its power
 
 ## --- Match clock and rewards ---
@@ -96,6 +102,8 @@ var their_moves: Array = []   ## their attack in your box: [{"kind", "gain"}, �
 var tackles_tried := 0        ## challenges already tried in this attack (each one is harder)
 var box_cards_played := 0   ## cards played in their box this attack (raises the risk)
 var rebound := false        ## true = the keeper parried it: one more shot, shots only
+var penalty := false        ## true = you were fouled in their box: take_penalty() next, no cards
+var their_keeper := 1.0     ## their keeper's rating (Very Low 0.8 ... Very High 1.2), for penalties
 var _keeper_pile: Array = []
 var _our_keeper_pile: Array = []
 var minute := 0
@@ -117,7 +125,7 @@ func start() -> void:
 	their_defence = opponent.defence if opponent != null else 1.0
 	their_attack = opponent.attack if opponent != null else 1.0
 	level = float(strength) / LeagueState.BASE_STRENGTH
-	var their_keeper := opponent.keeper if opponent != null else 1.0
+	their_keeper = opponent.keeper if opponent != null else 1.0
 	keeper_scale = level * (1.0 + (their_keeper - 1.0) * KEEPER_STRETCH)
 	_flip_press()
 	minute = 0
@@ -126,6 +134,7 @@ func start() -> void:
 	match_over = false
 	box_cards_played = 0
 	rebound = false
+	penalty = false
 	their_moves.clear()
 	tackles_tried = 0
 
@@ -156,6 +165,10 @@ func box_risk(tag: String) -> int:
 		return 0
 	var factor := 1.0 + (their_defence - 1.0) * BOX_RISK_STRETCH
 	return clampi(roundi((BOX_RISK[tag] + BOX_RISK_STEP * box_cards_played) * factor), 0, 100)
+
+## Of box_risk(tag): the % chance it ends in a penalty for you (a foul) rather than losing it.
+func box_penalty_chance(tag: String) -> int:
+	return roundi(box_risk(tag) * BOX_FOUL_SHARE.get(tag, 0) / 100.0)
 
 ## Your odds with the best Shoot card in your hand (-1 if you haven't got one).
 ## A Shoot card is the button's random strike PLUS the card's power, so it always beats the button.
@@ -226,6 +239,10 @@ func tackle_chance(card: ActionCard) -> int:
 func lunge_chance() -> int:
 	return clampi(roundi(LUNGE_CHANCE / _box_strength()) - TACKLE_REPEAT * tackles_tried, 5, 90)
 
+## % chance a lunge ends in a foul (a penalty to them): the failures, times LUNGE_FOUL_SHARE.
+func lunge_foul_chance() -> int:
+	return roundi((100 - lunge_chance()) * LUNGE_FOUL_SHARE / 100.0)
+
 ## True if this card could be thrown away by a lunge (anything that isn't a defending card).
 func is_lunge(card: ActionCard) -> bool:
 	return in_our_box() and card.tag not in ["block", "tackle", "track_back", "lump_clear", "retain", "overlap"]
@@ -273,6 +290,8 @@ func can_play_here(card: ActionCard) -> bool:
 		return false     ## nobody back: it's down to the keeper
 	if not _abilities_allow(card):
 		return false     ## an ability has switched this card off
+	if penalty:
+		return false     ## a penalty: no cards, just the penalty button
 	if rebound and card.tag != "shot":
 		return false     ## rebound: shots only
 	if card.play_zones != 0:
@@ -369,6 +388,8 @@ func take_shot() -> Array:
 	if not in_their_box():
 		events.append({"type": "not_now"})
 		return events
+	if penalty:
+		return take_penalty()   ## on a penalty, the shoot button takes the penalty
 	if energy < SHOT_COST:
 		events.append({"type": "no_energy"})
 		return events
@@ -481,6 +502,7 @@ func _enter_box(start_quality: int, events: Array) -> void:
 	quality = start_quality
 	box_cards_played = 0
 	rebound = false
+	penalty = false
 	events.append({"type": "in_the_box", "quality": quality})
 
 func _play_in_box(card: ActionCard, events: Array) -> void:
@@ -491,6 +513,11 @@ func _play_in_box(card: ActionCard, events: Array) -> void:
 			next_bonus = 0
 			box_cards_played += 1
 			if randi_range(1, 100) <= risk:
+				if randi_range(1, 100) <= BOX_FOUL_SHARE.get(card.tag, 0):
+					## Brought down: a penalty, taken with the penalty button (take_penalty).
+					penalty = true
+					events.append({"type": "box_fouled", "card": card.display_name})
+					return
 				events.append({"type": "box_lost", "card": card.display_name, "risk": risk})
 				_turnover(events)
 				return
@@ -507,6 +534,7 @@ func _play_in_box(card: ActionCard, events: Array) -> void:
 
 func _shoot(events: Array) -> void:
 	rebound = false
+	penalty = false
 	if _box_shot_always_scores():
 		events.append({"type": "sure_goal"})
 		_score_goal(events)
@@ -616,8 +644,7 @@ func _box_challenge(card: ActionCard, chance: int, foul_share: int, lunge: bool,
 		return
 	if randi_range(1, 100) <= foul_share:
 		events.append({"type": "foul"})
-		quality = PENALTY_QUALITY
-		_their_shot(events)
+		_their_penalty(events)
 		return
 	quality += BEATEN_BONUS
 	events.append({"type": "beaten", "bonus": BEATEN_BONUS})
@@ -638,13 +665,69 @@ func _their_shot(events: Array) -> void:
 	var save: int = _draw_from(_our_keeper_pile, OUR_KEEPER_DECK)
 	events.append({"type": "their_shot", "quality": quality, "save": save})
 	if quality > save:
-		conceded += 1
-		events.append({"type": "conceded", "conceded": conceded})
-		zone = 2
-		events.append({"type": "kick_off"})
-		_start_our_possession(events)
+		_concede(events)
 	else:
 		events.append({"type": "our_save"})
+		_win_ball(events)
+
+## They've scored: kick-off to you.
+func _concede(events: Array) -> void:
+	conceded += 1
+	events.append({"type": "conceded", "conceded": conceded})
+	zone = 2
+	events.append({"type": "kick_off"})
+	_start_our_possession(events)
+
+# ---------- Penalties ----------
+
+## Your penalty's odds in %: {"score", "save", "miss"}. Their keeper's rating moves the save %.
+func your_penalty_odds() -> Dictionary:
+	var steps := roundi((their_keeper - 1.0) / OpponentTeam.RATING_SPREAD)
+	return _penalty_odds(PEN_SAVE + steps * PEN_SAVE_PER_STEP)
+
+## Their penalty's odds against your keeper. Abilities can set the save % and/or add to it.
+func their_penalty_odds() -> Dictionary:
+	return _penalty_odds(_penalty_save_base() + _penalty_save_bonus())
+
+func _penalty_odds(save: int) -> Dictionary:
+	save = clampi(save, 0, 100 - PEN_MISS)
+	return {"score": 100 - save - PEN_MISS, "save": save, "miss": PEN_MISS}
+
+## One penalty: "goal", "saved", "wide" or "over".
+func _roll_penalty(odds: Dictionary) -> String:
+	var roll := randi_range(1, 100)
+	if roll <= odds["miss"]:
+		return "wide" if randf() < 0.5 else "over"
+	if roll <= odds["miss"] + odds["save"]:
+		return "saved"
+	return "goal"
+
+## The penalty button: your penalty in their box. No energy, no cards.
+## Scored: kick-off to them. Saved, wide or over: their ball.
+func take_penalty() -> Array:
+	var events := []
+	if match_over or not penalty:
+		events.append({"type": "not_now"})
+		return events
+	penalty = false
+	var odds := your_penalty_odds()
+	var result := _roll_penalty(odds)
+	events.append({"type": "penalty_kick", "ours": true, "result": result, "score": odds["score"]})
+	if result == "goal":
+		_score_goal(events)
+	else:
+		_turnover(events)
+	_tick_clock(events)
+	return events
+
+## Their penalty in your box (after a foul). Scored: kick-off to you. Otherwise: your ball.
+func _their_penalty(events: Array) -> void:
+	var odds := their_penalty_odds()
+	var result := _roll_penalty(odds)
+	events.append({"type": "penalty_kick", "ours": false, "result": result, "score": odds["score"]})
+	if result == "goal":
+		_concede(events)
+	else:
 		_win_ball(events)
 
 # ---------- Changing possession ----------
@@ -686,6 +769,9 @@ func _start_our_possession(events: Array) -> void:
 		_enter_box(0, events)   ## won it inside their box: straight into a shooting position
 	else:
 		_flip_press()
+	## Nothing in your hand can be played (after a goal, a save, a lunge...): you lose it
+	## straight away, the same rule as the opening kick-off. Without this the game just waits.
+	_check_out_of_energy(events)
 
 func _start_their_possession(events: Array = []) -> void:
 	has_ball = false
@@ -814,6 +900,32 @@ func _rebound_chance() -> int:
 	for a in _active_abilities():
 		total += a.rebound_bonus(self)
 	return clampi(total, 0, 100)
+
+## YOUR keeper's save % on their penalties before bonuses: PEN_SAVE, unless an ability sets
+## its own (a penalty-saving keeper). The highest one counts.
+func _penalty_save_base() -> int:
+	var base := PEN_SAVE
+	for a in _active_abilities():
+		base = maxi(base, a.penalty_save_percent(self))
+	return base
+
+## Your staff whose abilities are helping your keeper with their penalties right now
+## (so the screen can make their tiles react to a save).
+func penalty_helpers() -> Array:
+	var list: Array = []
+	for s in RunState.match_squad():
+		if s.ability == null or not s.ability.is_active(self):
+			continue
+		if s.ability.penalty_save_percent(self) > PEN_SAVE or s.ability.penalty_save_bonus(self) > 0:
+			list.append(s)
+	return list
+
+## Extra % saves for YOUR keeper on their penalties, from abilities, added on top.
+func _penalty_save_bonus() -> int:
+	var total := 0
+	for a in _active_abilities():
+		total += a.penalty_save_bonus(self)
+	return total
 
 func _abilities_allow(card: ActionCard) -> bool:
 	return _active_abilities().all(func(a): return a.allows_card(self, card))

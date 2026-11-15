@@ -149,7 +149,7 @@ func show_state(m: MatchRules) -> void:
 		var row := _answer_row(m, card, false)
 		_row_for[key] = row
 		_rows.add_child(row)
-	if m.can_lunge() and _rows.get_child_count() < 4:
+	if m.can_lunge():     ## always listed when the Lunge button is there, however many cards
 		var any_card: ActionCard = DeckState.hand.filter(func(c): return m.is_lunge(c)).front()
 		var lunge_row := _answer_row(m, any_card, true)
 		_row_for[LUNGE_KEY] = lunge_row
@@ -223,7 +223,7 @@ func _answer_row(m: MatchRules, card: ActionCard, lunge: bool) -> PanelContainer
 				effect = "%d%% win it" % chance
 			var beaten: int = m.quality + MatchRules.BEATEN_BONUS + (0 if shot_next else move["gain"])
 			then = "Beaten: chance %d" % beaten
-			risk = roundi((100 - chance) * share / 100.0)
+			risk = m.lunge_foul_chance() if lunge else roundi((100 - chance) * share / 100.0)
 		"lump_clear":
 			effect = "Clear it out"
 			then = "They keep the ball"
