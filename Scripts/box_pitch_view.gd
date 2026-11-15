@@ -8,6 +8,9 @@ extends Control
 ##   act()            the result plays out: a pass, cross or dribble that comes off,
 ##                    a tackle that wins the ball, a save, a rebound, a goal
 ##   say()            the gamble / result written big in a band across the drawing
+## set_ours(true) turns it into YOUR box (OurBoxView): drawn upside down so your goal is at the
+## bottom, their two attackers in red, your defenders in gold, and extra moves for defending:
+## block, won (you win the ball), beaten, foul (a penalty).
 ## Positions are worked out on a REF_SIZE drawing (in pixels) and scaled when drawn.
 
 const GRASS_A := Color("24482d")
@@ -24,6 +27,7 @@ const LEGEND := Color("cfe3d0")
 const SHADE := Color(0, 0, 0, 0.6)         ## the band behind the big text
 const BAND_HEIGHT := 0.25   
 const BAND_TOP := 0.52                     ## the band: share of the height where it starts...const BAND_HEIGHT := 0.25                  ## ...and how tall it is (the players stay visible above)
+const OURS_BAND_TOP := 0.08               ## your box: the band sits near the top, clear of the players
 const STRIPES := 6                         ## mown stripes across the grass
 const GOAL_LINE := 14.0                    ## pixels from the top: the goal sits above it
 const REF_SIZE := Vector2(480, 540)        ## positions are worked out at this size
@@ -85,6 +89,12 @@ var _pressure := 0.0           ## how close the defenders are now (0-1)
 var _defenders: Array = []     ## per defender: {key, angle, far, near, speed}
 var _status := Label.new()
 var _tween: Tween
+var _ours := false             ## true = your box: flipped, colours swapped (see set_ours)
+var _ring_key := ""            ## a player with a ring round him (your blocker)
+var ring := 0.0:               ## how strong the ring is (1 = full, fades to 0)
+	set(value):
+		ring = value
+		queue_redraw()
 
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -106,6 +116,14 @@ func _init() -> void:
 	new_attack(1.0)
 
 # ---------- What BoxView calls ----------
+
+## Your box instead of theirs: your goal at the bottom, their attackers red, your defenders gold.
+## The text band moves up near the top, clear of the players.
+func set_ours(on: bool) -> void:
+	_ours = on
+	_status.anchor_top = OURS_BAND_TOP if on else BAND_TOP
+	_status.anchor_bottom = _status.anchor_top + BAND_HEIGHT
+	queue_redraw()
 
 ## A fresh attack into the box: roll where your two players are and how their defenders come.
 ## their_defence is the opponent's Defence multiplier (Very Low 0.8 ... Very High 1.2):
@@ -164,6 +182,22 @@ func act(kind: String, tag: String = "") -> void:
 			_shoot("saved")
 		"rebound":
 			_shoot("rebound")
+		## Your box (set_ours): your players are the "defenders" here.
+		"block":
+			_block()
+		"won":
+			_win_tackle()
+		"beaten":
+			_beaten()
+		"foul":
+			_foul()
+		"move":
+			if tag == "pass":
+				_pass(false)
+			elif tag == "cross":
+				_pass(true)
+			else:
+				_dribble()
 
 ## Write big text in the band across the drawing. pop = the result (a quick bounce);
 ## otherwise it types out.
@@ -256,6 +290,78 @@ func _shoot(result: String) -> void:
 			_ball_free = false
 			_move({"ball": spill, "keeper": save, follow: spill - BALL_OFFSET}, ACT_TIME, [save], SHOT_ARC)
 
+## Your box: your nearest man gets right in front of him (goal side), then shepherds him
+## back and wide. A gold ring pulses round the blocker. They keep the ball.
+func _block() -> void:
+	var them: Vector2 = _to[_carrier]
+	var blocker := _nearest_defender(them)
+	if blocker == "":
+		return
+	var to_goal := (Vector2(REF_SIZE.x / 2, GOAL_LINE) - them).normalized()
+	var side := Vector2(-to_goal.y, to_goal.x) * (1.0 if randf() < 0.5 else -1.0)
+	var pushed := _keep_yours(them - to_goal * 34 + side * 34)
+	_ring_key = blocker
+	ring = 1.0
+	create_tween().tween_property(self, "ring", 0.0, SettingsState.t(ACT_TIME * 2.0))
+	_move({blocker: them + to_goal * 30}, ACT_TIME * 0.5)
+	_after(ACT_TIME * 0.5, func():
+		_move({_carrier: pushed, "ball": pushed + BALL_OFFSET, blocker: pushed + to_goal * 30}, ACT_TIME))
+
+## Your box: your man goes in, takes the ball off their man's feet and carries it away
+## (away from your goal); their man is knocked aside.
+func _win_tackle() -> void:
+	var them: Vector2 = _to[_carrier]
+	var tackler := _nearest_defender(them)
+	if tackler == "":
+		return
+	var line: Vector2 = (_to[tackler] - them).normalized()     ## from their man towards yours
+	var side := 1.0 if them.x < REF_SIZE.x / 2 else -1.0
+	var away := (them + Vector2(side * 90, 45)).clamp(Vector2(24, GOAL_LINE + 24), REF_SIZE - Vector2(24, 24))
+	_move({tackler: them + line * 12}, ACT_TIME * 0.6)        ## in he goes; the ball's still theirs
+	_after(ACT_TIME * 0.6, func():
+		_ball_free = true                                      ## not at THEIR feet any more
+		_move({tackler: away, "ball": away + BALL_OFFSET, _carrier: them - line * 18}, ACT_TIME))
+
+## Run something after a pause (game-speed scaled), for two-part moves.
+func _after(seconds: float, then: Callable) -> void:
+	var wait := SettingsState.t(seconds)
+	if wait <= 0.0 or not is_inside_tree():
+		then.call()
+		return
+	get_tree().create_timer(wait).timeout.connect(then)
+
+## Your box: your man slides in and misses; their man skips past him towards goal.
+func _beaten() -> void:
+	var them: Vector2 = _to[_carrier]
+	var tackler := _nearest_defender(them)
+	if tackler == "":
+		return
+	var line: Vector2 = (_to[tackler] - them).normalized()
+	var past := _keep_yours(them + Vector2(-line.x * 40, -randf_range(40, 60)))
+	_move({tackler: them + line * 4, _carrier: past, "ball": past + BALL_OFFSET}, ACT_TIME)
+
+## Your box: a foul. Your man is left where he brought him down; the ball goes on the spot.
+func _foul() -> void:
+	var them: Vector2 = _to[_carrier]
+	var tackler := _nearest_defender(them)
+	var spot := Vector2(REF_SIZE.x / 2, REF_SIZE.y * SPOT_Y)
+	var targets := {_carrier: spot + Vector2(-12, 34), "ball": spot,
+			"keeper": Vector2(REF_SIZE.x / 2, REF_SIZE.y * KEEPER_Y)}
+	if tackler != "":
+		targets[tackler] = them
+	_ball_free = false
+	_move(targets, ACT_TIME)
+
+func _nearest_defender(at: Vector2) -> String:
+	var nearest := ""
+	var best := INF
+	for d in _defenders:
+		var gap := at.distance_to(_to[d["key"]])
+		if gap < best:
+			best = gap
+			nearest = d["key"]
+	return nearest
+
 # ---------- Helpers ----------
 
 ## Move everything named in targets to its new spot; everything else stays where it is.
@@ -327,6 +433,10 @@ func _draw() -> void:
 	var w := size.x
 	var h := size.y
 	var k := size / REF_SIZE            ## REF_SIZE positions -> real pixels
+	if _ours:
+		draw_set_transform(Vector2(0, h), 0.0, Vector2(1, -1))   ## upside down: your goal at the bottom
+	var attackers := RED if _ours else GOLD      ## whoever has the ball in this box
+	var defenders := GOLD if _ours else RED
 	var stripe := h / STRIPES
 	for i in STRIPES:
 		draw_rect(Rect2(0, i * stripe, w, stripe + 1), GRASS_A if i % 2 == 0 else GRASS_B)
@@ -350,15 +460,17 @@ func _draw() -> void:
 	for d in _defenders:
 		var at: Vector2 = _now(d["key"]) * k
 		var close := clampf(1.0 - (at.distance_to(ball_ground) - 40.0) / 160.0, 0.0, 1.0)
-		draw_circle(at, 13 + 10 * close, Color(RED, 0.25))
-		draw_circle(at, 13, RED)
+		draw_circle(at, 13 + 10 * close, Color(defenders, 0.25))
+		draw_circle(at, 13, defenders)
+		if d["key"] == _ring_key and ring > 0.0:
+			draw_arc(at, 22 + 10 * (1.0 - ring), 0, TAU, 32, Color(Color.WHITE, ring), 4.0)
 	## Your two players: the one on the ball has a glow.
 	for player in ["p0", "p1"]:
 		var at: Vector2 = _now(player) * k
 		if player == _carrier and not _ball_free:
-			draw_circle(at, 25, Color(GOLD, 0.25))
+			draw_circle(at, 25, Color(attackers, 0.25))
 		draw_circle(at, 17, DARK)
-		draw_circle(at, 15, GOLD)
+		draw_circle(at, 15, attackers)
 	var keeper: Vector2 = _now("keeper") * k
 	draw_circle(keeper, 17, DARK)
 	draw_circle(keeper, 15, KEEPER)
@@ -366,19 +478,24 @@ func _draw() -> void:
 	var height := _arc * sin(PI * progress)
 	if height > 1.0:
 		draw_circle(ball_ground, 7, Color(0, 0, 0, 0.35))
-	var ball := ball_ground - Vector2(0, height)
+	var ball := ball_ground + Vector2(0, height if _ours else -height)   ## always lifts UP the screen
 	var grow := 1.0 + (0.5 * height / _arc if _arc > 0.0 else 0.0)
 	draw_circle(ball, 9 * grow, DARK)
 	draw_circle(ball, 7 * grow, BALL)
 
-	## Legend along the bottom.
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)   ## back the right way up for the words
+
+	## Legend along the bottom (along the top in your box, where the goal is at the bottom).
 	var font := ThemeDB.fallback_font
 	var x := 18.0
-	for item in [[GOLD, "Your players"], [RED, "Their defenders"], [KEEPER, "Keeper"]]:
-		draw_circle(Vector2(x + 7, h - 24), 7, item[0])
-		draw_string(font, Vector2(x + 20, h - 18), item[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, LEGEND)
+	var legend_y := 24.0 if _ours else h - 24
+	var items := [[RED, "Them"], [GOLD, "Your defenders"], [KEEPER, "Your keeper"]] if _ours \
+			else [[GOLD, "Your players"], [RED, "Their defenders"], [KEEPER, "Keeper"]]
+	for item in items:
+		draw_circle(Vector2(x + 7, legend_y), 7, item[0])
+		draw_string(font, Vector2(x + 20, legend_y + 6), item[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, LEGEND)
 		x += 30 + font.get_string_size(item[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
 
 	## The band behind the big text.
 	if _status.visible:
-		draw_rect(Rect2(0, h * BAND_TOP, w, h * BAND_HEIGHT), SHADE)
+		draw_rect(Rect2(0, h * _status.anchor_top, w, h * BAND_HEIGHT), SHADE)

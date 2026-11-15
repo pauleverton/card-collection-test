@@ -73,7 +73,12 @@ func show_state(m: MatchRules) -> void:
 	elif m.zone == 0:
 		tag = "THEIR CHANCE %d" % m.quality
 		note.append("They score: %d%%" % m.their_goal_odds())
-		note.append("Nobody back: keeper only!" if m.nobody_back() else "Block or Tackle to lower it")
+		if m.nobody_back():
+			note.append("Nobody back: keeper only!")
+		else:
+			note.append(m.next_move_text())
+			var tackle := m.best_tackle_chance()
+			note.append("Tackle: %d%% to win it" % tackle if tackle >= 0 else "Any card: %d%% lunge" % m.lunge_chance())
 	elif m.nobody_back():
 		tag = "NOBODY BACK!"
 	else:

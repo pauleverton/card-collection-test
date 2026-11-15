@@ -73,6 +73,14 @@ func _deal_in(count: int) -> float:
 
 ## Fly the card that was just clicked to the discard pile, then remove it.
 ## Returns how long it takes.
+## Fly a particular card to the discard pile (a random card thrown away by a lunge).
+func send_card_to_discard(card: ActionCard, target: Vector2) -> float:
+	for ui in get_children():
+		if ui.card == card:
+			_clicked = ui
+			break
+	return send_to_discard(target)
+
 func send_to_discard(target: Vector2) -> float:
 	var ui := _clicked
 	_clicked = null

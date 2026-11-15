@@ -24,6 +24,9 @@ const WHISTLE_PAUSE := 1.5      ## seconds on the final score before the full-ti
 var draw_view := PileView.new()
 var discard_view := PileView.new()
 var box_view := BoxView.new()
+var our_box_view := OurBoxView.new()   ## your box: they attack, you react
+var lunge_button := Button.new()       ## your box: throw a random card in (a desperate lunge)
+const LUNGE_RECT := Rect2(1588, 796, 170, 110)   ## above the action button
 var scoreboard := ScoreboardView.new()
 var squad_bar := VBoxContainer.new()     ## the matchday squad, down the left
 var squad_tiles: Array = []              ## the SquadTileViews in squad_bar (not the headings)
@@ -32,6 +35,8 @@ var energy_label := Label.new()
 var stage := Control.new()               ## holds the whole match screen, see _build_layout()
 const BOX_SUSPENSE := 0.9      ## seconds on "Short pass... 30% risk" before the result
 const BOX_RESULT_PAUSE := 0.8  ## seconds on "CLOSED DOWN!" / "+15!" before the screen moves on
+const GOOD_FLASH := Color("7be07b")   ## your box: things going your way (won it, saved, blocked)
+const BAD_FLASH := Color("ff7a6b")    ## your box: things going theirs (beaten, foul, their moves)
 
 ## ---------- Layout ----------
 ## Everything sits on a 1920×1080 "stage" kept in the middle of the window, so a wider
@@ -70,6 +75,7 @@ func _ready() -> void:
 	pitch.start()
 	hand.card_played.connect(play_card)
 	let_through_button.pressed.connect(_on_let_through)
+	lunge_button.pressed.connect(_on_lunge)
 	shoot_button.pressed.connect(_on_shoot)
 	continue_button.pressed.connect(_on_continue)	
 	UiStyle.primary(continue_button)       ## full-time: the one main action
@@ -107,6 +113,7 @@ func _refresh_and_wait() -> void:
 func play_card(card: ActionCard) -> void:
 	if busy: return
 	var gamble := _box_gamble_text(card)   ## worked out BEFORE the card changes the risk
+	var was_in_our_box := pitch.in_our_box()
 	var events := pitch.play(card)
 	## If the card couldn't be played at all, leave it in the hand.
 	if events[0]["type"] in ["not_now", "no_energy","not_here", "wrong_side"]:
@@ -136,6 +143,8 @@ func play_card(card: ActionCard) -> void:
 		await get_tree().create_timer(delay).timeout   ## let the squad reactions finish first
 	await _box_moment(gamble, events, card.tag)
 	await _long_shot_moment(events)
+	if was_in_our_box:
+		await _our_box_moment(events)
 	_after_action(events)
 
 
@@ -149,9 +158,28 @@ func _on_shoot() -> void:
 	await _box_moment(gamble, events)
 	_after_action(events)
 
+## Lunge: a random non-defending card from your hand is thrown in. It flies to the discard,
+## then the challenge plays out on the box drawing like a tackle.
+func _on_lunge() -> void:
+	if busy: return
+	var events := pitch.lunge()
+	if events[0]["type"] == "not_now":
+		return
+	busy = true
+	hand.modulate = Color(1, 1, 1, 0.4)
+	var fly_time: float = hand.send_card_to_discard(events[0]["card"], discard_view.centre())
+	get_tree().create_timer(fly_time).timeout.connect(_update_piles)
+	await _our_box_moment(events)
+	_after_action(events)
+
 func _on_let_through() -> void:
 	if busy: return
-	_after_action(pitch.let_them_through())
+	var was_in_our_box := pitch.in_our_box()
+	var events := pitch.let_them_through()
+	busy = true
+	if was_in_our_box:
+		await _our_box_moment(events)
+	_after_action(events)
 	
 ## The other team in the match just played, from this round's results.
 func _opponent_name() -> String:
@@ -377,8 +405,10 @@ func _build_layout() -> void:
 	_place(build_bar, BAR_RECT)
 	_place(pitch_strip, PITCH_RECT)
 	_place(box_view, BOX_RECT)
+	_place(our_box_view, BOX_RECT)
 	_style_build_bar()
 	box_view.visible = false
+	our_box_view.visible = false
 	commentary_headline.add_theme_font_size_override("normal_font_size", 22)
 	commentary_headline.fit_content = false          ## fixed height: a narrow column made it huge
 	commentary_headline.custom_minimum_size.y = 110
@@ -401,6 +431,10 @@ func _build_layout() -> void:
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART   ## long labels wrap instead of widening
 	_place(shoot_button, ACTION_RECT)
 	_place(let_through_button, ACTION_RECT)
+	UiStyle.secondary(lunge_button)
+	lunge_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lunge_button.visible = false
+	_place(lunge_button, LUNGE_RECT)
 	hand.custom_minimum_size = Vector2.ZERO
 	_place(hand, HAND_RECT)
 
@@ -518,6 +552,40 @@ func _long_shot_moment(events: Array) -> void:
 		_say("[color=gold][b]GOAL![/b][/color]", false)
 	await get_tree().create_timer(flight + SettingsState.t(BOX_RESULT_PAUSE)).timeout
 
+## Your box: play out what just happened, one beat at a time, on the drawing.
+## (A challenge holds on "TACKLE... 50% to win it" first, like the gamble in their box.)
+func _our_box_moment(events: Array) -> void:
+	for e in events:
+		match e["type"]:
+			"blocked":
+				our_box_view.flash("BLOCKED!  Chance %d" % e["quality"], GOOD_FLASH, "block")
+				await get_tree().create_timer(SettingsState.t(BOX_RESULT_PAUSE)).timeout
+			"challenge":
+				var what: String = "LUNGE" if e["lunge"] else e["card"].to_upper()
+				our_box_view.suspense("%s...  %d%% to win it" % [what, e["chance"]])
+				await get_tree().create_timer(SettingsState.t(BOX_SUSPENSE)).timeout
+			"challenge_won":
+				our_box_view.flash("WON IT!", GOOD_FLASH, "won")
+				await get_tree().create_timer(SettingsState.t(BOX_RESULT_PAUSE)).timeout
+			"beaten":
+				our_box_view.flash("BEATEN!", BAD_FLASH, "beaten")
+				await get_tree().create_timer(SettingsState.t(BOX_RESULT_PAUSE)).timeout
+			"foul":
+				our_box_view.flash("FOUL!  PENALTY", BAD_FLASH, "foul")
+				await get_tree().create_timer(SettingsState.t(BOX_RESULT_PAUSE)).timeout
+			"their_move":
+				our_box_view.flash("THEY %s  +%d" % [e["kind"].to_upper(), e["gain"]], BAD_FLASH, "move", e["kind"])
+				await get_tree().create_timer(SettingsState.t(BOX_RESULT_PAUSE)).timeout
+			"their_shot":
+				our_box_view.suspense("SHOT!  Your keeper dives...")
+				await get_tree().create_timer(SettingsState.t(BOX_SUSPENSE)).timeout
+			"conceded":
+				our_box_view.flash("GOAL FOR THEM", BAD_FLASH, "goal")
+				await get_tree().create_timer(SettingsState.t(BOX_RESULT_PAUSE)).timeout
+			"our_save":
+				our_box_view.flash("SAVED!", GOOD_FLASH, "saved")
+				await get_tree().create_timer(SettingsState.t(BOX_RESULT_PAUSE)).timeout
+
 ## What happened in the box, as one big word, plus its kind (for the box drawing).
 func _box_result(events: Array) -> Dictionary:
 	for e in events:
@@ -543,13 +611,16 @@ func refresh_all() -> float:
 	_update_piles()
 	pitch_strip.show_state(pitch)
 	box_view.show_state(pitch)
-	pitch_strip.visible = not box_view.visible   ## the box view takes the strip's place
+	our_box_view.show_state(pitch)
+	pitch_strip.visible = not box_view.visible and not our_box_view.visible   ## a box view takes the strip's place
 	for tile in squad_tiles:
 		tile.show_state(pitch)                   ## ability chips: ON / FROM 75' / WHEN LOSING
 	_show_info(pitch.minute)
 	shoot_button.visible = pitch.in_their_box() and not pitch.match_over
 	let_through_button.visible = not pitch.has_ball and not pitch.match_over
-	let_through_button.text = "Let them shoot" if pitch.in_our_box() else "Let them through"
+	let_through_button.text = _let_through_text()
+	lunge_button.visible = pitch.can_lunge()
+	lunge_button.text = "LUNGE\nrandom card · %d%%" % pitch.lunge_chance()
 	for card_ui in hand.get_children():
 		if not pitch.can_play_here(card_ui.card):
 			card_ui.set_play_state("blocked")      ## can't be played here
@@ -572,6 +643,15 @@ func refresh_all() -> float:
 			build_label.text = "Holding 0 / 0, nobody back!"
 	return deal_time
 	
+## The Let them button: "Let them through" outside your box, their next move inside it.
+func _let_through_text() -> String:
+	if not pitch.in_our_box():
+		return "Let them through"
+	var move := pitch.next_move()
+	if move.is_empty() or move["kind"] == "shot":
+		return "Let them shoot"
+	return "Let them %s" % move["kind"]
+
 ## Scoreboard, round and energy. Takes the minute so a replay can show the clock ticking.
 func _show_info(minute: int) -> void:
 	scoreboard.show_score(pitch.goals, pitch.conceded, minute)
@@ -629,6 +709,21 @@ func describe(events: Array) -> String:
 				lines.append("They're in your box with a chance of %d!" % e["quality"])
 			"blocked":
 				lines.append("%s: their chance down to %d." % [e["card"], e["quality"]])
+			"their_move":
+				lines.append("They %s: +%d, chance now %d." % [e["kind"], e["gain"], e["quality"]])
+			"lunge":
+				lines.append("Desperate! A lunge, and %s is gone from your hand." % e["card"].display_name)
+			"challenge":
+				if e["lunge"]:
+					lines.append("Lunge: %d%% to win it..." % e["chance"])
+				else:
+					lines.append("%s! %d%% to win it..." % [e["card"], e["chance"]])
+			"challenge_won":
+				lines.append("Got it!")
+			"beaten":
+				lines.append("Beaten! They go again (+%d)." % e["bonus"])
+			"foul":
+				lines.append("[color=#e04040][b]FOUL! Penalty.[/b][/color]")
 			"their_shot":
 				lines.append("THEY SHOOT! Chance %d vs your keeper %d..." % [e["quality"], e["save"]])
 			"conceded":
