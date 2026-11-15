@@ -1,11 +1,13 @@
 [gd_resource type="Resource" script_class="PlayerCard" format=3 uid="uid://yw8j6fiqa0f3"]
 
+[ext_resource type="Texture2D" uid="uid://mkji7sl2utqg" path="res://Images+themes/Player Art/the_wall_art.png" id="1_0erof"]
 [ext_resource type="Script" uid="uid://b8dxl7yvw3hj" path="res://Scripts/player_card.gd" id="1_l6068"]
 
 [resource]
 script = ExtResource("1_l6068")
+bonus = 10
 display_name = "The Wall"
 description = "+10 to all defending cards"
 boosts_type = "defending"
-bonus = 10
+art = ExtResource("1_0erof")
 metadata/_custom_type_script = "uid://b8dxl7yvw3hj"

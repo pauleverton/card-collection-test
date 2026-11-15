@@ -16,6 +16,8 @@ extends Resource
 ## Set it by hand for anyone who only has an ability or boosts a tag (Super Sub = attacking,
 ## Twinkle Toes = move). Only changes the badge, never the numbers.
 @export var badge_type: String = "auto"
+## Optional artwork (players and coaches). Empty = the tile shows his initials instead.
+@export var art: Texture2D
 
 const WHEN_WORDS := {"any": "any score", "winning": "when winning", "drawing": "when drawing",
 		"losing": "when losing", "not_winning": "when not winning", "not_losing": "when not losing"}

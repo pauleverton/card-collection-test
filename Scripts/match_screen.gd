@@ -74,6 +74,10 @@ func _ready() -> void:
 	DeckState.draw(OPENING_HAND)
 	pitch.start()
 	hand.card_played.connect(play_card)
+	hand.card_hovered.connect(box_view.preview)   ## their box: the panel previews the hovered card
+	hand.card_hovered.connect(our_box_view.preview)   ## your box: the hovered card's row lights up
+	lunge_button.mouse_entered.connect(our_box_view.preview_lunge.bind(true))
+	lunge_button.mouse_exited.connect(our_box_view.preview_lunge.bind(false))
 	let_through_button.pressed.connect(_on_let_through)
 	lunge_button.pressed.connect(_on_lunge)
 	shoot_button.pressed.connect(_on_shoot)
@@ -620,10 +624,12 @@ func refresh_all() -> float:
 	let_through_button.visible = not pitch.has_ball and not pitch.match_over
 	let_through_button.text = _let_through_text()
 	lunge_button.visible = pitch.can_lunge()
+	if not lunge_button.visible:
+		our_box_view.preview_lunge(false)   ## a hidden button can't be hovered
 	lunge_button.text = "LUNGE\nrandom card · %d%%" % pitch.lunge_chance()
 	for card_ui in hand.get_children():
-		if not pitch.can_play_here(card_ui.card):
-			card_ui.set_play_state("blocked")      ## can't be played here
+		if not pitch.can_play_here(card_ui.card) or card_ui.card.energy_cost > pitch.energy:
+			card_ui.set_play_state("blocked")      ## can't be played here, or not enough energy		
 		elif pitch.would_succeed(card_ui.card):
 			card_ui.set_play_state("through")      ## gets you through
 		else:

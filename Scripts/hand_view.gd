@@ -1,6 +1,8 @@
 extends Control
 
 signal card_played(card: ActionCard)
+## The card under the mouse, or null when the mouse leaves the hand (the box view previews it).
+signal card_hovered(card: ActionCard)
 
 const CARD_UI = preload("res://Scenes/action_card_view.tscn")
 const CARD_SIZE := Vector2(180, 250)
@@ -152,7 +154,9 @@ func _layout() -> void:
 ## Hovering lifts, straightens and enlarges a card, and brings it to the front.
 func _on_hover(ui: Control, hovering: bool) -> void:
 	if ui.get_parent() != self:
+		card_hovered.emit(null)
 		return      ## it's flying to the discard pile, or being removed: leave it alone
+	card_hovered.emit(ui.card if hovering else null)
 	var tween := create_tween().set_parallel(true)
 	if hovering:
 		ui.z_index = 100

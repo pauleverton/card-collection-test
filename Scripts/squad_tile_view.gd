@@ -49,7 +49,7 @@ func setup(data: StaffCard) -> void:
 	row.add_theme_constant_override("separation", 12)
 	_card.add_child(row)
 	if not is_coach:
-		row.add_child(_art_square(data.display_name))
+		row.add_child(_art_square(data))
 
 	var text := VBoxContainer.new()
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -127,14 +127,22 @@ func _float_number(label_text: String) -> void:
 	t.parallel().tween_property(label, "modulate:a", 0.0, s.t(0.6)).set_delay(s.t(0.2))
 	t.tween_callback(label.queue_free)            ## tidy up when it's gone
 
-## A square with the player's initials, where his artwork will go later.
-func _art_square(full_name: String) -> PanelContainer:
+## A square with the player's artwork, or his initials if he hasn't got any yet.
+func _art_square(data: StaffCard) -> PanelContainer:
 	var square := PanelContainer.new()
 	square.custom_minimum_size = Vector2(ART_SIZE, ART_SIZE)
 	square.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	square.clip_contents = true          ## crop the picture to the square
 	square.add_theme_stylebox_override("panel", _box(ART_FILL, ART_EDGE, 2, 8, 0, 0))
+	if data.art != null:
+		var picture := TextureRect.new()
+		picture.texture = data.art
+		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED   ## fill the square, crop the rest
+		square.add_child(picture)
+		return square
 	var initials := ""
-	for word in full_name.split(" ", false):
+	for word in data.display_name.split(" ", false):
 		if initials.length() < 2:
 			initials += word.left(1).to_upper()
 	var label := _label(initials, 24, PLAYER_NOTE)

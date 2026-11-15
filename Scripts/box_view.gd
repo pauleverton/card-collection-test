@@ -4,6 +4,8 @@ extends PanelContainer
 ## you're in it. Display only: match_screen tells it what to show; MatchRules decides.
 ##   Left:  their penalty area drawn (BoxPitchView), with the gamble / result written across it.
 ##   Right: the chance, SHOOT NOW (button and card odds), OR KEEP BUILDING (one row per card).
+## Hovering a card in your hand previews it here (preview()): a Shoot card fills the card tile
+## with ITS odds, a Pass / Dribble / Cross lights up its row.
 
 const GOLD := Color("f2b233")
 const GREEN := Color("7be07b")
@@ -24,6 +26,8 @@ const ODDS_WIDTH := 120         ## room for "100%"
 ## Shown under the title, one per card already played in this attack.
 const PRESSURE := ["Defenders still getting back", "They're closing in", "Tight now", "Swarmed"]
 const BUILD_TAGS := ["pass", "dribble", "cross"]
+const TILE_TITLE_SIZE := 20     ## card name on the shoot card tile (shrinks to fit long names)
+const TILE_TITLE_MIN := 14
 
 var _drawing := BoxPitchView.new()
 var _chance: Label
@@ -31,10 +35,14 @@ var _pressure: Label
 var _button_odds: Label
 var _button_note: Label
 var _card_tile: PanelContainer
+var _card_title: Label
 var _card_odds: Label
 var _card_note: Label
 var _build_title: Label
 var _rows: VBoxContainer
+var _m: MatchRules = null           ## the match, kept from show_state() so preview() can redraw
+var _hovered: ActionCard = null     ## the card under the mouse in your hand (null = none)
+var _row_for := {}                  ## card name -> its build row (to light it up on hover)
 
 func _init() -> void:
 	add_theme_stylebox_override("panel", _box_style(PANEL, GOLD, 3, 12, 20))
@@ -75,10 +83,11 @@ func _init() -> void:
 	right.add_child(tiles)
 	_button_odds = _label("", ODDS_SIZE, GOLD)
 	_button_note = _label("", 16, GREY)
-	tiles.add_child(_tile("Shoot button", _button_odds, _button_note))
+	tiles.add_child(_tile(_label("Shoot button", TILE_TITLE_SIZE, Color.WHITE), _button_odds, _button_note))
+	_card_title = _label("Shoot card", TILE_TITLE_SIZE, Color.WHITE)
 	_card_odds = _label("", ODDS_SIZE, GOLD)
 	_card_note = _label("", 16, GREY)
-	_card_tile = _tile("Shoot card", _card_odds, _card_note)
+	_card_tile = _tile(_card_title, _card_odds, _card_note)
 	tiles.add_child(_card_tile)
 
 	## OR KEEP BUILDING: one row per Pass / Dribble / Cross you could play.
@@ -92,6 +101,7 @@ func _init() -> void:
 func show_state(m: MatchRules) -> void:
 	var was_showing := visible
 	visible = m.in_their_box() and not m.match_over
+	_m = m
 	if not visible:
 		return
 	if not was_showing:
@@ -110,26 +120,14 @@ func show_state(m: MatchRules) -> void:
 	_button_note.text = "random strike +%d to +%d" % [
 			m.basic_shot_roll_low(), m.basic_shot_roll_high()]
 
-	## Shoot card: your best one in hand, if you can play it.
-	var best_card: ActionCard = null
-	for card in DeckState.hand:
-		if card.tag == "shot" and m.can_play_here(card) and card.energy_cost <= m.energy:
-			if best_card == null or m.power_of(card) > m.power_of(best_card):
-				best_card = card
-	if best_card != null:
-		var power := m.power_of(best_card)
-		_card_odds.text = "%d%%" % m.basic_shot_odds_at(m.quality + power)
-		_card_note.text = "random strike, +%d more" % power
-		_card_tile.modulate = Color.WHITE
-	else:
-		_card_odds.text = "—"
-		_card_note.text = "none in your hand"
-		_card_tile.modulate = Color(1, 1, 1, 0.4)
+	## Shoot card: the hovered one, or your best one you can play.
+	_show_card_tile()
 
 	## Keep building: one row per different Pass / Dribble / Cross you can play.
 	for child in _rows.get_children():
 		_rows.remove_child(child)
 		child.queue_free()
+	_row_for.clear()
 	if m.rebound:
 		_build_title.text = "REBOUND: SHOTS ONLY"
 		return
@@ -141,9 +139,84 @@ func show_state(m: MatchRules) -> void:
 		if not m.can_play_here(card) or card.energy_cost > m.energy:
 			continue
 		seen.append(card.display_name)
-		_rows.add_child(_build_row(m, card))
+		var row := _build_row(m, card)
+		_row_for[card.display_name] = row
+		_rows.add_child(row)
 	if seen.is_empty():
 		_rows.add_child(_label("Nothing to build with: time to shoot!", 22, DIM))
+	_light_rows()
+
+## The card under the mouse in your hand (null when the mouse leaves). Redraws only the parts
+## that depend on it, so nothing flickers.
+func preview(card: ActionCard) -> void:
+	_hovered = card
+	if not visible or _m == null:
+		return
+	_show_card_tile()
+	_light_rows()
+
+## The hovered card, if it's still in your hand (a played card can still be "hovered" for a moment).
+func _hovered_card() -> ActionCard:
+	if _hovered != null and _hovered in DeckState.hand:
+		return _hovered
+	return null
+
+## Can you play this Shoot card right now (right place, enough energy)?
+func _can_shoot_with(card: ActionCard) -> bool:
+	return card.tag == "shot" and _m.can_play_here(card) and card.energy_cost <= _m.energy
+
+## The card tile: a hovered Shoot card shows ITS odds; otherwise your best playable one, by name.
+func _show_card_tile() -> void:
+	var m := _m
+	var card := _hovered_card()
+	var hovering := card != null and card.tag == "shot"
+	if not hovering:
+		card = null
+		for c in DeckState.hand:
+			if _can_shoot_with(c) and (card == null or m.power_of(c) > m.power_of(card)):
+				card = c
+	if card == null:
+		_set_card_title("Shoot card")
+		_card_odds.text = "—"
+		_card_note.text = "none you can play"
+		_card_tile.modulate = Color(1, 1, 1, 0.4)
+		_card_tile.add_theme_stylebox_override("panel", _box_style(TILE, TILE_EDGE, 1, 12, 16, 8))
+		return
+	_set_card_title(card.display_name)
+	var power := m.power_of(card)
+	if _can_shoot_with(card):
+		_card_odds.text = "%d%%" % m.basic_shot_odds_at(m.quality + power)
+		_card_note.text = "%d energy · +%d" % [card.energy_cost, power]
+		_card_tile.modulate = Color.WHITE
+	else:
+		_card_odds.text = "—"
+		_card_note.text = "needs %d energy" % card.energy_cost
+		_card_tile.modulate = Color(1, 1, 1, 0.6)
+	## Gold edge while it's the card under your mouse, so you can see the tile is following it.
+	var edge := GOLD if hovering else TILE_EDGE
+	_card_tile.add_theme_stylebox_override("panel", _box_style(TILE, edge, 2 if hovering else 1, 12, 16, 8))
+
+## Card names vary in length ("Really hard Shot"): shrink the title to fit on one line.
+func _set_card_title(text: String) -> void:
+	_card_title.text = text
+	var font := _card_title.get_theme_font("font")
+	## Room = the tile minus its margins, the big % and the gap (the label's own size lags a frame).
+	var room := _card_tile.size.x - 32 - ODDS_WIDTH - 14
+	if room <= 0:
+		room = 180.0
+	var font_size := TILE_TITLE_SIZE
+	while font_size > TILE_TITLE_MIN and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > room:
+		font_size -= 1
+	_card_title.add_theme_font_size_override("font_size", font_size)
+
+## Gold edge on the build row of the hovered card (two Short Passes share one row).
+func _light_rows() -> void:
+	var card := _hovered_card()
+	for card_name in _row_for:
+		var lit: bool = card != null and card.display_name == card_name
+		var row: PanelContainer = _row_for[card_name]
+		row.add_theme_stylebox_override("panel",
+				_box_style(ROW, GOLD if lit else ROW_EDGE, 2 if lit else 1, 8, 12, 6))
 
 ## The gamble, written across the drawing before the result is shown.
 func suspense(text: String) -> void:
@@ -169,7 +242,8 @@ func _build_row(m: MatchRules, card: ActionCard) -> PanelContainer:
 	var gain_label := _label("+%d" % gain, 22, GREEN)
 	gain_label.custom_minimum_size.x = 50
 	row.add_child(gain_label)
-	var then_label := _label("then shoot %d%%" % _best_shot_at(m, m.quality + gain), 18, LIGHT)
+	var energy_left := m.energy - card.energy_cost
+	var then_label := _label("then shoot %d%%" % _best_shot_at(m, m.quality + gain, energy_left), 18, LIGHT)
 	then_label.custom_minimum_size.x = 150
 	row.add_child(then_label)
 	var risk := m.box_risk(card.tag)
@@ -193,16 +267,17 @@ func _risk_bar(risk: int) -> ProgressBar:
 	bar.add_theme_stylebox_override("fill", _box_style(RISK, RISK, 0, 6, 0, 0))
 	return bar
 
-## Your best odds from a chance of q: the Shoot button, or a Shoot card if you hold one.
-func _best_shot_at(m: MatchRules, q: int) -> int:
+## Your best odds from a chance of q with `energy` left: the Shoot button, or a Shoot card you
+## could still afford. (Building always leaves enough energy for the button.)
+func _best_shot_at(m: MatchRules, q: int, energy: int) -> int:
 	var best := m.basic_shot_odds_at(q)
 	for card in DeckState.hand:
-		if card.tag == "shot":
+		if card.tag == "shot" and card.energy_cost <= energy:
 			best = maxi(best, m.basic_shot_odds_at(q + m.power_of(card)))
 	return best
 
 ## A shooting option tile, sharing the width: the big % on the left, title and note on the right.
-func _tile(title: String, odds: Label, note: Label) -> PanelContainer:
+func _tile(title: Label, odds: Label, note: Label) -> PanelContainer:
 	var tile := PanelContainer.new()
 	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tile.add_theme_stylebox_override("panel", _box_style(TILE, TILE_EDGE, 1, 12, 16, 8))
@@ -216,7 +291,10 @@ func _tile(title: String, odds: Label, note: Label) -> PanelContainer:
 	words.alignment = BoxContainer.ALIGNMENT_CENTER
 	words.add_theme_constant_override("separation", 2)
 	row.add_child(words)
-	words.add_child(_label(title, 20, Color.WHITE))
+	title.clip_text = true
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	words.add_child(title)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.custom_minimum_size.x = 120
 	words.add_child(note)

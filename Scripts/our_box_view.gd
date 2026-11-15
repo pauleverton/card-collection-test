@@ -5,6 +5,7 @@ extends PanelContainer
 ##   Left:  your penalty area drawn (BoxPitchView in "ours" mode: your goal at the bottom),
 ##          with the challenge / result written across it.
 ##   Right: their chance, THEIR NEXT MOVE, and YOUR ANSWER (one row per card you could play).
+## Hovering a card in your hand (or the Lunge button) lights up its answer row, like their box.
 
 const RED := Color("e0574a")
 const PINK := Color("ffb3a9")
@@ -23,6 +24,8 @@ const TRACK := Color("0a120d")
 const DRAWING_WIDTH := 480      ## the penalty-area drawing on the left
 const BIG := 56                 ## the big numbers / words in the two tiles
 const ROW_FONT := 20
+const HOVER_EDGE := Color("f2b233")   ## gold edge on the hovered card's row (same as their box)
+const LUNGE_KEY := "_lunge"           ## the Lunge row's key (no card is called this)
 
 var _drawing := BoxPitchView.new()
 var _chance: Label
@@ -31,6 +34,10 @@ var _next_word: Label
 var _next_note: Label
 var _plan: Label
 var _rows: VBoxContainer
+var _m: MatchRules = null           ## the match, kept from show_state() so preview() can redraw
+var _hovered: ActionCard = null     ## the card under the mouse in your hand (null = none)
+var _lunge_hovered := false         ## the mouse is over the Lunge button
+var _row_for := {}                  ## card name (or LUNGE_KEY) -> its answer row
 
 func _init() -> void:
 	add_theme_stylebox_override("panel", _box_style(PANEL, RED, 3, 12, 20))
@@ -98,6 +105,7 @@ func _init() -> void:
 func show_state(m: MatchRules) -> void:
 	var was_showing := visible
 	visible = m.in_our_box() and not m.match_over
+	_m = m
 	if not visible:
 		return
 	if not was_showing:
@@ -126,6 +134,7 @@ func show_state(m: MatchRules) -> void:
 	for child in _rows.get_children():
 		_rows.remove_child(child)
 		child.queue_free()
+	_row_for.clear()
 	if m.nobody_back():
 		_rows.add_child(_label("Nobody back: it's down to your keeper.", ROW_FONT, DIM))
 		return
@@ -137,12 +146,42 @@ func show_state(m: MatchRules) -> void:
 		if key in seen or card.tag in ["retain", "overlap"]:
 			continue
 		seen.append(key)
-		_rows.add_child(_answer_row(m, card, false))
+		var row := _answer_row(m, card, false)
+		_row_for[key] = row
+		_rows.add_child(row)
 	if m.can_lunge() and _rows.get_child_count() < 4:
 		var any_card: ActionCard = DeckState.hand.filter(func(c): return m.is_lunge(c)).front()
-		_rows.add_child(_answer_row(m, any_card, true))
+		var lunge_row := _answer_row(m, any_card, true)
+		_row_for[LUNGE_KEY] = lunge_row
+		_rows.add_child(lunge_row)
 	if _rows.get_child_count() == 0:
 		_rows.add_child(_label("Nothing you can play: they make their move.", ROW_FONT, DIM))
+	_light_rows()
+
+## The card under the mouse in your hand (null when the mouse leaves).
+func preview(card: ActionCard) -> void:
+	_hovered = card
+	if visible and _m != null:
+		_light_rows()
+
+## The mouse is over (true) or has left (false) the Lunge button.
+func preview_lunge(on: bool) -> void:
+	_lunge_hovered = on
+	if visible and _m != null:
+		_light_rows()
+
+## Gold edge on the row that matches what you're hovering; every other row gets its own edge back.
+func _light_rows() -> void:
+	var key := ""
+	if _lunge_hovered:
+		key = LUNGE_KEY
+	elif _hovered != null and _hovered in DeckState.hand:
+		key = _hovered.display_name
+	for row_key in _row_for:
+		var row: PanelContainer = _row_for[row_key]
+		var lit: bool = row_key == key
+		var edge: Color = HOVER_EDGE if lit else row.get_meta("edge")
+		row.add_theme_stylebox_override("panel", _box_style(ROW, edge, 2 if lit else 1, 8, 12, 5))
 
 ## The challenge, written across the drawing before the result is shown.
 func suspense(text: String) -> void:
@@ -193,7 +232,9 @@ func _answer_row(m: MatchRules, card: ActionCard, lunge: bool) -> PanelContainer
 
 	var panel := PanelContainer.new()
 	var hot := card.tag == "tackle" or lunge
-	panel.add_theme_stylebox_override("panel", _box_style(ROW, GREEN.darkened(0.45) if hot else ROW_EDGE, 1, 8, 12, 5))
+	var edge := GREEN.darkened(0.45) if hot else ROW_EDGE
+	panel.set_meta("edge", edge)        ## remembered, so _light_rows() can put it back
+	panel.add_theme_stylebox_override("panel", _box_style(ROW, edge, 1, 8, 12, 5))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	panel.add_child(row)
