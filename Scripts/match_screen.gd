@@ -624,6 +624,9 @@ func _our_box_moment(events: Array) -> void:
 			"their_move":
 				our_box_view.flash("THEY %s  +%d" % [e["kind"].to_upper(), e["gain"]], BAD_FLASH, "move", e["kind"])
 				await get_tree().create_timer(SettingsState.t(BOX_RESULT_PAUSE)).timeout
+			"their_move_lost":
+				our_box_view.flash("THEY LOSE IT!", GOOD_FLASH, "won")
+				await get_tree().create_timer(SettingsState.t(BOX_RESULT_PAUSE)).timeout
 			"their_shot":
 				our_box_view.suspense("SHOT!  Your keeper dives...")
 				await get_tree().create_timer(SettingsState.t(BOX_SUSPENSE)).timeout
@@ -775,6 +778,8 @@ func describe(events: Array) -> String:
 				lines.append("%s: their chance down to %d." % [e["card"], e["quality"]])
 			"their_move":
 				lines.append("They %s: +%d, chance now %d." % [e["kind"], e["gain"], e["quality"]])
+			"their_move_lost":
+				lines.append("They try to %s... and lose it!" % e["kind"])
 			"lunge":
 				lines.append("Desperate! A lunge, and %s is gone from your hand." % e["card"].display_name)
 			"challenge":

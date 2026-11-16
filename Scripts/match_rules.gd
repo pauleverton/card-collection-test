@@ -53,15 +53,26 @@ const REBOUND_QUALITY := 30
 const KEEPER_STRETCH := 1.5
 
 ## --- Them attacking ---
-const THEIR_CHANCE_DECK := [30, 40, 40, 50, 50, 60, 60, 70]
+const THEIR_CHANCE_DECK := [20, 30, 30, 40, 40, 50]   ## was 30-70: with their moves on top, too many went over 70 (always a goal)
 const OUR_KEEPER_DECK := [20, 30, 30, 40, 40, 50, 50, 60, 70]
 const MIN_THEIR_CHANCE := 10   ## you can never block a chance down to nothing (was 30)
 
 ## --- Your box: they attack, you react (TRIAL) ---
-## Their attack is a few moves then a shot. You always see the next move. Block is safe but only
-## lowers the chance; a challenge can end the attack, but if it fails you're beaten.
+## They pass / dribble / cross until the chance is good enough for them, then shoot. You always see
+## the next move. Block is safe but only lowers the chance; a challenge can end the attack, but if
+## it fails you're beaten. Their attack rating sets their style: weak attacks shoot early and lose
+## the ball more; strong attacks are patient and keep it.
 const THEIR_MOVE_GAINS := {"pass": 15, "dribble": 20, "cross": 25}   ## × their attack rating
-const THEIR_BUILD_MOVES := Vector2i(1, 2)   ## moves before the shot (picked at random in this range)
+const THEIR_MAX_MOVES := 3   ## the most moves they make before shooting anyway
+## They shoot once their chance reaches this (their next move shows "SHOT"). Block it back below
+## and they have to build again...
+const THEIR_SHOOT_AT := 60
+## ...moved by their attack rating: + (rating − 1) × this. 50 → Very Low 50, Medium 60, Very High 70.
+const THEIR_SHOOT_AT_STRETCH := 50.0
+## Risk (%) that each of their moves goes wrong and you win the ball (yours in their box: BOX_RISK)...
+const THEIR_MOVE_RISK := {"pass": 5, "dribble": 10, "cross": 15}
+## ...times 1 − (rating − 1) × this. 3.0 → Very Low ×1.6, Medium ×1.0, Very High ×0.4.
+const THEIR_RISK_STRETCH := 3.0
 const TACKLE_BOX_BASE := 0       ## Tackle: success % = (this + the card's power) ÷ their strength (was 20)
 const LUNGE_CHANCE := 15         ## a desperate lunge (the Lunge button): success % ÷ their strength (was 25)
 ## "Their strength" in your box = their attack rating × the league level, so challenges get harder as
@@ -216,7 +227,27 @@ func basic_shot_roll_high() -> int:
 
 ## Their next move in your box ({} if they're not in your box).
 func next_move() -> Dictionary:
-	return their_moves[0] if in_our_box() and not their_moves.is_empty() else {}
+	return move_at(quality)
+
+## What their next move would be if the chance were q: the shot once q reaches their_shoot_at(),
+## otherwise the next move in their plan. (The answer rows ask "what if I block it to 40?")
+func move_at(q: int) -> Dictionary:
+	if not in_our_box() or their_moves.is_empty():
+		return {}
+	if q >= their_shoot_at():
+		return {"kind": "shot", "gain": 0}
+	return their_moves[0]
+
+## The chance they're happy to shoot from: better attacks are more patient.
+func their_shoot_at() -> int:
+	return THEIR_SHOOT_AT + roundi((their_attack - 1.0) * THEIR_SHOOT_AT_STRETCH)
+
+## % chance their pass / dribble / cross goes wrong and you win the ball: better attacks lose it less.
+func their_move_risk(kind: String) -> int:
+	if not THEIR_MOVE_RISK.has(kind):
+		return 0
+	var factor := 1.0 - (their_attack - 1.0) * THEIR_RISK_STRETCH
+	return clampi(roundi(THEIR_MOVE_RISK[kind] * factor), 0, 100)
 
 ## How hard their attackers are to tackle in your box: their attack rating × the league level.
 func _box_strength() -> float:
@@ -612,12 +643,13 @@ func _set_their_chance() -> void:
 	quality = _draw_from(_their_chance_pile, THEIR_CHANCE_DECK)
 	_plan_attack()
 
-## Their attack in your box: 1-2 moves, then a shot. Nobody back: straight to the shot.
+## Their attack in your box: up to THEIR_MAX_MOVES moves, then a shot (they shoot sooner once the
+## chance reaches their_shoot_at()). Nobody back: straight to the shot.
 func _plan_attack() -> void:
 	their_moves.clear()
 	tackles_tried = 0
 	if not nobody_back():
-		for i in randi_range(THEIR_BUILD_MOVES.x, THEIR_BUILD_MOVES.y):
+		for i in THEIR_MAX_MOVES:
 			var kind: String = THEIR_MOVE_GAINS.keys().pick_random()
 			their_moves.append({"kind": kind, "gain": roundi(THEIR_MOVE_GAINS[kind] * their_attack)})
 	their_moves.append({"kind": "shot", "gain": 0})
@@ -651,13 +683,19 @@ func _box_challenge(card: ActionCard, chance: int, foul_share: int, is_lunge_cha
 	events.append({"type": "beaten", "bonus": BEATEN_BONUS})
 	_their_move(events)
 
-## They make their next move in your box: a pass / dribble / cross raises the chance, or they shoot.
+## They make their next move in your box: a pass / dribble / cross raises the chance (or goes
+## wrong, and it's your ball), or they shoot.
 func _their_move(events: Array) -> void:
 	if their_moves.is_empty():
 		_plan_attack()   ## safety net: never stuck without a plan
-	var move: Dictionary = their_moves.pop_front()
+	var move := next_move()
+	their_moves.pop_front()
 	if move["kind"] == "shot":
 		_their_shot(events)
+		return
+	if randi_range(1, 100) <= their_move_risk(move["kind"]):
+		events.append({"type": "their_move_lost", "kind": move["kind"]})
+		_win_ball(events)
 		return
 	quality += move["gain"]
 	events.append({"type": "their_move", "kind": move["kind"], "gain": move["gain"], "quality": quality})

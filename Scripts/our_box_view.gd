@@ -125,10 +125,7 @@ func show_state(m: MatchRules) -> void:
 		var after: int = m.quality + move["gain"]
 		_next_word.text = "%s  +%d" % [move["kind"].to_upper(), move["gain"]]
 		_next_note.text = "Chance %d → %d · they'd score %d%%" % [m.quality, after, m.their_goal_odds_at(after)]
-		var later := PackedStringArray()
-		for i in range(1, m.their_moves.size()):
-			later.append("Shot" if m.their_moves[i]["kind"] == "shot" else "?")
-		_plan.text = "Then: " + " · ".join(later)
+		_plan.text = "Shoot at %d+ · %d%% lose it" % [m.their_shoot_at(), m.their_move_risk(move["kind"])]
 
 	## Your answer: one row per kind of card you could play now.
 	for child in _rows.get_children():
@@ -200,8 +197,6 @@ func _answer_row(m: MatchRules, card: ActionCard, lunge: bool) -> PanelContainer
 	var effect := ""
 	var then := ""
 	var risk := 0
-	var move := m.next_move()
-	var shot_next: bool = move.is_empty() or move["kind"] == "shot"
 	match card.tag if not lunge else "lunge":
 		"block", "track_back":
 			var power := m.power_of(card)
@@ -209,11 +204,12 @@ func _answer_row(m: MatchRules, card: ActionCard, lunge: bool) -> PanelContainer
 				power = roundi(power * MatchRules.TRACK_BACK_BOX_SCALE)
 			var lower := maxi(MatchRules.MIN_THEIR_CHANCE, m.quality - power)
 			effect = "Chance %d → %d" % [m.quality, lower]
-			if shot_next:
+			var move_after := m.move_at(lower)      ## blocked below their shooting chance: they build again
+			if move_after.is_empty() or move_after["kind"] == "shot":
 				then = "They shoot: %d%%" % m.their_goal_odds_at(lower)
 			else:
-				var after: int = lower + move["gain"]
-				then = "After the %s: %d%%" % [move["kind"], m.their_goal_odds_at(after)]
+				var after: int = lower + move_after["gain"]
+				then = "After the %s: %d%%" % [move_after["kind"], m.their_goal_odds_at(after)]
 		"tackle", "lunge":
 			var chance := m.lunge_chance() if lunge else m.tackle_chance(card)
 			var share := MatchRules.LUNGE_FOUL_SHARE if lunge else MatchRules.TACKLE_FOUL_SHARE
@@ -222,7 +218,10 @@ func _answer_row(m: MatchRules, card: ActionCard, lunge: bool) -> PanelContainer
 				effect = "%d%% · random card" % chance
 			if not lunge:
 				effect = "%d%% win it" % chance
-			var beaten: int = m.quality + MatchRules.BEATEN_BONUS + (0 if shot_next else move["gain"])
+			var beaten: int = m.quality + MatchRules.BEATEN_BONUS
+			var move_beaten := m.move_at(beaten)    ## beaten: their next move comes straight away, from there
+			if not move_beaten.is_empty() and move_beaten["kind"] != "shot":
+				beaten += move_beaten["gain"]
 			then = "Beaten: chance %d" % beaten
 			risk = m.lunge_foul_chance() if lunge else roundi((100 - chance) * share / 100.0)
 		"lump_clear":
