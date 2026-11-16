@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ActionCard" format=3 uid="uid://bns71lpfptn3l"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_4o3ad"]
+
+[resource]
+script = ExtResource("1_4o3ad")
+display_name = "Short pass"
+card_type = "move"
+base_value = 30
+usable_when = "attacking"
+play_zones = 31
+metadata/_custom_type_script = "uid://c7aob23hi7te0"

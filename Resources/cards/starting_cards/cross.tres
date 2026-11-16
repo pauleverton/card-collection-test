@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ActionCard" format=3 uid="uid://whlh6q4bs1wu"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_3y67c"]
+
+[resource]
+script = ExtResource("1_3y67c")
+display_name = "Cross"
+description = "Cross the ball"
+card_type = "attacking"
+tag = "cross"
+base_value = 30
+usable_when = "attacking"
+play_zones = 16
+metadata/_custom_type_script = "uid://c7aob23hi7te0"

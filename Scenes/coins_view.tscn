@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://f50lcm050uqd"]
+
+[ext_resource type="Script" uid="uid://dh8g20w2trbd5" path="res://Scripts/coins_view.gd" id="1_jlopx"]
+
+[node name="CoinsView" type="PanelContainer" unique_id=1009221376]
+script = ExtResource("1_jlopx")

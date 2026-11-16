@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ActionCard" format=3 uid="uid://du07emj33qjhe"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_kbrn2"]
+
+[resource]
+script = ExtResource("1_kbrn2")
+display_name = "Retain"
+description = "Energy +1 and draw 2 cards"
+card_type = "utility"
+tag = "retain"
+base_value = 1
+energy_cost = 0
+play_zones = 31
+draw_count = 2
+energy_boost = 1
+metadata/_custom_type_script = "uid://c7aob23hi7te0"

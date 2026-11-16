@@ -10,19 +10,18 @@ config_version=5
 
 [application]
 
-config/name="Card collection test"
+config/name="Revised card tst"
 run/main_scene="uid://c1ikq7hlp47qr"
 config/features=PackedStringArray("4.7", "Forward Plus")
 
 [autoload]
 
-CardDatabase="*uid://bfvlo21pwnmj5"
-SquadState="*uid://b8xuu3kdbwvnp"
-MatchSquadState="*uid://b36baagfnap4k"
 LeagueState="*uid://drh3b45cteav5"
 CareerState="*uid://bdal6ushgnda6"
 CoinState="*uid://6pmwnexcrmhu"
-BossRoster="*uid://dbspi4n07cpr6"
+DeckState="*uid://bik846611mhor"
+RunState="*uid://divwdvrm5qb60"
+SettingsState="*uid://e25twbfo04k6"
 
 [display]
 
@@ -31,7 +30,10 @@ window/size/viewport_height=1080
 window/size/initial_position_type=0
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-window/stretch/scale=1.64
+
+[gui]
+
+theme/custom="uid://byp3dxxc8bk32"
 
 [physics]
 

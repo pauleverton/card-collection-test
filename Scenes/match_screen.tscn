@@ -1,0 +1,148 @@
+[gd_scene format=3 uid="uid://1wskr7vxkrbn"]
+
+[ext_resource type="Script" uid="uid://bcefkpn30hf4u" path="res://Scripts/match_screen.gd" id="1_q5qwi"]
+[ext_resource type="PackedScene" uid="uid://cwu28l4omivta" path="res://Scenes/hand_view.tscn" id="2_inwtk"]
+[ext_resource type="Script" uid="uid://b2oocq28vdoul" path="res://Scripts/pitch_view.gd" id="3_8am4k"]
+
+[node name="MatchSlice" type="Control" unique_id=417129108]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_q5qwi")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1494732306]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.27701452, 0.44654077, 0.02145871, 1)
+
+[node name="Hand" parent="." unique_id=1534953697 instance=ExtResource("2_inwtk")]
+custom_minimum_size = Vector2(0, 320)
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="InfoLabel" type="Label" parent="." unique_id=429595187]
+layout_mode = 0
+offset_left = 1626.0
+offset_top = 6.0
+offset_right = 1910.0
+offset_bottom = 216.0
+horizontal_alignment = 2
+
+[node name="Pitch" type="HBoxContainer" parent="." unique_id=959226060]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 202.0
+offset_bottom = 202.0
+grow_horizontal = 2
+script = ExtResource("3_8am4k")
+
+[node name="CommentaryBox" type="PanelContainer" parent="." unique_id=1695255033]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_top = 0.512
+anchor_right = 0.5
+anchor_bottom = 0.512
+offset_left = -606.0
+offset_top = -49.0
+offset_right = 599.0
+offset_bottom = 94.03998
+
+[node name="VBox" type="VBoxContainer" parent="CommentaryBox" unique_id=1241725564]
+layout_mode = 2
+
+[node name="Headline" type="RichTextLabel" parent="CommentaryBox/VBox" unique_id=502780018]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/normal_font_size = 28
+bbcode_enabled = true
+fit_content = true
+
+[node name="Log" type="RichTextLabel" parent="CommentaryBox/VBox" unique_id=734963512]
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+bbcode_enabled = true
+scroll_following = true
+
+[node name="LetThroughButton" type="Button" parent="." unique_id=1749137881]
+layout_mode = 0
+offset_left = 27.0
+offset_top = 624.0
+offset_right = 190.0
+offset_bottom = 677.0
+text = "Kick off again"
+
+[node name="ShootButton" type="Button" parent="." unique_id=2069174672]
+layout_mode = 0
+offset_left = 1700.0
+offset_top = 624.0
+offset_right = 1896.0
+offset_bottom = 666.0
+text = "Shoot (1 energy)"
+
+[node name="FullTimePanel" type="Panel" parent="." unique_id=801056383]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="FullTimePanel" unique_id=2105251916]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="VBox" type="VBoxContainer" parent="FullTimePanel" unique_id=1176487560]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="FullTimeLabel" type="Label" parent="FullTimePanel/VBox" unique_id=589059374]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+horizontal_alignment = 1
+
+[node name="ContinueButton" type="Button" parent="FullTimePanel/VBox" unique_id=1782092316]
+layout_mode = 2
+text = "Next Match"
+
+[node name="BuildBar" type="ProgressBar" parent="." unique_id=493980779]
+layout_mode = 0
+offset_left = 615.0
+offset_top = 453.0
+offset_right = 1278.0
+offset_bottom = 491.0
+
+[node name="BuildLabel" type="Label" parent="BuildBar" unique_id=1282036415]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 34.0

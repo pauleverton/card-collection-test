@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ActionCard" format=3 uid="uid://cf1yrftxa7tsn"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_5xwn8"]
+[ext_resource type="Resource" uid="uid://dr3cbut4tertk" path="res://Resources/cards/2nd upgrades/really_hard_shot.tres" id="2_ni7vp"]
+
+[resource]
+script = ExtResource("1_5xwn8")
+display_name = "Hard Shot"
+description = "Hard shot"
+card_type = "attacking"
+tag = "shot"
+base_value = 50
+energy_cost = 3
+upgrades_to = ExtResource("2_ni7vp")
+usable_when = "attacking"
+play_zones = 16
+metadata/_custom_type_script = "uid://c7aob23hi7te0"

@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://c33ivk1grwh3l"]
+
+[ext_resource type="Script" uid="uid://bt0f0oweir2v7" path="res://Scripts/league_table_view.gd" id="1_e585w"]
+
+[node name="LeagueTableView" type="GridContainer" unique_id=2119695628]
+script = ExtResource("1_e585w")
