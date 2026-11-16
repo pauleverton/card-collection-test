@@ -1,7 +1,7 @@
 extends Button
 ## One action card drawn as a card: a colour band by type (energy cost + name), the value,
-## the description, and type + rarity along the bottom. If the card has `art`, it's shown
-## above the value. Deliberately plain: proper artwork will take over the look later.
+## the description, and type + rarity along the bottom. A card with `art` is full-art instead:
+## the picture is the whole face, with only the energy cost drawn on top (_build_full_art).
 ## The match hand uses it at its normal size (180×250); setup's `factor` makes it bigger
 ## or smaller elsewhere (reward screen 1.3, deck grids ~0.8).
 ## Play state (set by the match screen) is shown on the card itself, never by tinting it:
@@ -23,7 +23,10 @@ const TYPE_COLOURS := {"attacking": Color("c9302c"), "move": Color("2b5bc4"),
 		"utility": Color("d9822b"), "defending": Color("2f7a3a"), "skills": Color("1f8a8a")}
 const RARITY_COLOURS := {"common": Color("9aa59b"), "uncommon": Color("3e8fd0"),
 		"rare": Color("c9302c"), "special": Color("c99a2e")}
-const ART_SHARE := 0.35          ## share of the card's height the artwork gets, when it has some
+## Cards WITH art are full-art: the picture is the whole card face (it carries its own name and
+## look), and only these live bits are drawn on top. Cards without art keep the plain design.
+const FULL_ART_COST := true      ## draw the energy cost circle over the art (top left)
+const FULL_ART_VALUE := false    ## draw the value over the art (top right)
 ## Font sizes at factor 1.0.
 const NAME_SIZE := 20
 const NAME_MIN_SIZE := 12        ## long names shrink down to this to stay on one line
@@ -35,6 +38,7 @@ const COIN_SIZE := 28
 
 var card: ActionCard
 var _factor := 1.0
+var _full_art := false           ## true = this card shows its artwork as the whole face
 
 func _ready() -> void:
 	focus_mode = Control.FOCUS_NONE
@@ -46,8 +50,12 @@ func setup(data: ActionCard, factor: float = 1.0) -> void:
 	_factor = factor
 	text = ""
 	custom_minimum_size = BASE_SIZE * factor
+	_full_art = data.art != null
 	_apply_outline(Color(0, 0, 0, 0), 0)
 	var colour: Color = TYPE_COLOURS.get(data.card_type, Color.GRAY)
+	if _full_art:
+		_build_full_art(data, colour)
+		return
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 0)
 	add_child(box)
@@ -81,6 +89,7 @@ func _apply_outline(outline: Color, width: int) -> void:
 	for state in ["normal", "hover", "pressed", "disabled"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = PAPER
+		style.draw_center = not _full_art       ## full-art: the picture sits behind, the edge on top
 		style.set_corner_radius_all(int(10 * _factor))
 		style.shadow_color = Color(0, 0, 0, 0.4)
 		style.shadow_size = int(6 * _factor)
@@ -105,6 +114,58 @@ static func value_text(data: ActionCard) -> String:
 
 # ---------- Pieces ----------
 
+
+
+## A full-art card: the picture fills the card (corners rounded to match the card), drawn
+## BEHIND the card's own edge so the hover and "gets you through" outlines still show on top.
+## Then the live numbers the artist leaves off: the energy cost, and the value if switched on.
+func _build_full_art(data: ActionCard, colour: Color) -> void:
+	var frame := Panel.new()                    ## rounds the picture's corners
+	var shape := StyleBoxFlat.new()
+	shape.set_corner_radius_all(int(10 * _factor))
+	frame.add_theme_stylebox_override("panel", shape)
+	frame.clip_children = CanvasItem.CLIP_CHILDREN_ONLY
+	frame.show_behind_parent = true
+	add_child(frame)
+	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var art := TextureRect.new()
+	art.texture = data.art
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED   ## fill the card, trim any spare edge
+	frame.add_child(art)
+	art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var margin := 8 * _factor
+	if FULL_ART_COST:
+		var coin := _cost_coin(data, colour)
+		add_child(coin)
+		coin.position = Vector2(margin, margin)
+	if FULL_ART_VALUE:
+		var value := _label(value_text(data), VALUE_SIZE_WITH_ART, Color.WHITE)
+		value.add_theme_color_override("font_outline_color", INK)
+		value.add_theme_constant_override("outline_size", int(8 * _factor))
+		add_child(value)
+		value.position = Vector2(BASE_SIZE.x * _factor - margin - value.get_minimum_size().x, margin * 0.5)
+	for child in get_children():
+		_ignore_mouse(child)            ## clicks and hovers go to the card itself, not the pieces on it
+
+## The energy cost in a white circle, in the card's type colour (band and full-art cards).
+func _cost_coin(data: ActionCard, colour: Color) -> PanelContainer:
+	var coin := PanelContainer.new()
+	var coin_size := COIN_SIZE * _factor
+	coin.custom_minimum_size = Vector2(coin_size, coin_size)
+	coin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var coin_style := StyleBoxFlat.new()
+	coin_style.bg_color = Color.WHITE
+	coin_style.set_corner_radius_all(int(coin_size / 2.0))
+	coin_style.border_color = colour
+	coin_style.set_border_width_all(int(2 * _factor) if _full_art else 0)   ## a ring so it stands out on art
+	coin.add_theme_stylebox_override("panel", coin_style)
+	var cost := _label(str(data.energy_cost), NAME_SIZE, colour)
+	cost.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cost.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	coin.add_child(cost)
+	return coin
+
 ## Coloured band across the top: energy cost in a white circle, then the name.
 func _band(data: ActionCard, colour: Color) -> PanelContainer:
 	var band := PanelContainer.new()
@@ -118,19 +179,7 @@ func _band(data: ActionCard, colour: Color) -> PanelContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", int(6 * _factor))
 	band.add_child(row)
-	var coin := PanelContainer.new()
-	var coin_size := COIN_SIZE * _factor
-	coin.custom_minimum_size = Vector2(coin_size, coin_size)
-	coin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var coin_style := StyleBoxFlat.new()
-	coin_style.bg_color = Color.WHITE
-	coin_style.set_corner_radius_all(int(coin_size / 2.0))
-	coin.add_theme_stylebox_override("panel", coin_style)
-	var cost := _label(str(data.energy_cost), NAME_SIZE, colour)
-	cost.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	cost.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	coin.add_child(cost)
-	row.add_child(coin)
+	row.add_child(_cost_coin(data, colour))
 	var name_label := _label(data.display_name.to_upper(), NAME_SIZE, Color.WHITE)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -141,20 +190,14 @@ func _band(data: ActionCard, colour: Color) -> PanelContainer:
 	row.add_child(name_label)
 	return band
 
-## The middle: artwork (if any), the big value, the description.
+
+## The middle: the big value, the description.
 func _middle(data: ActionCard) -> VBoxContainer:
 	var middle := VBoxContainer.new()
 	middle.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	middle.alignment = BoxContainer.ALIGNMENT_CENTER
 	middle.add_theme_constant_override("separation", int(2 * _factor))
-	if data.art != null:
-		var art := TextureRect.new()
-		art.texture = data.art
-		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		art.custom_minimum_size.y = BASE_SIZE.y * ART_SHARE * _factor
-		middle.add_child(art)
-	var value := _label(value_text(data), VALUE_SIZE if data.art == null else VALUE_SIZE_WITH_ART, INK)
+	var value := _label(value_text(data), VALUE_SIZE, INK)
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	middle.add_child(value)
 	var desc := _label(data.description, DESC_SIZE, SOFT_INK)
