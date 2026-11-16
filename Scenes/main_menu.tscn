@@ -39,6 +39,7 @@ offset_right = 207.5
 offset_bottom = 29.5
 grow_horizontal = 2
 grow_vertical = 2
+disabled = true
 text = "Continue"
 
 [node name="ViewAchievements" type="Button" parent="TextureRect" unique_id=626872115]
@@ -54,6 +55,7 @@ offset_right = 207.5
 offset_bottom = 118.5
 grow_horizontal = 2
 grow_vertical = 2
+disabled = true
 text = "View achievements"
 
 [node name="ViewProgress" type="Button" parent="TextureRect" unique_id=1336544284]
@@ -69,6 +71,7 @@ offset_right = 209.5
 offset_bottom = 205.5
 grow_horizontal = 2
 grow_vertical = 2
+disabled = true
 text = "View progress"
 
 [node name="SpeedOption" type="OptionButton" parent="TextureRect" unique_id=1097322672]

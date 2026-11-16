@@ -644,10 +644,10 @@ func _empty_tile(label: String) -> PanelContainer:
 # ---------- Helpers ----------
 
 ## A flat paper-coloured button (hover: a thin gold edge).
-func _paper_button(size: Vector2, colour: Color) -> Button:
+func _paper_button(button_size: Vector2, colour: Color) -> Button:
 	var button := Button.new()
-	button.custom_minimum_size = size
-	button.size = size
+	button.custom_minimum_size = button_size
+	button.size = button_size
 	button.focus_mode = Control.FOCUS_NONE
 	for state in ["normal", "hover", "pressed"]:
 		var style := _box_style(colour, 2)

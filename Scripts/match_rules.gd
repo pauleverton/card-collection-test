@@ -635,10 +635,10 @@ func _defend_in_box(card: ActionCard, events: Array) -> void:
 			_box_challenge(card, tackle_chance(card), TACKLE_FOUL_SHARE, false, events)
 
 ## A tackle or a lunge in your box: win the ball, or be beaten (sometimes a foul: penalty).
-func _box_challenge(card: ActionCard, chance: int, foul_share: int, lunge: bool, events: Array) -> void:
+func _box_challenge(card: ActionCard, chance: int, foul_share: int, is_lunge_challenge: bool, events: Array) -> void:
 	next_bonus = 0
 	tackles_tried += 1
-	events.append({"type": "challenge", "card": card.display_name, "chance": chance, "lunge": lunge})
+	events.append({"type": "challenge", "card": card.display_name, "chance": chance, "lunge": is_lunge_challenge})
 	if randi_range(1, 100) <= chance:
 		events.append({"type": "challenge_won"})
 		_win_ball(events)
@@ -827,6 +827,7 @@ func _draw_from(pile: Array, source: Array):
 func _tick_clock(events: Array) -> void:
 	minute += MINUTES_PER_ACTION + _extra_minutes
 	_extra_minutes = 0
+	events.append({"type": "clock", "minute": minute})   ## the clock moves on: what follows happens at the new minute
 	_announce_abilities(events)
 	if minute >= MATCH_LENGTH and stoppage and in_our_box():
 		_their_move(events)    ## their last shot: you've had your one action to stop it

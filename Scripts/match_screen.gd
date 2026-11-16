@@ -34,6 +34,7 @@ var squad_tiles: Array = []              ## the SquadTileViews in squad_bar (not
 var _dugout_heading: Control = null      ## players always go above this
 var energy_label := Label.new()
 var stage := Control.new()               ## holds the whole match screen, see _build_layout()
+var _action_minute := 0                  ## the minute on the clock when you last acted (for the commentary log)
 const BOX_SUSPENSE := 0.9      ## seconds on "Short pass... 30% risk" before the result
 const BOX_RESULT_PAUSE := 0.8  ## seconds on "CLOSED DOWN!" / "+15!" before the screen moves on
 const GOOD_FLASH := Color("7be07b")   ## your box: things going your way (won it, saved, blocked)
@@ -77,6 +78,7 @@ func _ready() -> void:
 	hand.card_played.connect(play_card)
 	hand.card_hovered.connect(box_view.preview)   ## their box: the panel previews the hovered card
 	hand.card_hovered.connect(our_box_view.preview)   ## your box: the hovered card's row lights up
+	hand.card_left_pile.connect(_update_piles)   ## the draw pile counts down as each card flies out
 	lunge_button.mouse_entered.connect(our_box_view.preview_lunge.bind(true))
 	lunge_button.mouse_exited.connect(our_box_view.preview_lunge.bind(false))
 	let_through_button.pressed.connect(_on_let_through)
@@ -228,7 +230,14 @@ func _after_action(events: Array) -> void:
 	busy = true
 	if events.any(func(e): return e["type"] in ["advance", "they_break"]):
 		await _replay_build(events)
-	_say(describe(events))
+	## The log in two parts: what you did, at the minute you did it; then whatever happened
+	## as the clock moved on (abilities, stoppage, full time), at the new minute.
+	var tick := events.find_custom(func(e): return e["type"] == "clock")
+	if tick < 0:
+		_say(describe(events), true, _action_minute)
+	else:
+		_say(describe(events.slice(0, tick)), true, _action_minute)
+		_say(describe(events.slice(tick)), true, events[tick]["minute"])
 	var deal_time := refresh_all()
 	hand.modulate = Color(1, 1, 1, 1)      ## back to normal once it's finished
 	if deal_time > 0.0:
@@ -317,7 +326,7 @@ func _show_full_time() -> void:
 	hand.visible = false      
 	squad_bar.visible=false      
 	full_time_background.color = Color(0.1, 0.1, 0.1, 0.9)   # normal: dark
-	var position: String = _ordinal(league_result["position"])
+	var place: String = _ordinal(league_result["position"])
 	var points: int = league_result["final_points"]
 	var league_line := ""          ## only filled at the end of a season
 	if league_result["season_ended"] and league_result["promoted"] and was_final_tournament:
@@ -327,7 +336,7 @@ func _show_full_time() -> void:
 	elif league_result["season_ended"] and league_result["promoted"]:
 		league_line = "CHAMPIONS! Promoted from %s with %d pts!" % [tournament, points]
 	elif league_result["season_ended"]:
-		league_line = "Season over: finished %s with %d pts. Only 1st goes up. RUN OVER." % [position, points]
+		league_line = "Season over: finished %s with %d pts. Only 1st goes up. RUN OVER." % [place, points]
 		full_time_background.color = Color("8b1e1e")   # run over: red
 		continue_button.text = "Start a new run"
 
@@ -335,14 +344,14 @@ func _show_full_time() -> void:
 	parts.append("FULL TIME: %s" % result)
 	if league_line != "":
 		parts.append(league_line)
-	full_time_label.text = "\n\n".join(parts)
+	full_time_label.text = "\n".join(parts)
 	
 	var coins_view = COINS_VIEW.instantiate()
 	full_time_label.add_sibling(coins_view)            ## under FULL TIME
 	coins_view.show_coins(pitch.coins_parts(), coins, CoinState.coins)
 
 	## This round's results (yours first, your name in gold), then the table.
-	full_time_label.get_parent().add_theme_constant_override("separation", 40)   ## gap between text, results, table, button
+	full_time_label.get_parent().add_theme_constant_override("separation", 24)   ## gap between text, results, table, button
 	var results_view := RichTextLabel.new()
 	results_view.bbcode_enabled = true
 	results_view.fit_content = true                    ## grows to fit the lines
@@ -387,9 +396,7 @@ func _on_continue() -> void:
 	var season_ended: bool = league_result["season_ended"]
 	var run_over: bool = season_ended and (not league_result["promoted"] or was_final_tournament)
 	if run_over:
-		RunState.new_run()
-		CareerState.start_new_run()
-		CoinState.new_run()
+		## The fresh run is set up by the main menu's Kick off (main_menu._start_run).
 		RunState.start_with_team_name = true     ## menu opens the name box straight away
 		get_tree().change_scene_to_file("res://Scenes/main_menu.tscn")
 		return
@@ -537,8 +544,9 @@ func _place(node: Control, rect: Rect2) -> void:
 	node.position = rect.position
 	node.size = rect.size
 
+## Cards drawn but not yet in the hand (still to fly in) are counted on the draw pile until they leave it.
 func _update_piles() -> void:
-	draw_view.set_count(DeckState.draw_pile.size())
+	draw_view.set_count(DeckState.draw_pile.size() + DeckState.drawn_since_shown + hand.dealing)
 	discard_view.set_count(DeckState.discard_pile.size())
 	if DeckState.take_reshuffled():
 		discard_view.pulse()
@@ -662,6 +670,7 @@ func refresh_all() -> float:
 	for tile in squad_tiles:
 		tile.show_state(pitch)                   ## ability chips: ON / FROM 75' / WHEN LOSING
 	_show_info(pitch.minute)
+	_action_minute = pitch.minute           ## your next action happens at this minute
 	shoot_button.visible = pitch.in_their_box() and not pitch.match_over
 	shoot_button.text = "TAKE THE\nPENALTY" if pitch.penalty else "SHOOT\n1 energy"
 	let_through_button.visible = not pitch.has_ball and not pitch.match_over
@@ -830,7 +839,15 @@ func describe(events: Array) -> String:
 	
 ## Show a message: the last line as the big headline, every line added to the log with the minute.
 ## log_it = false for things that didn't really happen (e.g. "can't play that card").
-func _say(text: String, log_it: bool = true) -> void:
+## minute = the minute to stamp in the log (-1 = the clock now).
+func _say(text: String, log_it: bool = true, minute: int = -1) -> void:
+	if text == "":
+		return                 ## nothing happened worth a line: keep the last headline
+	if minute < 0:
+		minute = pitch.minute
+	var stamp := "%d'" % minute
+	if minute > MatchRules.MATCH_LENGTH:
+		stamp = "%d+%d'" % [MatchRules.MATCH_LENGTH, minute - MatchRules.MATCH_LENGTH]   ## like the scoreboard
 	var lines := text.split("\n")
 	commentary_headline.text = lines[lines.size() - 1]
 	## A quick "typed out" effect on the headline.
@@ -838,8 +855,8 @@ func _say(text: String, log_it: bool = true) -> void:
 	create_tween().tween_property(commentary_headline, "visible_ratio", 1.0, SettingsState.t(0.3))
 	if log_it:
 		for line in lines:
-			commentary_log.append_text("[color=#9a9a9a]%d'[/color]  %s\n" % [pitch.minute, line])
-
+			commentary_log.append_text("[color=#9a9a9a]%s[/color]  %s\n" % [stamp, line])
+	
 # ---------- Debug ----------
 
 ## Debug keys (editor and debug builds only):

@@ -331,7 +331,7 @@ func _weighted_pick(weights: Dictionary) -> String:
 ## Skipping training: a random player who has played this season gets +1 game.
 ## Returns him, or null if everyone is fresh.
 func rest_day() -> PlayerCard:
-	var tired := players().filter(func(p): return LeagueState.appearances_left(p) < p.max_appearances())
+	var tired := players().filter(func(player): return LeagueState.appearances_left(player) < player.max_appearances())
 	if tired.is_empty():
 		return null
 	var p: PlayerCard = tired.pick_random()
