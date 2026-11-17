@@ -356,3 +356,42 @@ func _resolve_season(outcome: Dictionary) -> void:
 
 func reset_for_new_tournament() -> void:
 	start_season()
+
+
+# ---------- Saving (save_state.gd decides where and when) ----------
+
+## Write the season down. Each table row's opponent goes in as its team name ("" = you).
+func save_to(cfg: ConfigFile) -> void:
+	cfg.set_value("league", "tournament", current_tournament_index)
+	cfg.set_value("league", "matches_played", matches_played)
+	var rows := []
+	for row in table:
+		var copy: Dictionary = row.duplicate()
+		copy["team"] = "" if row["team"] == null else row["team"].team_name
+		rows.append(copy)
+	cfg.set_value("league", "table", rows)
+	cfg.set_value("league", "fixtures", fixtures)
+	cfg.set_value("league", "round_results", round_results)
+	cfg.set_value("league", "appearances_used", appearances_used)
+
+func load_from(cfg: ConfigFile) -> void:
+	current_tournament_index = cfg.get_value("league", "tournament", 0)
+	matches_played = cfg.get_value("league", "matches_played", 0)
+	table.clear()
+	for row in cfg.get_value("league", "table", []):
+		var copy: Dictionary = row.duplicate()
+		copy["team"] = _team_named(row["team"])
+		table.append(copy)
+	fixtures = cfg.get_value("league", "fixtures", [])
+	round_results = cfg.get_value("league", "round_results", [])
+	appearances_used = cfg.get_value("league", "appearances_used", {})
+
+## The opponent with this name in the teams sheet (null for "", which is you).
+func _team_named(team_name: String) -> OpponentTeam:
+	if team_name == "":
+		return null
+	for t in all_teams:
+		if t.team_name == team_name:
+			return t
+	push_error("LeagueState: the saved team '%s' is no longer in the teams sheet" % team_name)
+	return null

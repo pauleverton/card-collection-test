@@ -22,3 +22,13 @@ func deduct_coins(amount: int) -> void:
 		push_warning("CoinState: deducting %d but only %d available — clamping to 0" % [amount, coins])
 	coins = max(0, coins - amount)
 	coins_changed.emit(coins)
+
+
+# ---------- Saving (save_state.gd decides where and when) ----------
+
+func save_to(cfg: ConfigFile) -> void:
+	cfg.set_value("coins", "coins", coins)
+
+func load_from(cfg: ConfigFile) -> void:
+	coins = cfg.get_value("coins", "coins", STARTING_COINS)
+	coins_changed.emit(coins)

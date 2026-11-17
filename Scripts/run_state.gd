@@ -341,3 +341,39 @@ func rest_day() -> PlayerCard:
 ## Duplicate week: a second copy of one deck card, placed next to it.
 func duplicate_card(index: int) -> void:
 	deck.insert(index + 1, deck[index])
+	
+	
+	
+
+# ---------- Saving (save_state.gd decides where and when) ----------
+
+## Write this run's deck, squad and week down. Cards and staff go in as file paths.
+func save_to(cfg: ConfigFile) -> void:
+	cfg.set_value("run", "deck", SaveState.paths(deck))
+	cfg.set_value("run", "squad", SaveState.paths(squad))
+	cfg.set_value("run", "picked", SaveState.paths(picked))
+	cfg.set_value("run", "team_name", team_name)
+	cfg.set_value("run", "transfer_window_due", transfer_window_due)
+	cfg.set_value("run", "transfer_list", SaveState.paths(transfer_list))
+	cfg.set_value("run", "free_agents", SaveState.paths(free_agents))
+	cfg.set_value("run", "scouts_used", scouts_used)
+	cfg.set_value("run", "training_activity", training_activity)
+	cfg.set_value("run", "week_choice", week_choice)
+	cfg.set_value("run", "rest_message", rest_message)
+	cfg.set_value("run", "last_result", last_result)
+
+## Read it back (the second value in each get_value is what to use if it's missing).
+func load_from(cfg: ConfigFile) -> void:
+	deck = SaveState.load_paths(cfg.get_value("run", "deck", []))
+	squad = SaveState.load_paths(cfg.get_value("run", "squad", []))
+	picked = SaveState.load_paths(cfg.get_value("run", "picked", []))
+	tidy_picked()
+	team_name = cfg.get_value("run", "team_name", "")
+	transfer_window_due = cfg.get_value("run", "transfer_window_due", false)
+	transfer_list = SaveState.load_paths(cfg.get_value("run", "transfer_list", []))
+	free_agents = SaveState.load_paths(cfg.get_value("run", "free_agents", []))
+	scouts_used = cfg.get_value("run", "scouts_used", 0)
+	training_activity = cfg.get_value("run", "training_activity", "")
+	week_choice = cfg.get_value("run", "week_choice", "")
+	rest_message = cfg.get_value("run", "rest_message", "")
+	last_result = cfg.get_value("run", "last_result", {})
