@@ -23,6 +23,8 @@ func end_run(won_all: bool) -> void:
 		has_won_all_tournaments = true
 	total_runs_completed += 1
 	run_ended.emit(reached, won_all)
+	SaveState.delete_run()          ## a finished run can't be continued
+	SaveState.save_progress()       ## ...but what it achieved is kept
 
 
 # ---------- Saving (save_state.gd decides where and when) ----------

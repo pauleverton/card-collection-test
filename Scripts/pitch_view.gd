@@ -6,6 +6,9 @@ extends Control
 ## Display only: match_screen tells it what to show with show_state(), or, during a replay,
 ## where the ball is with show_ball_at() / show_their_ball_at().
 
+## The drawing's own dice, so animations never use up the match's (saved) luck.
+var _rng := RandomNumberGenerator.new()
+
 const GRASS_A := Color("24482d")
 const GRASS_B := Color("284f31")
 const GRASS_OURS := Color("356b42")       ## the zone play is in, your ball
@@ -182,9 +185,9 @@ func shoot(scored: bool) -> float:
 	_note = []
 	var post := GOAL_WIDTH / 2   ## the goal's half-width, as a share of the pitch height
 	if scored:
-		_shot_dy = randf_range(-post * 0.7, post * 0.7)
+		_shot_dy = _rng.randf_range(-post * 0.7, post * 0.7)
 	else:
-		_shot_dy = (post + randf_range(0.08, 0.14)) * (1 if randf() < 0.5 else -1)
+		_shot_dy = (post + _rng.randf_range(0.08, 0.14)) * (1 if _rng.randf() < 0.5 else -1)
 	var time := SettingsState.t(SHOT_TIME)
 	shot_progress = 0.0
 	var t := create_tween()

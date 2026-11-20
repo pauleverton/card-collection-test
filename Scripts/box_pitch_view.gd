@@ -13,6 +13,9 @@ extends Control
 ## block, won (you win the ball), beaten, foul (a penalty).
 ## Positions are worked out on a REF_SIZE drawing (in pixels) and scaled when drawn.
 
+## The drawing's own dice, so animations never use up the match's (saved) luck.
+var _rng := RandomNumberGenerator.new()
+
 const GRASS_A := Color("24482d")
 const GRASS_B := Color("284f31")
 const LINE := Color(0.91, 0.95, 0.91, 0.5)
@@ -137,11 +140,11 @@ func set_ours(on: bool) -> void:
 ## their_defence is the opponent's Defence multiplier (Very Low 0.8 ... Very High 1.2):
 ## a stronger defence sends more bodies, which is also why the risk of losing it is higher.
 func new_attack(their_defence: float) -> void:
-	var carrier_share := randf_range(CARRIER_X.x, CARRIER_X.y)
-	var runner_share := randf_range(carrier_share + RUNNER_GAP, 0.78) if carrier_share < 0.5 \
-			else randf_range(0.22, carrier_share - RUNNER_GAP)
-	var carrier := Vector2(carrier_share, randf_range(CARRIER_Y.x, CARRIER_Y.y)) * REF_SIZE
-	var runner := Vector2(runner_share, randf_range(RUNNER_Y.x, RUNNER_Y.y)) * REF_SIZE
+	var carrier_share := _rng.randf_range(CARRIER_X.x, CARRIER_X.y)
+	var runner_share := _rng.randf_range(carrier_share + RUNNER_GAP, 0.78) if carrier_share < 0.5 \
+			else _rng.randf_range(0.22, carrier_share - RUNNER_GAP)
+	var carrier := Vector2(carrier_share, _rng.randf_range(CARRIER_Y.x, CARRIER_Y.y)) * REF_SIZE
+	var runner := Vector2(runner_share, _rng.randf_range(RUNNER_Y.x, RUNNER_Y.y)) * REF_SIZE
 	_carrier = "p0"
 	_ball_free = false
 	_pressure = 0.0
@@ -150,10 +153,10 @@ func new_attack(their_defence: float) -> void:
 	_defenders.clear()
 	for i in count:
 		## Spread the directions evenly across SPREAD, then wobble each one a little.
-		var angle := lerpf(SPREAD.x, SPREAD.y, (i + 0.5) / count) + randf_range(-JITTER, JITTER)
+		var angle := lerpf(SPREAD.x, SPREAD.y, (i + 0.5) / count) + _rng.randf_range(-JITTER, JITTER)
 		_defenders.append({"key": "d%d" % i, "angle": deg_to_rad(angle),
-				"far": randf_range(FAR.x, FAR.y), "near": randf_range(NEAR.x, NEAR.y),
-				"speed": randf_range(SPEED.x, SPEED.y)})
+				"far": _rng.randf_range(FAR.x, FAR.y), "near": _rng.randf_range(NEAR.x, NEAR.y),
+				"speed": _rng.randf_range(SPEED.x, SPEED.y)})
 	var keeper := _keeper_spot(carrier.x)
 	var spots := {"p0": carrier, "p1": runner, "keeper": keeper, "ball": carrier + BALL_OFFSET}
 	spots.merge(_defender_targets(carrier, keeper, 0.0))
@@ -244,9 +247,9 @@ func _pass(cross: bool) -> void:
 	var receiver := _other(passer)
 	var target: Vector2 = _to[receiver]
 	if cross:
-		target = _keep_yours(target + Vector2(randf_range(-30, 30), -45))   ## attacks the cross
-	var run_x := randf_range(0.25, 0.45) if target.x > REF_SIZE.x / 2 else randf_range(0.55, 0.75)
-	var run := _keep_yours(Vector2(run_x, randf_range(RUN_Y.x, RUN_Y.y)) * REF_SIZE)
+		target = _keep_yours(target + Vector2(_rng.randf_range(-30, 30), -45))   ## attacks the cross
+	var run_x := _rng.randf_range(0.25, 0.45) if target.x > REF_SIZE.x / 2 else _rng.randf_range(0.55, 0.75)
+	var run := _keep_yours(Vector2(run_x, _rng.randf_range(RUN_Y.x, RUN_Y.y)) * REF_SIZE)
 	_carrier = receiver
 	var keeper := _keeper_spot(target.x)
 	var targets := {passer: run, receiver: target, "keeper": keeper, "ball": target + BALL_OFFSET}
@@ -256,13 +259,13 @@ func _pass(cross: bool) -> void:
 ## Carry the ball towards goal; your other player drifts with you.
 func _dribble() -> void:
 	var you: Vector2 = _to[_carrier]
-	var step := Vector2(randf_range(-DRIBBLE_SIDE, DRIBBLE_SIDE), -randf_range(DRIBBLE_STEP.x, DRIBBLE_STEP.y))
+	var step := Vector2(_rng.randf_range(-DRIBBLE_SIDE, DRIBBLE_SIDE), -_rng.randf_range(DRIBBLE_STEP.x, DRIBBLE_STEP.y))
 	var moved := _keep_yours(you + step)
 	if moved.distance_to(you) < 30.0:                  ## already as far forward as you can go: go across
 		var across := -1.0 if you.x > REF_SIZE.x / 2 else 1.0
-		moved = _keep_yours(you + Vector2(across * randf_range(55, 85), randf_range(-10, 10)))
+		moved = _keep_yours(you + Vector2(across * _rng.randf_range(55, 85), _rng.randf_range(-10, 10)))
 	var mate: Vector2 = _to[_other(_carrier)]
-	var drift := _keep_yours(mate + Vector2(randf_range(-20, 20), -randf_range(0, 20)))
+	var drift := _keep_yours(mate + Vector2(_rng.randf_range(-20, 20), -_rng.randf_range(0, 20)))
 	var keeper := _keeper_spot(moved.x)
 	var targets := {_carrier: moved, _other(_carrier): drift, "keeper": keeper, "ball": moved + BALL_OFFSET}
 	targets.merge(_defender_targets(moved, keeper, _pressure))
@@ -291,7 +294,7 @@ func _lose_ball() -> void:
 func _shoot(result: String) -> void:
 	var from: Vector2 = _to["ball"]
 	var keeper: Vector2 = _to["keeper"]
-	var aim := Vector2(REF_SIZE.x / 2 + randf_range(-1, 1) * REF_SIZE.x * GOAL_WIDTH * 0.35, GOAL_LINE / 2)
+	var aim := Vector2(REF_SIZE.x / 2 + _rng.randf_range(-1, 1) * REF_SIZE.x * GOAL_WIDTH * 0.35, GOAL_LINE / 2)
 	var line_t := clampf((keeper.y - from.y) / (aim.y - from.y), 0.0, 1.0)
 	var save := from.lerp(aim, line_t)                  ## where the shot crosses the keeper's line
 	_ball_free = true
@@ -302,16 +305,16 @@ func _shoot(result: String) -> void:
 		"saved":
 			_move({"ball": save, "keeper": save}, ACT_TIME, [], SHOT_ARC)
 		"wide":
-			var side := 1.0 if randf() < 0.5 else -1.0
+			var side := 1.0 if _rng.randf() < 0.5 else -1.0
 			var post := REF_SIZE.x * GOAL_WIDTH / 2
-			var miss := Vector2(REF_SIZE.x / 2 + side * (post + randf_range(WIDE_GAP.x, WIDE_GAP.y)), GOAL_LINE / 2)
+			var miss := Vector2(REF_SIZE.x / 2 + side * (post + _rng.randf_range(WIDE_GAP.x, WIDE_GAP.y)), GOAL_LINE / 2)
 			_move({"ball": miss, "keeper": keeper + Vector2(-side * 30, 0)}, ACT_TIME, [], SHOT_ARC)
 		"over":
-			_move({"ball": Vector2(aim.x, GOAL_LINE / 2), "keeper": keeper + Vector2(randf_range(-20, 20), 0)},
+			_move({"ball": Vector2(aim.x, GOAL_LINE / 2), "keeper": keeper + Vector2(_rng.randf_range(-20, 20), 0)},
 					ACT_TIME, [], OVER_ARC)
 		"rebound":
 			var side := 1.0 if save.x < REF_SIZE.x / 2 else -1.0
-			var spill := Vector2(REF_SIZE.x / 2 + side * randf_range(REBOUND_SHIFT.x, REBOUND_SHIFT.y) * REF_SIZE.x,
+			var spill := Vector2(REF_SIZE.x / 2 + side * _rng.randf_range(REBOUND_SHIFT.x, REBOUND_SHIFT.y) * REF_SIZE.x,
 					REF_SIZE.y * 0.21)
 			var follow := _other(_carrier)
 			_carrier = follow
@@ -326,7 +329,7 @@ func _block() -> void:
 	if blocker == "":
 		return
 	var to_goal := (Vector2(REF_SIZE.x / 2, GOAL_LINE) - them).normalized()
-	var side := Vector2(-to_goal.y, to_goal.x) * (1.0 if randf() < 0.5 else -1.0)
+	var side := Vector2(-to_goal.y, to_goal.x) * (1.0 if _rng.randf() < 0.5 else -1.0)
 	var pushed := _keep_yours(them - to_goal * 34 + side * 34)
 	_ring_key = blocker
 	ring = 1.0
@@ -365,7 +368,7 @@ func _beaten() -> void:
 	if tackler == "":
 		return
 	var line: Vector2 = (_to[tackler] - them).normalized()
-	var past := _keep_yours(them + Vector2(-line.x * 40, -randf_range(40, 60)))
+	var past := _keep_yours(them + Vector2(-line.x * 40, -_rng.randf_range(40, 60)))
 	_move({tackler: them + line * 4, _carrier: past, "ball": past + BALL_OFFSET}, ACT_TIME)
 
 ## A foul in the box (either box): the nearest defender brings the man on the ball down,

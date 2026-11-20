@@ -1,6 +1,7 @@
 extends Node2D
 
 @onready var speed_option: OptionButton = $TextureRect/SpeedOption
+@onready var continue_button: Button = $TextureRect/ContinueGame
 
 ## Word lists for the team name: [prefix, middle, suffix]. Add words freely.
 const NAME_PARTS := [
@@ -28,6 +29,7 @@ var part_labels: Array[Label] = []        ## the word currently in each slot
 var name_preview: Label
 var buttons: Array[Button] = []           ## switched off while anything is spinning
 var spinning := 0                         ## how many slots are spinning right now
+var confirm_box: ColorRect = null         ## "This will end your saved run": dark layer + panel
 
 func _ready() -> void:
 	## Fill the speed list from SettingsState, and select whatever was saved last time.
@@ -38,14 +40,86 @@ func _ready() -> void:
 			speed_option.select(i)
 	speed_option.item_selected.connect(
 			func(i): SettingsState.set_speed(speed_option.get_item_text(i)))
+	continue_button.disabled = not SaveState.has_run()   ## greyed out until there's a run to continue
+	continue_button.pressed.connect(_continue_run)
 	if RunState.start_with_team_name:            ## coming from "Start a new run"
 		RunState.start_with_team_name = false
 		_show_name_box()
 
-## Start new game: build your team name first.
+## Start new game: build your team name first (asking first if that would end a saved run).
 func _on_start_game_pressed() -> void:
-	if name_box == null:
+	if name_box != null or confirm_box != null:
+		return
+	if SaveState.has_run():
+		_show_confirm()
+	else:
 		_show_name_box()
+
+## Continue: load the saved run and open the screen it was saved on.
+func _continue_run() -> void:
+	var screen: String = SaveState.load_run()
+	if screen == "":
+		continue_button.disabled = true          ## the save couldn't be read (the Output panel says why)
+		return
+	get_tree().change_scene_to_file(screen)
+
+## "This will end your saved run. Start anyway?" over a dark layer. The saved run is only
+## replaced when you press Kick off, so closing the name box afterwards still keeps it.
+func _show_confirm() -> void:
+	confirm_box = ColorRect.new()
+	confirm_box.color = Color(0, 0, 0, 0.75)     ## also stops clicks reaching the menu
+	$TextureRect.add_child(confirm_box)
+	confirm_box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	var panel := _dark_panel()
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 24)
+	var question := Label.new()
+	question.text = "This will end your saved run.\nStart anyway?"
+	question.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	question.add_theme_font_size_override("font_size", WORD_SIZE)
+	vbox.add_child(question)
+
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 24)
+	var keep := Button.new()
+	keep.text = "Keep my run"
+	UiStyle.secondary(keep)
+	keep.pressed.connect(_close_confirm)
+	var start := Button.new()
+	start.text = "Start new run"
+	UiStyle.primary(start)
+	start.pressed.connect(_confirm_new_run)
+	row.add_child(keep)
+	row.add_child(start)
+	vbox.add_child(row)
+
+	panel.add_child(vbox)
+	confirm_box.add_child(panel)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
+	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH   ## stays centred
+	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+
+func _close_confirm() -> void:
+	confirm_box.queue_free()
+	confirm_box = null
+
+func _confirm_new_run() -> void:
+	_close_confirm()
+	_show_name_box()
+
+## The dark green panel with a gold edge (the name box and the confirm box).
+func _dark_panel() -> PanelContainer:
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("1b2a22")             ## dark pitch green
+	style.border_color = GOLD
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(12)
+	style.set_content_margin_all(32)
+	panel.add_theme_stylebox_override("panel", style)
+	return panel
 
 ## A dark layer over the menu, and in the middle: [title + X], three [word ... Reroll]
 ## rows, Reroll all, the full name, Kick off. Fixed width: sized for the longest
@@ -57,14 +131,7 @@ func _show_name_box() -> void:
 	$TextureRect.add_child(backdrop)
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
-	name_box = PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("1b2a22")             ## dark pitch green
-	style.border_color = GOLD
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(12)
-	style.set_content_margin_all(32)
-	name_box.add_theme_stylebox_override("panel", style)
+	name_box = _dark_panel()
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 14)
@@ -210,6 +277,7 @@ func _update_preview() -> void:
 
 ## A fresh run with this team name, then to the hub.
 func _start_run() -> void:
+	SaveState.delete_run()                      ## the old run (if any) ends here; the new one saves itself
 	RunState.new_run()                          ## new deck and squad (also clears the name)
 	CoinState.new_run()
 	RunState.team_name = _team_name()

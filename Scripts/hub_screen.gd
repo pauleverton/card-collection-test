@@ -30,6 +30,7 @@ const ACTIVITIES := {
 	"duplicate": ["Duplicate a card", "Pick one card in your deck and add a copy."]}
 
 func _ready() -> void:
+	SaveState.save_run(scene_file_path)   ## arriving here is a safe point: Continue comes back to this screen
 	var background := ColorRect.new()
 	background.color = BACKGROUND
 	add_child(background)

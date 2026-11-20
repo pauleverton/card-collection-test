@@ -41,6 +41,7 @@ var message_label: Label
 var busy := false                ## true while a name is being rubbed out or written in
 
 func _ready() -> void:
+	SaveState.save_run(scene_file_path)   ## arriving here is a safe point: Continue comes back to this screen
 	RunState.tidy_picked()       ## drop anyone sold or out of games before showing the team
 
 	var background := ColorRect.new()
@@ -339,4 +340,7 @@ func _ordinal(n: int) -> String:
 	return "%dth" % n
 
 func _kick_off() -> void:
-	get_tree().change_scene_to_file("res://Scenes/match_screen.tscn")
+	var match_scene := "res://Scenes/match_screen.tscn"
+	RunState.match_seed = randi()       ## this match's dice, saved with the run
+	SaveState.save_run(match_scene)     ## quit mid-match and Continue = this kick-off again, same luck
+	get_tree().change_scene_to_file(match_scene)

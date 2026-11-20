@@ -299,11 +299,21 @@ const MIN_DECK := 8               ## Cut can't take the deck below this
 var week_choice := ""             ## "" = not decided yet, "train" or "rest" (reset every week)
 var rest_message := ""            ## shown once on the team sheet after a rest day
 var last_result := {}             ## {scored, conceded, opponent}: the match just played (reward screen)
+## Cards offered on the reward screen and in a new-card training week. Rolled once (when a match
+## is won, or the week starts) and saved, so reloading can't re-roll them.
+var reward_offers: Array = []
+var training_offers: Array = []
+## The dice for the next match: picked on Kick off and saved, so quitting mid-match and
+## continuing replays it with the same luck.
+var match_seed := 0
+
+
 
 ## A new week: roll this week's activity; nothing chosen yet.
 func roll_training() -> void:
 	training_activity = _weighted_pick(TRAINING_WEIGHTS)
 	week_choice = ""
+	training_offers = reward_options(TRAINING_NEW_CARDS) if training_activity == "new_card" else []	
 
 ## Why this week's activity can't be done ("" = it can).
 func training_blocked_reason() -> String:
@@ -361,6 +371,9 @@ func save_to(cfg: ConfigFile) -> void:
 	cfg.set_value("run", "week_choice", week_choice)
 	cfg.set_value("run", "rest_message", rest_message)
 	cfg.set_value("run", "last_result", last_result)
+	cfg.set_value("run", "reward_offers", SaveState.paths(reward_offers))
+	cfg.set_value("run", "training_offers", SaveState.paths(training_offers))
+	cfg.set_value("run", "match_seed", match_seed)
 
 ## Read it back (the second value in each get_value is what to use if it's missing).
 func load_from(cfg: ConfigFile) -> void:
@@ -377,3 +390,6 @@ func load_from(cfg: ConfigFile) -> void:
 	week_choice = cfg.get_value("run", "week_choice", "")
 	rest_message = cfg.get_value("run", "rest_message", "")
 	last_result = cfg.get_value("run", "last_result", {})
+	reward_offers = SaveState.load_paths(cfg.get_value("run", "reward_offers", []))
+	training_offers = SaveState.load_paths(cfg.get_value("run", "training_offers", []))
+	match_seed = cfg.get_value("run", "match_seed", 0)

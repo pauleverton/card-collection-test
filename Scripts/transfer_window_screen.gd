@@ -78,6 +78,7 @@ var _paid_slots: Array = []      ## the transfer list's empty pins (signed playe
 var busy := false                ## true while a report is moving on or off the board
 
 func _ready() -> void:
+	SaveState.save_run(scene_file_path)   ## arriving here is a safe point: Continue comes back to this screen
 	_marker = load(MARKER_FONT) if ResourceLoader.exists(MARKER_FONT) else null
 	_hand = load(HAND_FONT) if ResourceLoader.exists(HAND_FONT) else null
 

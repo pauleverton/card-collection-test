@@ -17,6 +17,7 @@ const CARD_FACTOR := 1.3
 const TYPE_ORDER := ["attacking", "move", "utility", "defending", "skills"]
 
 func _ready() -> void:
+	SaveState.save_run(scene_file_path)   ## arriving here is a safe point: Continue comes back to this screen
 	var background := ColorRect.new()
 	background.color = BACKGROUND
 	add_child(background)
@@ -56,7 +57,7 @@ func _ready() -> void:
 	var cards := HBoxContainer.new()
 	cards.add_theme_constant_override("separation", 48)
 	middle.add_child(cards)
-	for card in RunState.reward_options():
+	for card in RunState.reward_offers:
 		var ui = CARD_UI.instantiate()
 		cards.add_child(ui)
 		ui.setup(card, CARD_FACTOR)

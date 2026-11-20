@@ -69,8 +69,12 @@ var _bar_fill := StyleBoxFlat.new()                  ## the bar's coloured part,
 ## Filled in at full time by LeagueState, and read by Continue to decide where to go next.
 var league_result := {}
 var was_final_tournament := false
+var run_over := false                 ## set at full time: the season ended without promotion, or you won it all
+var next_screen := ""                 ## set at full time: where Continue goes
 
 func _ready() -> void:
+	if RunState.match_seed != 0:      ## 0 = no saved dice (e.g. this scene run on its own with F6)
+		seed(RunState.match_seed)     ## same dice every time this match is played: see the team sheet's Kick off
 	RunState.start_match_day()        ## uses up appearances; must run before the squad bar is built
 	DeckState.start_match(RunState.deck)
 	DeckState.draw(OPENING_HAND)
@@ -315,6 +319,7 @@ func _show_full_time() -> void:
 	var tournament := LeagueState.current_tournament_name()
 	was_final_tournament = LeagueState.is_final_tournament()
 	league_result = LeagueState.record_match_result(pitch.goals, pitch.conceded)
+	_after_the_match()
 
 	var result := "LOSS"
 	if pitch.goals > pitch.conceded:
@@ -392,22 +397,31 @@ func _ordinal(n: int) -> String:
 		3: return "3rd"
 	return "%dth" % n
 
-func _on_continue() -> void:
+## Everything the result changes, done the moment full time is shown (not when Continue is pressed)
+## and saved straight away, so quitting at full time can't undo the result.
+func _after_the_match() -> void:
 	var season_ended: bool = league_result["season_ended"]
-	var run_over: bool = season_ended and (not league_result["promoted"] or was_final_tournament)
+	run_over = season_ended and (not league_result["promoted"] or was_final_tournament)
 	if run_over:
-		## The fresh run is set up by the main menu's Kick off (main_menu._start_run).
-		RunState.start_with_team_name = true     ## menu opens the name box straight away
-		get_tree().change_scene_to_file("res://Scenes/main_menu.tscn")
-		return
+		return                               ## CareerState.end_run() has already deleted the saved run
 	RunState.last_result = {"scored": pitch.goals, "conceded": pitch.conceded, "opponent": _opponent_name()}
 	RunState.roll_training()                 ## a new week: this week's training activity
 	if season_ended:
 		RunState.start_preseason()           ## promoted: the transfer window opens before the new season
 	if pitch.goals > pitch.conceded:
-		get_tree().change_scene_to_file("res://Scenes/reward_screen.tscn")
+		RunState.reward_offers = RunState.reward_options()   ## rolled now and saved: no re-rolling
+		next_screen = "res://Scenes/reward_screen.tscn"
 	else:
-		get_tree().change_scene_to_file(RunState.next_break_screen())
+		next_screen = RunState.next_break_screen()
+	SaveState.save_run(next_screen)
+
+func _on_continue() -> void:
+	if run_over:
+		## The fresh run is set up by the main menu's Kick off (main_menu._start_run).
+		RunState.start_with_team_name = true     ## menu opens the name box straight away
+		get_tree().change_scene_to_file("res://Scenes/main_menu.tscn")
+		return
+	get_tree().change_scene_to_file(next_screen)
 
 # ---------- Screen ----------
 ## Build the screen: make the stage, then move every piece onto it at its Rect2 (see Layout).

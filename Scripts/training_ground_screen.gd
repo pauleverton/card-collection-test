@@ -34,6 +34,7 @@ var preview_box: VBoxContainer
 var confirm: Button
 
 func _ready() -> void:
+	SaveState.save_run(scene_file_path)   ## arriving here is a safe point: Continue comes back to this screen
 	_activity = RunState.training_activity
 	var background := ColorRect.new()
 	background.color = BACKGROUND
@@ -88,7 +89,7 @@ func _build_new_cards(page: VBoxContainer) -> void:
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	row.add_theme_constant_override("separation", 48)
 	page.add_child(row)
-	for card in RunState.reward_options(RunState.TRAINING_NEW_CARDS):
+	for card in RunState.training_offers:
 		var ui = CARD_UI.instantiate()
 		row.add_child(ui)
 		ui.setup(card, NEW_CARD_FACTOR)
