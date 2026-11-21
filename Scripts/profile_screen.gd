@@ -3,6 +3,7 @@ extends Control
 ## A signed-up ticket shows the manager's name, best finish, runs played and any run in progress;
 ## pick it to play as that manager. An empty ticket signs up a new manager (type a name).
 ## The last profile used is outlined in gold and has the keyboard focus, so Enter plays straight on.
+## "Rename or delete…" (bottom right) puts the tickets in edit mode: each shows Rename and Delete.
 
 const MAIN_MENU := "res://Scenes/main_menu.tscn"
 const BACKGROUND := "res://Images+themes/background.jpg"
@@ -29,7 +30,13 @@ var _kalam: Font
 var _sign_up: ColorRect = null               ## the "new manager" box (dark layer + panel)
 var _name_edit: LineEdit
 var _sign_up_button: Button
-var _sign_up_ticket := 0                     ## which ticket the new manager is signing up to
+var _sign_up_ticket := 0                     ## which ticket the name box is for
+var _renaming := false                       ## the name box is renaming a ticket (not signing up)
+var _delete_box: ColorRect = null            ## "Delete Alex's ticket?" (dark layer + panel)
+var _editing := false                        ## edit mode: tickets show Rename and Delete
+var _row: HBoxContainer                      ## the three tickets
+var _subtitle: Label
+var _edit_button: Button
 
 
 func _ready() -> void:
@@ -56,31 +63,19 @@ func _ready() -> void:
 	var title := _label("Who's playing?", 80, GOLD, _marker)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	page.add_child(title)
-	var subtitle := _label("Pick your season ticket", 36, CREAM, _kalam)
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	page.add_child(subtitle)
+	_subtitle = _label("Pick your season ticket", 36, CREAM, _kalam)
+	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	page.add_child(_subtitle)
 
 	var gap := Control.new()
 	gap.custom_minimum_size.y = 48
 	page.add_child(gap)
 
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", TICKET_GAP)
-	page.add_child(row)
-	for p in range(1, SaveState.PROFILES + 1):
-		var holder := Control.new()               ## the ticket inside can tilt and lift freely
-		holder.custom_minimum_size = TICKET_SIZE + Vector2(0, LIFT)
-		row.add_child(holder)
-		var ticket := _ticket(p) if SaveState.profile_exists(p) else _empty_ticket(p)
-		ticket.size = TICKET_SIZE
-		ticket.position.y = LIFT
-		ticket.pivot_offset = TICKET_SIZE / 2
-		ticket.rotation_degrees = TILT[p - 1]
-		holder.add_child(ticket)
-		if p == SaveState.profile and SaveState.profile_exists(p):
-			ticket.position.y = 0                 ## last used: lifted, and Enter plays it
-			ticket.grab_focus.call_deferred()
+	_row = HBoxContainer.new()
+	_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_row.add_theme_constant_override("separation", TICKET_GAP)
+	page.add_child(_row)
+	_build_tickets()
 
 	var back := Button.new()                      ## bottom left: back to the menu without changing anything
 	back.text = "Back"
@@ -89,6 +84,48 @@ func _ready() -> void:
 	back.position = Vector2(64, 980)
 	back.pressed.connect(_back)
 	add_child(back)
+
+	_edit_button = Button.new()                   ## bottom right: edit mode on / off
+	_edit_button.text = "Rename or delete…"
+	UiStyle.secondary(_edit_button)
+	_edit_button.add_theme_font_size_override("font_size", 26)
+	_edit_button.pressed.connect(_toggle_editing)
+	add_child(_edit_button)
+	_edit_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_edit_button.grow_horizontal = Control.GROW_DIRECTION_BEGIN   ## grows leftwards as its text changes
+	_edit_button.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	for side in ["offset_left", "offset_right"]:
+		_edit_button.set(side, -64)
+	for side in ["offset_top", "offset_bottom"]:
+		_edit_button.set(side, -40)
+	_edit_button.visible = SaveState.any_profile()   ## nothing to rename or delete yet
+
+
+## (Re)build the three tickets: on opening, and after edit mode, a rename or a delete.
+func _build_tickets() -> void:
+	for old in _row.get_children():
+		_row.remove_child(old)
+		old.queue_free()
+	for p in range(1, SaveState.PROFILES + 1):
+		var holder := Control.new()               ## the ticket inside can tilt and lift freely
+		holder.custom_minimum_size = TICKET_SIZE + Vector2(0, LIFT)
+		_row.add_child(holder)
+		var ticket := _ticket(p) if SaveState.profile_exists(p) else _empty_ticket(p)
+		ticket.size = TICKET_SIZE
+		ticket.position.y = LIFT
+		ticket.pivot_offset = TICKET_SIZE / 2
+		ticket.rotation_degrees = TILT[p - 1]
+		holder.add_child(ticket)
+		if p == SaveState.profile and SaveState.profile_exists(p):
+			ticket.position.y = 0                 ## last used: lifted, and Enter plays it
+			if not _editing:
+				ticket.grab_focus.call_deferred()
+
+func _toggle_editing() -> void:
+	_editing = not _editing
+	_edit_button.text = "Done" if _editing else "Rename or delete…"
+	_subtitle.text = "Rename or delete a manager" if _editing else "Pick your season ticket"
+	_build_tickets()
 
 
 ## A signed-up manager's ticket.
@@ -147,15 +184,40 @@ func _ticket(p: int) -> Button:
 		no_run.add_child(_label("No run in progress", 28, SOFT_INK, _kalam))
 		body.add_child(no_run)
 
-	## The tear-off edge and the stub.
+	## The tear-off edge and the stub: PLAY, or in edit mode Rename and Delete.
 	stack.add_child(_tear_line())
-	var stub := _label("PLAY  ▸", 30, DARK_GREEN)
-	stub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stub.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	stub.custom_minimum_size.y = 96
-	stack.add_child(stub)
+	var edit_buttons: Array = []
+	if _editing:
+		ticket.disabled = true                    ## the ticket itself does nothing in edit mode
+		var stub_row := HBoxContainer.new()
+		stub_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		stub_row.add_theme_constant_override("separation", 20)
+		stub_row.custom_minimum_size.y = 96
+		var rename := Button.new()
+		rename.text = "Rename"
+		UiStyle.primary(rename)
+		rename.pressed.connect(_show_sign_up.bind(p, true))
+		var delete := Button.new()
+		delete.text = "Delete"
+		UiStyle.secondary(delete)
+		delete.add_theme_color_override("font_color", Color("c9302c"))
+		delete.add_theme_color_override("font_hover_color", Color("c9302c"))
+		delete.pressed.connect(_show_delete.bind(p))
+		for button in [rename, delete]:
+			button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			stub_row.add_child(button)
+		stack.add_child(stub_row)
+		edit_buttons = [rename, delete]
+	else:
+		var stub := _label("PLAY  ▸", 30, DARK_GREEN)
+		stub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		stub.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		stub.custom_minimum_size.y = 96
+		stack.add_child(stub)
 	_notches(ticket)
 	_ignore_mouse(stack)
+	for button in edit_buttons:
+		button.mouse_filter = Control.MOUSE_FILTER_STOP   ## these two DO take clicks
 	return ticket
 
 
@@ -191,12 +253,13 @@ func _play_as(p: int) -> void:
 	get_tree().change_scene_to_file(MAIN_MENU)
 
 
-# ---------- New manager: type a name ----------
+# ---------- The name box: a new manager, or renaming one ----------
 
-func _show_sign_up(p: int) -> void:
+func _show_sign_up(p: int, renaming := false) -> void:
 	if _sign_up != null:
 		return
 	_sign_up_ticket = p
+	_renaming = renaming
 	_sign_up = ColorRect.new()
 	_sign_up.color = Color(0, 0, 0, 0.75)        ## also stops clicks reaching the tickets
 	add_child(_sign_up)
@@ -213,6 +276,9 @@ func _show_sign_up(p: int) -> void:
 	_name_edit.placeholder_text = "Your name"
 	_name_edit.custom_minimum_size = Vector2(560, 72)
 	_name_edit.add_theme_font_size_override("font_size", 36)
+	if renaming:
+		_name_edit.text = SaveState.summary(p)["name"]
+		_name_edit.select_all()                  ## typing replaces the old name
 	_name_edit.text_changed.connect(_on_name_changed)
 	_name_edit.text_submitted.connect(func(_text): _confirm_sign_up())
 	vbox.add_child(_name_edit)
@@ -225,9 +291,9 @@ func _show_sign_up(p: int) -> void:
 	UiStyle.secondary(cancel)
 	cancel.pressed.connect(_close_sign_up)
 	_sign_up_button = Button.new()
-	_sign_up_button.text = "Sign up"
+	_sign_up_button.text = "Save" if renaming else "Sign up"
 	UiStyle.primary(_sign_up_button)
-	_sign_up_button.disabled = true             ## until there's a name
+	_sign_up_button.disabled = _name_edit.text.strip_edges() == ""   ## until there's a name
 	_sign_up_button.pressed.connect(_confirm_sign_up)
 	buttons.add_child(cancel)
 	buttons.add_child(_sign_up_button)
@@ -247,6 +313,11 @@ func _confirm_sign_up() -> void:
 	var manager := _name_edit.text.strip_edges()
 	if manager == "":
 		return
+	if _renaming:                                ## edit mode: new name on the ticket, stay here
+		SaveState.rename_profile(_sign_up_ticket, manager)
+		_close_sign_up()
+		_build_tickets()
+		return
 	SaveState.create_profile(_sign_up_ticket, manager)
 	if SaveState.start_after_sign_up:            ## came from Start new game: carry on to the team name
 		SaveState.start_after_sign_up = false
@@ -254,8 +325,65 @@ func _confirm_sign_up() -> void:
 	get_tree().change_scene_to_file(MAIN_MENU)
 
 func _close_sign_up() -> void:
+	if _sign_up == null:
+		return
 	_sign_up.queue_free()
 	_sign_up = null
+
+
+# ---------- Delete a manager ----------
+
+## "Delete Alex's ticket? Their run and progress will be lost for good."
+func _show_delete(p: int) -> void:
+	if _delete_box != null:
+		return
+	_delete_box = ColorRect.new()
+	_delete_box.color = Color(0, 0, 0, 0.75)
+	add_child(_delete_box)
+	_delete_box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _box(DARK_GREEN, GOLD, 3, 40, [12, 12, 12, 12]))
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 24)
+	vbox.add_child(_label("Delete %s's ticket?" % SaveState.summary(p)["name"], 44, GOLD, _marker))
+	vbox.add_child(_label("Their run and progress will be lost for good.", 26, CREAM))
+	var buttons := HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_END
+	buttons.add_theme_constant_override("separation", 24)
+	var keep := Button.new()
+	keep.text = "Keep"
+	UiStyle.primary(keep)
+	keep.pressed.connect(_close_delete)
+	var delete := Button.new()
+	delete.text = "Delete"
+	UiStyle.secondary(delete)
+	delete.add_theme_color_override("font_color", Color("ff8a80"))
+	delete.add_theme_color_override("font_hover_color", Color("ff8a80"))
+	delete.pressed.connect(_delete.bind(p))
+	buttons.add_child(keep)
+	buttons.add_child(delete)
+	vbox.add_child(buttons)
+	panel.add_child(vbox)
+	_delete_box.add_child(panel)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
+	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	keep.grab_focus.call_deferred()              ## Enter keeps: deleting takes a deliberate click
+
+func _delete(p: int) -> void:
+	SaveState.delete_profile(p)
+	_close_delete()
+	if not SaveState.any_profile():              ## nobody left: out of edit mode, nothing to edit
+		_editing = false
+		_edit_button.visible = false
+		_subtitle.text = "Pick your season ticket"
+	_build_tickets()
+
+func _close_delete() -> void:
+	if _delete_box == null:
+		return
+	_delete_box.queue_free()
+	_delete_box = null
 
 
 # ---------- Building blocks ----------

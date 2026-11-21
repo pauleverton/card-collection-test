@@ -39,6 +39,29 @@ func _last_profile() -> int:
 func profile_exists(p: int) -> bool:
 	return FileAccess.file_exists(progress_file(p)) or has_run(p)
 
+## Change the name on ticket p (its own progress file, without switching to it).
+func rename_profile(p: int, manager: String) -> void:
+	if p == profile:                             ## the one in use: its progress is loaded already
+		CareerState.manager_name = manager
+		save_progress()
+		return
+	var cfg := _read(progress_file(p))
+	if cfg == null:                              ## e.g. a run saved before names existed
+		cfg = ConfigFile.new()
+		cfg.set_value("save", "version", SAVE_VERSION)
+	cfg.set_value("progress", "manager", manager)
+	_write(cfg, progress_file(p))
+
+## Tear up ticket p: its run and progress are gone for good. If it was the profile in use,
+## the game switches to another signed-up manager (or to an empty ticket 1 if none are left).
+func delete_profile(p: int) -> void:
+	for path in [run_file(p), progress_file(p)]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(path)
+	if p == profile:
+		var others := range(1, PROFILES + 1).filter(profile_exists)
+		use_profile(others[0] if not others.is_empty() else 1)
+
 ## Wipe every profile's run and progress, and which profile was used last (your speed setting
 ## stays). Only the editor-only button on the main menu uses this, for testing.
 func delete_everything() -> void:
@@ -157,7 +180,7 @@ func load_paths(list: Array) -> Array:
 	return items
 
 func _write(cfg: ConfigFile, path: String) -> void:
-	DirAccess.make_dir_recursive_absolute(folder())
+	DirAccess.make_dir_recursive_absolute(path.get_base_dir())   ## the file's own profile folder	
 	var error := cfg.save(path)
 	if error != OK:
 		push_error("SaveState: couldn't save %s (error %d)" % [path, error])

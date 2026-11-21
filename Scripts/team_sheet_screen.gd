@@ -198,12 +198,14 @@ func _on_player_clicked(p: StaffCard) -> void:
 		message_label.text = ""
 		await board.erase_starter(p)
 		RunState.picked.erase(p)
+		SaveState.save_run(scene_file_path)  ## your team so far is saved
 		_show_team()
 		busy = false
 	elif RunState.match_players().size() < RunState.MATCHDAY_PLAYERS:
 		busy = true
 		message_label.text = ""
 		RunState.picked.append(p)
+		SaveState.save_run(scene_file_path)  ## your team so far is saved
 		_show_team()
 		await board.write_in(p)
 		busy = false

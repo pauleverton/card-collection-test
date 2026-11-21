@@ -240,6 +240,7 @@ func _buy(s: StaffCard, free: bool, report: Button) -> void:
 	## Keep his place in the list (null = signed), so the board doesn't shuffle.
 	var list: Array = RunState.free_agents if free else RunState.transfer_list
 	list[list.find(s)] = null
+	SaveState.save_run(scene_file_path)      ## signed: saved straight away, so leaving can't undo it
 	message_label.text = "Signed: %s" % s.display_name
 	coins_label.text = "%d coins" % CoinState.coins
 	busy = true
@@ -314,6 +315,7 @@ func _sell(s: StaffCard) -> void:
 		return
 	CoinState.add_coins(RunState.sell_price(s))
 	RunState.remove_player(s)
+	SaveState.save_run(scene_file_path)      ## sold: saved straight away
 	message_label.text = "Sold: %s (+%d)" % [s.display_name, RunState.sell_price(s)]
 	_refresh_squad()
 
@@ -329,6 +331,7 @@ func _scout() -> void:
 	CoinState.deduct_coins(cost)
 	coins_label.text = "%d coins" % CoinState.coins
 	RunState.scout_again()
+	SaveState.save_run(scene_file_path)      ## the new list is saved: leaving can't re-roll it
 	message_label.text = "New names on the transfer list"
 	busy = true
 	await _clear_transfer_list()
