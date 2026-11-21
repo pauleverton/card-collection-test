@@ -30,6 +30,8 @@ var name_preview: Label
 var buttons: Array[Button] = []           ## switched off while anything is spinning
 var spinning := 0                         ## how many slots are spinning right now
 var confirm_box: ColorRect = null         ## "This will end your saved run": dark layer + panel
+const PROFILE_SCREEN := "res://Scenes/profile_screen.tscn"
+const MARKER_FONT := "res://Images+themes/Themes/permanent_marker.ttf"
 
 func _ready() -> void:
 	## Fill the speed list from SettingsState, and select whatever was saved last time.
@@ -41,6 +43,9 @@ func _ready() -> void:
 	speed_option.item_selected.connect(
 			func(i): SettingsState.set_speed(speed_option.get_item_text(i)))
 	continue_button.disabled = not SaveState.has_run()   ## greyed out until there's a run to continue
+	_manager_badge()
+	if OS.has_feature("editor"):                  ## only when run from Godot (F5), never in an exported game
+		_wipe_button()
 	continue_button.pressed.connect(_continue_run)
 	if RunState.start_with_team_name:            ## coming from "Start a new run"
 		RunState.start_with_team_name = false
@@ -49,6 +54,10 @@ func _ready() -> void:
 ## Start new game: build your team name first (asking first if that would end a saved run).
 func _on_start_game_pressed() -> void:
 	if name_box != null or confirm_box != null:
+		return
+	if not SaveState.any_profile():              ## nobody signed up yet: a season ticket first
+		SaveState.start_after_sign_up = true     ## ...then straight on to the team name
+		get_tree().change_scene_to_file(PROFILE_SCREEN)
 		return
 	if SaveState.has_run():
 		_show_confirm()
@@ -108,6 +117,93 @@ func _close_confirm() -> void:
 func _confirm_new_run() -> void:
 	_close_confirm()
 	_show_name_box()
+
+## Top left: who's playing, with "Change" back to the season tickets.
+func _manager_badge() -> void:
+	if not SaveState.any_profile():               ## nobody signed up yet: no manager to show
+		return
+	var badge := Button.new()
+	badge.add_theme_stylebox_override("normal", _badge_box(Color("1b2a22")))
+	badge.add_theme_stylebox_override("hover", _badge_box(Color("1b2a22").lightened(0.12)))
+	badge.add_theme_stylebox_override("pressed", _badge_box(Color("1b2a22").darkened(0.2)))
+	badge.add_theme_stylebox_override("focus", _badge_box(Color(0, 0, 0, 0)))
+	badge.position = Vector2(105, 80)
+	badge.pressed.connect(func(): get_tree().change_scene_to_file(PROFILE_SCREEN))
+	$TextureRect.add_child(badge)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 20)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.add_child(row)
+	var manager := CareerState.manager_name if CareerState.manager_name != "" else "Manager %d" % SaveState.profile
+	var initial := Label.new()                   ## the gold circle with the first letter
+	initial.text = manager.left(1).to_upper()
+	initial.custom_minimum_size = Vector2(68, 68)
+	initial.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	initial.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	var circle := StyleBoxFlat.new()
+	circle.bg_color = GOLD
+	circle.set_corner_radius_all(34)
+	initial.add_theme_stylebox_override("normal", circle)
+	initial.add_theme_color_override("font_color", Color("1b2a22"))
+	initial.add_theme_font_size_override("font_size", 38)
+	var names := VBoxContainer.new()
+	names.add_theme_constant_override("separation", -4)
+	names.alignment = BoxContainer.ALIGNMENT_CENTER
+	var small := Label.new()
+	small.text = "MANAGER"
+	small.add_theme_font_size_override("font_size", 16)
+	small.add_theme_color_override("font_color", Color("c9c2ad"))
+	var big := Label.new()
+	big.text = manager
+	big.add_theme_font_size_override("font_size", 36)
+	names.add_child(small)
+	names.add_child(big)
+	var change := Label.new()
+	change.text = "Change"
+	change.add_theme_font_size_override("font_size", 21)
+	change.add_theme_color_override("font_color", GOLD)
+	change.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if ResourceLoader.exists(MARKER_FONT):
+		var marker: Font = load(MARKER_FONT)
+		initial.add_theme_font_override("font", marker)
+		big.add_theme_font_override("font", marker)
+	for part in [initial, names, small, big, change]:
+		part.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(initial)
+	row.add_child(names)
+	row.add_child(change)
+	badge.custom_minimum_size = row.get_combined_minimum_size() + Vector2(44, 24)   ## + the padding below
+	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	row.offset_left = 18                         ## a Button doesn't pad its children, so pad by hand
+	row.offset_right = -26
+	row.offset_top = 12
+	row.offset_bottom = -12
+
+## Testing only (see _ready): wipes every save. Click once to arm it, again to wipe.
+func _wipe_button() -> void:
+	var wipe := Button.new()
+	wipe.text = "Delete all saves (editor only)"
+	UiStyle.secondary(wipe)
+	wipe.add_theme_color_override("font_color", Color("ff8a80"))
+	wipe.add_theme_color_override("font_hover_color", Color("ff8a80"))
+	wipe.position = Vector2(105, 960)
+	$TextureRect.add_child(wipe)
+	wipe.pressed.connect(func():
+		if wipe.text != "Click again to delete everything":
+			wipe.text = "Click again to delete everything"
+			return
+		SaveState.delete_everything()
+		get_tree().reload_current_scene())       ## back to how a brand-new game looks
+
+## The badge's dark panel with a gold edge, in one state's colour.
+func _badge_box(fill: Color) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = fill
+	box.border_color = GOLD
+	box.set_border_width_all(3)
+	box.set_corner_radius_all(14)
+	return box
 
 ## The dark green panel with a gold edge (the name box and the confirm box).
 func _dark_panel() -> PanelContainer:

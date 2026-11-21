@@ -9,6 +9,8 @@ var current_stake_index: int = 0
 var best_tournament_ever_reached: int = 0
 var total_runs_completed: int = 0
 var has_won_all_tournaments: bool = false
+## The name this profile signed up with (shown on its season ticket and the main menu).
+var manager_name: String = ""
 
 func start_new_run() -> void:
 	LeagueState.current_tournament_index = 0
@@ -35,6 +37,7 @@ func save_to(cfg: ConfigFile) -> void:
 	cfg.set_value("progress", "best_tournament", best_tournament_ever_reached)
 	cfg.set_value("progress", "runs", total_runs_completed)
 	cfg.set_value("progress", "won_all", has_won_all_tournaments)
+	cfg.set_value("progress", "manager", manager_name)
 
 ## An empty file (a new profile) gives all zeros.
 func load_from(cfg: ConfigFile) -> void:
@@ -42,3 +45,4 @@ func load_from(cfg: ConfigFile) -> void:
 	best_tournament_ever_reached = cfg.get_value("progress", "best_tournament", 0)
 	total_runs_completed = cfg.get_value("progress", "runs", 0)
 	has_won_all_tournaments = cfg.get_value("progress", "won_all", false)
+	manager_name = cfg.get_value("progress", "manager", "")
