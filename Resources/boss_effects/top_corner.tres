@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="BossRules" format=3 uid="uid://ck78aabsovrcr"]
+
+[ext_resource type="Script" uid="uid://haw1djk8jn7y" path="res://Scripts/boss_effects/boss_rules.gd" id="1_ccvk8"]
+
+[resource]
+script = ExtResource("1_ccvk8")
+their_shot_boost = 1.5
+power_in_your_half = null
+power_in_attacking_half = null
+staff_switched_off = null
+metadata/_custom_type_script = "uid://haw1djk8jn7y"

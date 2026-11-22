@@ -156,16 +156,29 @@ func start_match_day() -> void:
 	for p in picked:
 		LeagueState.use_appearance(p)
 
+## Staff a boss has switched off for this match (filled in by MatchRules at kick-off).
+var switched_off: Array = []
+
+## The players and coaches whose effects count in this match (picked, minus anyone switched off).
+func active_players() -> Array:
+	return match_players().filter(func(p): return not switched_off.has(p))
+
+func active_coaches() -> Array:
+	return coaches().filter(func(c): return not switched_off.has(c))
+
+func active_squad() -> Array:
+	return active_players() + active_coaches()
+
 func squad_bonus(card: ActionCard) -> int:
 	var total := 0
-	for p in match_players():
+	for p in active_players():
 		total += p.bonus_for(card)
 	return total
 
 ## All matching player multipliers, multiplied together.
 func squad_multiplier(card: ActionCard) -> float:
 	var total := 1.0
-	for p in match_players():
+	for p in active_players():
 		if p.applies_to(card):
 			total *= p.multiplier
 	return total
@@ -173,7 +186,7 @@ func squad_multiplier(card: ActionCard) -> float:
 ## Extra triggers a played card gets from coaches.
 func retriggers_for_card(card: ActionCard) -> int:
 	var total := 0
-	for c in coaches():
+	for c in active_coaches():
 		if c.applies_to(card):
 			total += c.retriggers
 	return total
@@ -181,19 +194,19 @@ func retriggers_for_card(card: ActionCard) -> int:
 ## Extra triggers a coach EFFECT of this category gets (only coaches without a tag filter count).
 func retriggers_for_type(type: String) -> int:
 	var total := 0
-	for c in coaches():
+	for c in active_coaches():
 		if c.boosts_tags == "any" and c.applies_to_type(type):
 			total += c.retriggers
 	return total
 
 ## Coaches whose effect fires at this moment ("on_goal", …).
 func coaches_for(when: String) -> Array:
-	return coaches().filter(func(c): return c.when == when)
+	return active_coaches().filter(func(c): return c.when == when)
 
 ## Names of everyone who boosts this card (for the commentary).
 func squad_helpers(card: ActionCard) -> PackedStringArray:
 	var names: PackedStringArray = []
-	for s in match_squad():
+	for s in active_squad():
 		if s.affects(card):
 			names.append(s.display_name)
 	return names

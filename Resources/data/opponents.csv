@@ -10,14 +10,14 @@ Subbed-at-Half-Time Town,"1,2",Medium,Very Low,High,,,
 Disappointment FC,"1,2",Very Low,Low,Medium,Yes,Player's energy reduced to 3,low_energy
 Park the Bus FC,"4,5,6",High,Very High,Very Low,,,
 Route One Athletic,"3,4,5,6",Low,Low,High,,,
-Tiki-Taka Town,"4,5,6,7,8",High,Very Low,Very High,Yes,Defensive players are nullified,
-Gegenpress United,"5,6,7,8",High,High,Very High,Yes,"Your cards lose 50% of power in your half, but gain 25% in attacking half",
+Tiki-Taka Town,"4,5,6,7,8",High,Very Low,Very High,Yes,Defensive players are nullified,no_defenders
+Gegenpress United,"5,6,7,8",High,High,Very High,Yes,"Your cards lose 50% of power in your half, but gain 25% in attacking half",gegenpress
 Inverted Winger Rovers,"6,7,8",Very Low,Medium,Very High,,,
 Offside Trap City,"5,6,7,8",High,High,Very Low,,,
 High Line Wanderers,"4,5,6,7,8",Medium,Medium,Medium,,,
-Overlapping Backs FC,"6,7,8",High,Medium,Medium,Yes,Coaches are nullified,
+Overlapping Backs FC,"6,7,8",High,Medium,Medium,Yes,Coaches are nullified,no_coaches
 Physicality & Grit,"5,6,7,8",High,High,Medium,,,
-Can-They-Do-It-In-Stoke FC,"1,2,3,4,5",High,Very High,Very Low,Yes,Team size reduced to 2,
+Can-They-Do-It-In-Stoke FC,"1,2,3,4,5",High,Very High,Very Low,Yes,Team size reduced to 2,team_of_two
 Heavy Challenge United,"6,8",High,Very High,High,,,
 Fifty-Fifty Athletic,"1,3,5,7",Medium,Low,Very Low,,,
 Second Ball Rangers,"2,4,6,8",Medium,High,Medium,,,
@@ -29,5 +29,5 @@ Game of Two Halves FC,"1,3,5,7",Low,High,Very High,,,
 Magic of the Cup Athletic,"1,2,3,4,5,6,7,8",Very Low,Very Low,Very High,Yes,Opponent starts 1-0 up,one_goal_down
 Early Doors FC,"1,2,3",High,Very Low,High,,,
 New Manager Bounce Town,"7,8",Very High,Very High,Very High,,,
-Top Corner Wanderers,"7,8",Very High,Very High,Very High,Yes,Opponent shot success increases by 50%,
+Top Corner Wanderers,"7,8",Very High,Very High,Very High,Yes,Opponent shot success increases by 50%,top_corner
 Clinical Finishers FC,"4,5,6,7,8",Very High,Medium,Very High,,,

@@ -129,8 +129,9 @@ var match_over := false
 var stoppage := false       ## true = stoppage time: shots only (see STOPPAGE_MAX)
 ## EDITOR ONLY: try a boss effect in every match without hunting for the boss team.
 ## Put an Effect ID here (e.g. "no_crosses"); "" = off. Ignored in a finished build.
-const TEST_BOSS_EFFECT := ""
+const TEST_BOSS_EFFECT := "team_of_two"
 var boss: BossEffect = null  ## this match's boss effect (null = none)
+var dropped: Array = []      ## players a boss dropped at kick-off (Stoke); the screen shows the spin
 
 func start() -> void:
 	zone = 2
@@ -153,6 +154,19 @@ func start() -> void:
 	energy = _fresh_energy()                ## a boss can lower your energy
 	if boss != null:
 		conceded = boss.their_starting_goals(self)   ## e.g. they start 1-0 up
+	## Staff the boss switches off for this match (Tiki-Taka, Overlapping Backs...).
+	RunState.switched_off = RunState.match_squad().filter(
+			func(s): return boss != null and not boss.staff_counts(self, s))	
+	## A boss that limits your players (Stoke): drop extras at random now. The match's dice are
+	## seeded before this, so replaying a quit match drops the same player.
+	dropped.clear()
+	var allowed := boss.players_allowed(self) if boss != null else 0
+	if allowed > 0:
+		var candidates := RunState.active_players()
+		candidates.shuffle()
+		while candidates.size() > allowed:
+			dropped.append(candidates.pop_back())
+	RunState.switched_off.append_array(dropped)
 	keeper_scale = level * (1.0 + (their_keeper - 1.0) * KEEPER_STRETCH)
 	if they_kick_off():
 		has_ball = false
@@ -288,19 +302,27 @@ func can_lunge() -> bool:
 	return in_our_box() and not match_over and not nobody_back() and energy >= LUNGE_COST \
 			and DeckState.hand.any(func(c): return is_lunge(c))
 
-## Percentage chance THEIR current chance beats your keeper.
 func their_goal_odds() -> int:
-	return _odds_to_beat(quality, _our_keeper_pile, OUR_KEEPER_DECK)
+	return _odds_to_beat(_their_shot_chance(quality), _our_keeper_pile, OUR_KEEPER_DECK)
 
 ## The same for any chance (your box view shows "after their cross: 50 · 56%").
 func their_goal_odds_at(q: int) -> int:
-	return _odds_to_beat(q, _our_keeper_pile, OUR_KEEPER_DECK)
+	return _odds_to_beat(_their_shot_chance(q), _our_keeper_pile, OUR_KEEPER_DECK)
+
+## Their chance as it counts when they actually shoot (a boss can boost it).
+func _their_shot_chance(q: int) -> int:
+	if boss == null:
+		return q
+	return roundi(q * boss.their_shot_multiplier(self))
 
 func power_of(card: ActionCard) -> int:
 	var triggers := 1 + RunState.retriggers_for_card(card)
 	var flat := (card.base_value + RunState.squad_bonus(card)) * triggers + next_bonus
-	return roundi(flat * pow(RunState.squad_multiplier(card), triggers))
-
+	var power := roundi(flat * pow(RunState.squad_multiplier(card), triggers))
+	if boss != null:
+		power = roundi(power * boss.power_multiplier(self, card))   ## e.g. Gegenpress
+	return power
+	
 ## Can this card be played in the current possession?
 func is_right_phase(card: ActionCard) -> bool:
 	match card.usable_when:
@@ -721,7 +743,7 @@ func _their_move(events: Array) -> void:
 func _their_shot(events: Array) -> void:
 	var save: int = _draw_from(_our_keeper_pile, OUR_KEEPER_DECK)
 	events.append({"type": "their_shot", "quality": quality, "save": save})
-	if quality > save:
+	if _their_shot_chance(quality) > save:
 		_concede(events)
 	else:
 		events.append({"type": "our_save"})
@@ -958,7 +980,7 @@ func fire_coaches(when: String, events: Array) -> void:
 ## The abilities switched on right now. Checked live, so a goal can switch one off mid-action.
 func _active_abilities() -> Array:
 	var list: Array = []
-	for s in RunState.match_squad():
+	for s in RunState.active_squad():
 		if s.ability != null and s.ability.is_active(self):
 			list.append(s.ability)
 	return list
@@ -1000,7 +1022,7 @@ func _penalty_save_base() -> int:
 ## (so the screen can make their tiles react to a save).
 func penalty_helpers() -> Array:
 	var list: Array = []
-	for s in RunState.match_squad():
+	for s in RunState.active_squad():
 		if s.ability == null or not s.ability.is_active(self):
 			continue
 		if s.ability.penalty_save_percent(self) > PEN_SAVE or s.ability.penalty_save_bonus(self) > 0:
@@ -1046,7 +1068,7 @@ func _abilities_allow(card: ActionCard) -> bool:
 	
 ## After every action: commentary for any ability that has just switched on or off.
 func _announce_abilities(events: Array) -> void:
-	for s in RunState.match_squad():
+	for s in RunState.active_squad():
 		if s.ability == null:
 			continue
 		var on: bool = s.ability.is_active(self)

@@ -112,6 +112,7 @@ func _boss_text() -> String:
 ## (up to MAX_REDEALS times). If it's still unplayable after that, you lose the ball as normal.
 func _kick_off() -> void:
 	busy = true
+	await _drop_roulette()
 	await _refresh_and_wait()
 	var redeals := 0
 	while pitch.hand_is_unplayable() and redeals < MAX_REDEALS:
@@ -124,6 +125,43 @@ func _kick_off() -> void:
 	var events := pitch.check_kick_off()
 	if not events.is_empty():
 		_after_action(events)
+		
+const DROPPED_COLOUR := Color("ff5a4a")
+const SPIN_LAPS := 2                ## times the spotlight goes all the way round before slowing
+
+## Stoke: a spotlight runs down your players, slowing down, and stops on each one the rules
+## dropped. That tile pops "DROPPED!" and greys out. Before the hand is dealt.
+func _drop_roulette() -> void:
+	if pitch.dropped.is_empty():
+		return
+	await get_tree().process_frame       ## let the tiles get their size first (for the pop)
+	_say("Who misses out?")
+	## In the spin: player tiles that weren't already switched off for another reason.
+	var tiles := squad_tiles.filter(func(t): return t.player is PlayerCard \
+			and (not RunState.switched_off.has(t.player) or pitch.dropped.has(t.player)))
+	for loser in pitch.dropped:
+		var target := -1
+		for j in tiles.size():
+			if tiles[j].player == loser:
+				target = j
+		var n := tiles.size()
+		var steps := n * SPIN_LAPS + target
+		for i in steps + 1:
+			for t in tiles:
+				t.spotlight(false)
+			tiles[i % n].spotlight(true)
+			var gap := lerpf(0.06, 0.35, pow(float(i) / steps, 2))   ## fast, then slowing
+			await get_tree().create_timer(SettingsState.t(gap)).timeout
+		var hit = tiles[target]
+		hit.react("DROPPED!", 0.0, DROPPED_COLOUR)
+		await get_tree().create_timer(SettingsState.t(0.6)).timeout
+		hit.spotlight(false)
+		hit.modulate = Color(0.45, 0.45, 0.45)
+		_say("%s misses out." % loser.display_name)
+		tiles.remove_at(target)          ## (a second drop can't land on him again)
+	for t in tiles:
+		t.spotlight(false)
+		t.modulate = Color.WHITE         ## everyone still playing back to normal
 
 ## Redraw the screen, then wait for any new cards to finish flying in.
 func _refresh_and_wait() -> void:
@@ -151,12 +189,14 @@ func play_card(card: ActionCard) -> void:
 	var triggers := 1 + RunState.retriggers_for_card(card)
 	var again_uis := []
 	for ui in squad_tiles:
-		if ui.player is CoachCard and ui.player.applies_to(card):
+		if ui.player is CoachCard and ui.player.applies_to(card) \
+				and not RunState.switched_off.has(ui.player):
 			for i in ui.player.retriggers:
 				again_uis.append(ui)
 	for t in triggers:
 		for ui in squad_tiles:
-			if ui.player is PlayerCard and ui.player.affects(card):
+			if ui.player is PlayerCard and ui.player.affects(card) \
+					and not RunState.switched_off.has(ui.player):
 				ui.react(ui.player.effect_label(), delay)
 				delay += SettingsState.t(0.25)
 		if t < triggers - 1:
@@ -539,6 +579,8 @@ func _build_squad() -> void:
 func _add_squad_tile(staff: StaffCard) -> void:
 	var tile := SquadTileView.new()
 	tile.setup(staff)
+	if RunState.switched_off.has(staff) and not pitch.dropped.has(staff):
+		tile.modulate = Color(0.45, 0.45, 0.45)   ## switched off by the boss this match
 	squad_bar.add_child(tile)
 	if staff is PlayerCard and _dugout_heading != null:
 		squad_bar.move_child(tile, _dugout_heading.get_index())   ## players stay above the dugout

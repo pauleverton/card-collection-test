@@ -40,3 +40,19 @@ func they_kick_off(_m: MatchRules) -> bool:
 ## Goals they start the match with.
 func their_starting_goals(_m: MatchRules) -> int:
 	return 0
+	
+## Their chance is multiplied by this when they shoot (1.0 = normal).
+func their_shot_multiplier(_m: MatchRules) -> float:
+	return 1.0
+
+## Multiplies the power of your cards right now (1.0 = normal).
+func power_multiplier(_m: MatchRules, _card: ActionCard) -> float:
+	return 1.0
+
+## Does this player or coach count in this match? false = switched off.
+func staff_counts(_m: MatchRules, _staff: StaffCard) -> bool:
+	return true
+	
+## How many of your players can play (0 = normal). Extras are dropped at random at kick-off.
+func players_allowed(_m: MatchRules) -> int:
+	return 0

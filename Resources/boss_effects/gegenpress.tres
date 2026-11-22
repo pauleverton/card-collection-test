@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="BossRules" format=3 uid="uid://dgmi0mdjeo083"]
+
+[ext_resource type="Script" uid="uid://haw1djk8jn7y" path="res://Scripts/boss_effects/boss_rules.gd" id="1_tvdve"]
+
+[resource]
+script = ExtResource("1_tvdve")
+power_in_your_half = 0.5
+power_in_attacking_half = 1.25
+metadata/_custom_type_script = "uid://haw1djk8jn7y"

@@ -101,22 +101,28 @@ func _show_games() -> void:
 
 ## Pop + wiggle, then float the bonus number. `delay` lets several players go in turn.
 ## Every length goes through SettingsState.t(), so the game-speed setting controls it.
-func react(label_text: String, delay: float) -> void:
+func react(label_text: String, delay: float, colour: Color = FLOAT_COLOUR) -> void:	
 	var s := SettingsState
 	_card.pivot_offset = _card.size / 2          ## grow/rotate from the centre
 	var t := create_tween()
 	t.tween_interval(delay)                       ## wait for our turn (already scaled by the caller)
-	t.tween_callback(_float_number.bind(label_text))
+	t.tween_callback(_float_number.bind(label_text, colour))
 	t.tween_property(_card, "scale", Vector2.ONE * POP_SCALE, s.t(0.1)) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	t.tween_property(_card, "rotation_degrees", POP_TILT, s.t(0.06))
 	t.tween_property(_card, "rotation_degrees", -POP_TILT, s.t(0.08))
 	t.tween_property(_card, "rotation_degrees", 0.0, s.t(0.06))
 	t.parallel().tween_property(_card, "scale", Vector2.ONE, s.t(0.15))
+	
+## The kick-off "who misses out?" spin: the lit tile grows and stays bright, the rest dim.
+func spotlight(on: bool) -> void:
+	_card.pivot_offset = _card.size / 2
+	_card.scale = Vector2.ONE * (POP_SCALE if on else 1.0)
+	modulate = Color.WHITE if on else Color(0.6, 0.6, 0.6)
 
-func _float_number(label_text: String) -> void:
+func _float_number(label_text: String, colour: Color = FLOAT_COLOUR) -> void:
 	var s := SettingsState
-	var label := _label(label_text, 40, FLOAT_COLOUR)
+	var label := _label(label_text, 40, colour)
 	label.add_theme_constant_override("outline_size", 8)
 	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
 	label.z_index = 10
