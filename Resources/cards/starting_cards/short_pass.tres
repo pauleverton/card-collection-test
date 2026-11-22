@@ -9,4 +9,5 @@ card_type = "move"
 base_value = 30
 usable_when = "attacking"
 play_zones = 31
+starting_copies = 3
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

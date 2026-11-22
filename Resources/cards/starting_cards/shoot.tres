@@ -13,5 +13,6 @@ base_value = 30
 upgrades_to = ExtResource("2_1ri6x")
 usable_when = "attacking"
 play_zones = 16
+starting_copies = 2
 art = ExtResource("1_olxm7")
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

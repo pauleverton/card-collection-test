@@ -19,6 +19,8 @@ extends Resource
 @export var energy_boost: int = 0
 ## Chance (0–1) that this card scores outright, for long-range shots.
 @export_range(0.0, 1.0, 0.01) var chance: float = 0.0
+## How many copies go in the starting deck. Only read for cards in the starting_cards folder.
+@export_range(0, 10) var starting_copies: int = 1
 ## Optional artwork. Empty = the card face simply leaves it out.
 @export var art: Texture2D
 

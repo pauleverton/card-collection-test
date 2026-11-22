@@ -127,6 +127,10 @@ var _was_active: Array = []   ## staff whose ability was on after the last actio
 var _extra_minutes := 0   ## time used up during an action (e.g. Kitchen Sink run-through)
 var match_over := false
 var stoppage := false       ## true = stoppage time: shots only (see STOPPAGE_MAX)
+## EDITOR ONLY: try a boss effect in every match without hunting for the boss team.
+## Put an Effect ID here (e.g. "no_crosses"); "" = off. Ignored in a finished build.
+const TEST_BOSS_EFFECT := "no_crosses"
+var boss: BossEffect = null  ## this match's boss effect (null = none)
 
 func start() -> void:
 	zone = 2
@@ -143,6 +147,9 @@ func start() -> void:
 	their_attack = opponent.attack if opponent != null else 1.0
 	level = float(strength) / LeagueState.BASE_STRENGTH
 	their_keeper = opponent.keeper if opponent != null else 1.0
+	boss = BossEffect.from_id(opponent.effect_id) if opponent != null else null
+	if TEST_BOSS_EFFECT != "" and OS.has_feature("editor"):
+		boss = BossEffect.from_id(TEST_BOSS_EFFECT)	
 	keeper_scale = level * (1.0 + (their_keeper - 1.0) * KEEPER_STRETCH)
 	_flip_press()
 	minute = 0
@@ -373,6 +380,9 @@ func play(card: ActionCard) -> Array:
 		return events
 	if not is_right_phase(card):
 		events.append({"type": "wrong_side", "card": card.display_name})
+		return events
+	if boss_bans(card):
+		events.append({"type": "boss_banned", "card": card.display_name})
 		return events
 	if not can_play_here(card):
 		events.append({"type": "not_here", "card": card.display_name})
@@ -992,9 +1002,16 @@ func _penalty_save_bonus() -> int:
 		total += a.penalty_save_bonus(self)
 	return total
 
-func _abilities_allow(card: ActionCard) -> bool:
-	return _active_abilities().all(func(a): return a.allows_card(self, card))
+## Is this card switched off by the boss effect? (The screen marks these cards in red.)
+func boss_bans(card: ActionCard) -> bool:
+	return boss != null and not boss.allows_card(self, card)
 
+## Can this card be played, as far as the boss effect and your active abilities are concerned?
+func _abilities_allow(card: ActionCard) -> bool:
+	if boss_bans(card):
+		return false
+	return _active_abilities().all(func(a): return a.allows_card(self, card))
+	
 ## After every action: commentary for any ability that has just switched on or off.
 func _announce_abilities(events: Array) -> void:
 	for s in RunState.match_squad():

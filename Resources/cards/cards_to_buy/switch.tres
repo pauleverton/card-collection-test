@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ActionCard" format=3 uid="uid://dj0eh8lt8ribe"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_lvgvx"]
+
+[resource]
+script = ExtResource("1_lvgvx")
+display_name = "Switch it up"
+description = "Discard all of your cards and draw a new hand"
+card_type = "utility"
+tag = "switch"
+card_rarity = "uncommon"
+base_value = 0
+energy_cost = 2
+usable_when = "attacking"
+play_zones = 15
+metadata/_custom_type_script = "uid://c7aob23hi7te0"

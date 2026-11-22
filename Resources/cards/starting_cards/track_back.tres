@@ -10,4 +10,5 @@ tag = "track_back"
 base_value = 20
 usable_when = "defending"
 play_zones = 31
+starting_copies = 2
 metadata/_custom_type_script = "uid://c7aob23hi7te0"

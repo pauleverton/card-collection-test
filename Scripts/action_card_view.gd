@@ -19,6 +19,8 @@ const THROUGH := Color("3fbf55")         ## outline: this card gets you through
 const THROUGH_WIDTH := 7         ## outline thickness at factor 1.0
 const THROUGH_GLOW := 18         ## how far the green glow spreads (px)
 const BLOCKED := Color(0.5, 0.5, 0.5)    ## greyed out (solid, so the pitch doesn't show through)
+const BANNED_TINT := Color(0.75, 0.45, 0.45)   ## switched off by the boss: dim and red
+const BANNED := Color("ff5a4a")                ## its outline
 const TYPE_COLOURS := {"attacking": Color("c9302c"), "move": Color("2b5bc4"),
 		"utility": Color("d9822b"), "defending": Color("2f7a3a"), "skills": Color("1f8a8a")}
 const RARITY_COLOURS := {"common": Color("9aa59b"), "uncommon": Color("3e8fd0"),
@@ -76,6 +78,9 @@ func set_play_state(state: String) -> void:
 		"blocked":
 			modulate = BLOCKED
 			_apply_outline(Color(0, 0, 0, 0), 0)
+		"banned":
+			modulate = BANNED_TINT
+			_apply_outline(BANNED, int(THROUGH_WIDTH * _factor))
 		"through":
 			modulate = Color.WHITE
 			_apply_outline(THROUGH, int(THROUGH_WIDTH * _factor))

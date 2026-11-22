@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ActionCard" format=3 uid="uid://bsmt0m1p1vedx"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_5p8nb"]
+
+[resource]
+script = ExtResource("1_5p8nb")
+display_name = "Finesse shot"
+description = "Curl it in the corner!"
+card_type = "attacking"
+tag = "shot"
+base_value = 40
+energy_cost = 2
+usable_when = "attacking"
+play_zones = 16
+metadata/_custom_type_script = "uid://c7aob23hi7te0"

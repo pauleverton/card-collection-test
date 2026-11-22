@@ -91,11 +91,21 @@ func _ready() -> void:
 	continue_button.pressed.connect(_on_continue)	
 	UiStyle.primary(continue_button)       ## full-time: the one main action
 	full_time_panel.visible = false
-	_say("Kick-off against %s. Beat the Press to move up the pitch." % LeagueState.next_opponent_label())
+	_say("Kick-off against %s. Beat the Press to move up the pitch." % LeagueState.next_opponent_label())	
+	var them := LeagueState.next_opponent()
+	if pitch.boss != null:
+		_say("★ Boss effect: %s" % _boss_text())
 	_build_squad()
 	_build_layout()
 	_kick_off()
 	
+## The boss effect's wording: the sheet's text, or "TEST <id>" for the editor test setting.
+func _boss_text() -> String:
+	var them := LeagueState.next_opponent()
+	if them != null and them.effect_text != "":
+		return them.effect_text
+	return "TEST " + pitch.boss.resource_path.get_file().get_basename()
+
 ## Deal the opening hand. If none of it can be played, it goes back and is dealt again
 ## (up to MAX_REDEALS times). If it's still unplayable after that, you lose the ball as normal.
 func _kick_off() -> void:
@@ -127,7 +137,7 @@ func play_card(card: ActionCard) -> void:
 	var was_in_our_box := pitch.in_our_box()
 	var events := pitch.play(card)
 	## If the card couldn't be played at all, leave it in the hand.
-	if events[0]["type"] in ["not_now", "no_energy","not_here", "wrong_side"]:
+	if events[0]["type"] in ["not_now", "no_energy", "not_here", "wrong_side", "boss_banned"]:
 		_say(describe(events), false)
 		return
 	busy = true
@@ -697,7 +707,9 @@ func refresh_all() -> float:
 		our_box_view.preview_lunge(false)   ## a hidden button can't be hovered
 	lunge_button.text = "LUNGE\n1 energy"     ## like SHOOT: the odds are on its row in the panel
 	for card_ui in hand.get_children():
-		if not pitch.can_play_here(card_ui.card) or card_ui.card.energy_cost > pitch.energy:
+		if pitch.boss_bans(card_ui.card):
+			card_ui.set_play_state("banned")       ## switched off by the boss effect, all match
+		elif not pitch.can_play_here(card_ui.card) or card_ui.card.energy_cost > pitch.energy:
 			card_ui.set_play_state("blocked")      ## can't be played here, or not enough energy		
 		elif pitch.would_succeed(card_ui.card):
 			card_ui.set_play_state("through")      ## gets you through
@@ -845,6 +857,8 @@ func describe(events: Array) -> String:
 					lines.append("[color=gold][b]STOPPAGE TIME![/b] One last shot...[/color]")
 			"not_here":
 				lines.append("%s can't be played here." % e["card"])
+			"boss_banned":
+				lines.append("%s is banned this match. ★ %s" % [e["card"], _boss_text()])
 			"no_options":
 				lines.append("No way forward. You're closed down and lose the ball.")
 			"wrong_side":

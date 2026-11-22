@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="ActionCard" format=3 uid="uid://du07emj33qjhe"]
 
 [ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_kbrn2"]
+[ext_resource type="Resource" uid="uid://sj2aojypd77u" path="res://Resources/cards/starting_card_upgrades/retain_upgrade_1.tres" id="2_dlci1"]
 
 [resource]
 script = ExtResource("1_kbrn2")
@@ -10,6 +11,7 @@ card_type = "utility"
 tag = "retain"
 base_value = 1
 energy_cost = 0
+upgrades_to = ExtResource("2_dlci1")
 play_zones = 31
 draw_count = 2
 energy_boost = 1

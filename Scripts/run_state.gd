@@ -1,51 +1,16 @@
 extends Node
 ## Autoload: everything that lasts for a whole run (your deck, matches played).
 ## Register as "RunState" in Project Settings > Globals > Autoload.
-
-const STARTING_DECK := [
-	"res://Resources/cards/starting_cards/short_pass.tres", 
-	"res://Resources/cards/starting_cards/short_pass.tres", 
-	"res://Resources/cards/starting_cards/short_pass.tres",
-	"res://Resources/cards/starting_cards/dribble.tres", 
-	"res://Resources/cards/starting_cards/through_ball.tres",
-	"res://Resources/cards/starting_cards/overlap.tres", 
-	"res://Resources/cards/starting_cards/cross.tres",
-	"res://Resources/cards/starting_cards/shoot.tres",
-	"res://Resources/cards/starting_cards/shoot.tres",
-	"res://Resources/cards/starting_cards/tackle.tres", 
-	"res://Resources/cards/starting_cards/tackle.tres",
-	"res://Resources/cards/starting_cards/track_back.tres", 
-	"res://Resources/cards/starting_cards/track_back.tres",
-	"res://Resources/cards/starting_cards/block.tres",
-	"res://Resources/cards/starting_cards/lump_clear.tres",
-	"res://Resources/cards/starting_cards/retain_possession.tres"]
-
-const REWARD_POOL := [
-	"res://Resources/cards/starting_cards/short_pass.tres", 
-	"res://Resources/cards/starting_cards/dribble.tres",
-	"res://Resources/cards/starting_cards/through_ball.tres", 
-	"res://Resources/cards/starting_cards/overlap.tres",
-	"res://Resources/cards/starting_cards/cross.tres", 
-	"res://Resources/cards/starting_cards/shoot.tres",
-	"res://Resources/cards/cards_to_buy/long_shot.tres",
-	"res://Resources/cards/starting_cards/track_back.tres", 
-	"res://Resources/cards/starting_cards/block.tres",
-	"res://Resources/cards/starting_cards/lump_clear.tres"]
+## Every card in this folder goes in the starting deck (each card's Starting Copies says how many).
+const STARTING_FOLDER := "res://Resources/cards/starting_cards/"
+## Rewards and the training ground offer every card in these folders.
+## The upgrade folders are left out on purpose: you only get "+" cards by upgrading.
+const REWARD_FOLDERS := [
+	"res://Resources/cards/starting_cards/",
+	"res://Resources/cards/cards_to_buy/"]
 const REWARD_CHOICES := 3
-
-const PLAYER_POOL:= [
-	"res://Resources/players/the_wall.tres",
-	"res://Resources/players/twinkle_toes.tres",
-	"res://Resources/players/stopper.tres",
-	"res://Resources/players/super_sub.tres",
-	"res://Resources/players/kitchen_sink.tres",
-	"res://Resources/players/park_the_bus.tres",
-	"res://Resources/players/penalty_king.tres"]
-	
-const COACH_POOL:= [
-	"res://Resources/coaches/attacking_coach.tres",
-	"res://Resources/coaches/assistant_manager.tres",
-	"res://Resources/coaches/penalty_coach.tres"]
+const PLAYER_FOLDER := "res://Resources/players/"
+const COACH_FOLDER := "res://Resources/coaches/"
 
 ## Chance of each rarity when generating a card or player (Balatro-style:
 ## roll the rarity first, then pick something of that rarity).
@@ -82,26 +47,34 @@ func _ready() -> void:
 
 func new_run() -> void:
 	deck.clear()
-	for path in STARTING_DECK:
-		deck.append(load(path))
+	for card in _load_folder(STARTING_FOLDER):
+		for i in card.starting_copies:
+			deck.append(card)
 	squad.clear()
 	picked.clear()
 	team_name = ""
 	start_preseason()                ## every run starts with a transfer window
 	roll_training()
 
-## Up to `count` different cards from REWARD_POOL, weighted by rarity.
+## Up to `count` different cards from the REWARD_FOLDERS, weighted by rarity.
 ## (Cards you already own can still appear: you can have several copies.)
 func reward_options(count: int = REWARD_CHOICES) -> Array:
-	return _pick_by_rarity(_load_pool(REWARD_POOL), count)
+	var pool := []
+	for folder in REWARD_FOLDERS:
+		pool += _load_folder(folder)
+	return _pick_by_rarity(pool, count)
 
-## Load every path in a pool, skipping (with a warning) any file that won't load.
-func _load_pool(paths: Array) -> Array:
+## Load every card/staff file in a folder, skipping (with a warning) any that won't load.
+## Uses ResourceLoader.list_directory, not DirAccess: in an exported game Godot renames
+## .tres files, and DirAccess would find nothing. This one sees through that.
+func _load_folder(folder: String) -> Array:
 	var loaded := []
-	for path in paths:
-		var res = load(path)
+	for file in ResourceLoader.list_directory(folder):
+		if not (file.ends_with(".tres") or file.ends_with(".res")):
+			continue                     ## skips sub-folders (they end in "/") and anything else
+		var res = load(folder + file)
 		if res == null:
-			push_warning("RunState: couldn't load %s, skipped" % path)
+			push_warning("RunState: couldn't load %s%s, skipped" % [folder, file])
 			continue
 		loaded.append(res)
 	return loaded
@@ -270,12 +243,12 @@ var scouts_used := 0
 ## Fill the window: free agents first, then the transfer list (never the same player twice).
 func open_transfer_window() -> void:
 	scouts_used = 0
-	var players_left := _load_pool(PLAYER_POOL).filter(func(s): return not squad.has(s))
+	var players_left := _load_folder(PLAYER_FOLDER).filter(func(s): return not squad.has(s))
 	free_agents = _pick_by_rarity(players_left, TRANSFER_FREE, FREE_RARITY_WEIGHTS)
 	_roll_transfer_list()
 
 func _roll_transfer_list() -> void:
-	var pool := _load_pool(PLAYER_POOL + COACH_POOL).filter(
+	var pool := (_load_folder(PLAYER_FOLDER) + _load_folder(COACH_FOLDER)).filter(
 			func(s): return not squad.has(s) and not free_agents.has(s))
 	transfer_list = _pick_by_rarity(pool, TRANSFER_PAID)
 

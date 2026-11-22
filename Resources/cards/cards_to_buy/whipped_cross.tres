@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ActionCard" format=3 uid="uid://ccsrphclr68fl"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_7b7fq"]
+
+[resource]
+script = ExtResource("1_7b7fq")
+display_name = "Whipped cross"
+description = "Whip it in!"
+card_type = "attacking"
+tag = "cross"
+card_rarity = "uncommon"
+base_value = 50
+energy_cost = 2
+usable_when = "attacking"
+play_zones = 16
+metadata/_custom_type_script = "uid://c7aob23hi7te0"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ActionCard" format=3 uid="uid://d0r7u0e1oe1rg"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_ma7df"]
+[ext_resource type="Resource" uid="uid://ddsx7d37opro3" path="res://Resources/cards/cards_to_buy_upgrades/nutmeg_upgrade.tres" id="2_oq5jr"]
+
+[resource]
+script = ExtResource("1_ma7df")
+display_name = "Nutmeg"
+card_type = "skills"
+tag = "nutmeg"
+energy_cost = 0
+upgrades_to = ExtResource("2_oq5jr")
+usable_when = "attacking"
+play_zones = 28
+metadata/_custom_type_script = "uid://c7aob23hi7te0"

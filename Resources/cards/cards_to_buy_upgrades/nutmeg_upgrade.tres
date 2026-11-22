@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ActionCard" format=3 uid="uid://ddsx7d37opro3"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_88kma"]
+
+[resource]
+script = ExtResource("1_88kma")
+display_name = "Nutmeg"
+card_type = "skills"
+tag = "nutmeg"
+base_value = 20
+energy_cost = 0
+usable_when = "attacking"
+play_zones = 28
+metadata/_custom_type_script = "uid://c7aob23hi7te0"

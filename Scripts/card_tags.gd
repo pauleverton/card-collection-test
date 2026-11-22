@@ -6,7 +6,7 @@ extends RefCounted
 
 const TAGS := ["pass", "dribble", "long_ball", "cross", "shot","shot_button", "tackle",
 		"track_back", "block", "overlap", "retain", "lump_clear","switch",
-		"long_shot","stepover","nutmeg","cruyff_turn"]
+		"long_shot","stepover","nutmeg","cruyff_turn","switch","one_two","swarm"]
 const TYPES := ["attacking", "defending","goalkeeper", "move", "utility","skills"]
 ## One colour per type (card bands, players' and coaches' badges).
 const TYPE_COLOURS := {"attacking": Color("c9302c"), "move": Color("2b5bc4"),

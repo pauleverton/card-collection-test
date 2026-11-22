@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ActionCard" format=3 uid="uid://tk5ao42nct3j"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_qxgv8"]
+
+[resource]
+script = ExtResource("1_qxgv8")
+display_name = "Cryuff Turn"
+description = "Turn the defender inside out and progress to the next zone"
+card_type = "skills"
+tag = "cruyff_turn"
+card_rarity = "rare"
+base_value = 0
+energy_cost = 3
+usable_when = "attacking"
+play_zones = 12
+metadata/_custom_type_script = "uid://c7aob23hi7te0"

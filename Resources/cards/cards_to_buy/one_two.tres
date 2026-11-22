@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ActionCard" format=3 uid="uid://dxbumiqg1vsp8"]
+
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_y11ah"]
+
+[resource]
+script = ExtResource("1_y11ah")
+display_name = "One-Two"
+description = "Play a pass and draw a card immediately, reducing its energy cost to 0"
+card_type = "move"
+tag = "one_two"
+card_rarity = "uncommon"
+base_value = 50
+energy_cost = 3
+usable_when = "attacking"
+play_zones = 31
+draw_count = 1
+metadata/_custom_type_script = "uid://c7aob23hi7te0"
