@@ -129,7 +129,7 @@ var match_over := false
 var stoppage := false       ## true = stoppage time: shots only (see STOPPAGE_MAX)
 ## EDITOR ONLY: try a boss effect in every match without hunting for the boss team.
 ## Put an Effect ID here (e.g. "no_crosses"); "" = off. Ignored in a finished build.
-const TEST_BOSS_EFFECT := "no_crosses"
+const TEST_BOSS_EFFECT := ""
 var boss: BossEffect = null  ## this match's boss effect (null = none)
 
 func start() -> void:
@@ -137,7 +137,7 @@ func start() -> void:
 	goals = 0
 	conceded = 0
 	has_ball = true
-	energy = START_ENERGY
+	energy = _fresh_energy()
 	next_bonus = 0
 	quality = 0
 	bonus_coins=0
@@ -150,8 +150,15 @@ func start() -> void:
 	boss = BossEffect.from_id(opponent.effect_id) if opponent != null else null
 	if TEST_BOSS_EFFECT != "" and OS.has_feature("editor"):
 		boss = BossEffect.from_id(TEST_BOSS_EFFECT)	
+	energy = _fresh_energy()                ## a boss can lower your energy
+	if boss != null:
+		conceded = boss.their_starting_goals(self)   ## e.g. they start 1-0 up
 	keeper_scale = level * (1.0 + (their_keeper - 1.0) * KEEPER_STRETCH)
-	_flip_press()
+	if they_kick_off():
+		has_ball = false
+		_flip_attack()          ## they start with the ball: win it back
+	else:
+		_flip_press()
 	minute = 0
 	_was_active.clear()
 	_extra_minutes = 0
@@ -393,9 +400,10 @@ func play(card: ActionCard) -> Array:
 		next_bonus += card.base_value
 		events.append({"type": "bonus", "next_bonus": next_bonus})
 	elif card.tag == "retain":
-		energy += card.energy_boost
+		var before := energy
+		energy = mini(energy + card.energy_boost, max_energy())   ## a boss can cap it
 		DeckState.draw(card.draw_count)
-		events.append({"type": "retain", "energy": card.energy_boost, "drew": card.draw_count})
+		events.append({"type": "retain", "energy": energy - before, "drew": card.draw_count})
 	elif card.tag == "lump_clear":
 		_lump_clear(card, events)
 	elif in_their_box():
@@ -719,13 +727,17 @@ func _their_shot(events: Array) -> void:
 		events.append({"type": "our_save"})
 		_win_ball(events)
 
-## They've scored: kick-off to you.
+## They've scored: kick-off to you (or to them again, against a boss that takes every kick-off).
 func _concede(events: Array) -> void:
 	conceded += 1
 	events.append({"type": "conceded", "conceded": conceded})
 	zone = 2
-	events.append({"type": "kick_off"})
-	_start_our_possession(events)
+	if they_kick_off():
+		events.append({"type": "kick_off_theirs"})
+		_start_their_possession(events)
+	else:
+		events.append({"type": "kick_off"})
+		_start_our_possession(events)
 
 # ---------- Penalties ----------
 
@@ -811,7 +823,7 @@ func _win_ball(events: Array) -> void:
 ## Everything that happens when the ball changes hands lives in these two functions.
 func _start_our_possession(events: Array) -> void:
 	has_ball = true
-	energy = START_ENERGY
+	energy = _fresh_energy()
 	next_bonus = 0
 	DeckState.draw(POSSESSION_DRAW)
 	if zone == 4:
@@ -824,7 +836,7 @@ func _start_our_possession(events: Array) -> void:
 
 func _start_their_possession(events: Array = []) -> void:
 	has_ball = false
-	energy = START_ENERGY
+	energy = _fresh_energy()
 	next_bonus = 0
 	DeckState.draw(POSSESSION_DRAW)
 	var broke_through := false
@@ -832,11 +844,11 @@ func _start_their_possession(events: Array = []) -> void:
 		events.append({"type": "ran_through", "index": zone})
 		## Nobody back: they break through zone by zone. Each zone still takes an action's
 		## worth of time, and stops if the clock runs out before they get there.
-		while zone > 0 and minute + MINUTES_PER_ACTION + _extra_minutes < MATCH_LENGTH:
+		while zone > 0 and minute + _minutes_per_action() + _extra_minutes < MATCH_LENGTH:
 			zone -= 1
-			_extra_minutes += MINUTES_PER_ACTION
+			_extra_minutes += _minutes_per_action()
 			events.append({"type": "they_break", "zone": ZONE_NAMES[zone], "index": zone,
-					"minute": min(minute + MINUTES_PER_ACTION + _extra_minutes, MATCH_LENGTH)})
+					"minute": min(minute + _minutes_per_action() + _extra_minutes, MATCH_LENGTH)})
 		broke_through = zone == 0
 	if zone == 0:
 		_set_their_chance()
@@ -873,7 +885,7 @@ func _draw_from(pile: Array, source: Array):
 
 ## Every action uses up time. At full time, the match is over.
 func _tick_clock(events: Array) -> void:
-	minute += MINUTES_PER_ACTION + _extra_minutes
+	minute += _minutes_per_action() + _extra_minutes
 	_extra_minutes = 0
 	events.append({"type": "clock", "minute": minute})   ## the clock moves on: what follows happens at the new minute
 	_announce_abilities(events)
@@ -1005,6 +1017,26 @@ func _penalty_save_bonus() -> int:
 ## Is this card switched off by the boss effect? (The screen marks these cards in red.)
 func boss_bans(card: ActionCard) -> bool:
 	return boss != null and not boss.allows_card(self, card)
+
+## Energy at the start of each possession: START_ENERGY, unless a boss lowers it.
+func _fresh_energy() -> int:
+	return mini(START_ENERGY, max_energy())
+
+## The most energy you can ever have (a boss can set a limit).
+func max_energy() -> int:
+	if boss != null and boss.max_energy(self) > 0:
+		return boss.max_energy(self)
+	return 999
+
+## Minutes each action takes (a boss can change it).
+func _minutes_per_action() -> int:
+	if boss != null and boss.minutes_per_action(self) > 0:
+		return boss.minutes_per_action(self)
+	return MINUTES_PER_ACTION
+
+## Do they take every kick-off?
+func they_kick_off() -> bool:
+	return boss != null and boss.they_kick_off(self)
 
 ## Can this card be played, as far as the boss effect and your active abilities are concerned?
 func _abilities_allow(card: ActionCard) -> bool:

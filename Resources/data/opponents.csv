@@ -4,10 +4,10 @@ Cold Wet Tuesday Athletic,"1,2,3,4",Very High,Very High,Low,Yes,Crossing is null
 Jumpers for Goalposts FC,"1,2,3,4",High,Medium,Very Low,,,
 Hangover Rovers,"1,2,3",Very Low,Very Low,Very Low,,,
 Muddy Pitch Wanderers,"1,2,3,4",Very Low,High,Low,,,
-Lost Match Ball United,"1,2,3,4",Low,Very Low,High,Yes,Each card played accounts for 6 minutes instead of 3,
+Lost Match Ball United,"1,2,3,4",Low,Very Low,High,Yes,Each card played accounts for 6 minutes instead of 3,slow_clock
 Last Minute Ringer FC,"1,2,3,4",Medium,Medium,Medium,,,
 Subbed-at-Half-Time Town,"1,2",Medium,Very Low,High,,,
-Disappointment FC,"1,2",Very Low,Low,Medium,Yes,Player's energy reduced to 3,
+Disappointment FC,"1,2",Very Low,Low,Medium,Yes,Player's energy reduced to 3,low_energy
 Park the Bus FC,"4,5,6",High,Very High,Very Low,,,
 Route One Athletic,"3,4,5,6",Low,Low,High,,,
 Tiki-Taka Town,"4,5,6,7,8",High,Very Low,Very High,Yes,Defensive players are nullified,
@@ -21,12 +21,12 @@ Can-They-Do-It-In-Stoke FC,"1,2,3,4,5",High,Very High,Very Low,Yes,Team size red
 Heavy Challenge United,"6,8",High,Very High,High,,,
 Fifty-Fifty Athletic,"1,3,5,7",Medium,Low,Very Low,,,
 Second Ball Rangers,"2,4,6,8",Medium,High,Medium,,,
-Hospital Pass FC,"1,2,3,4",Medium,Medium,Medium,Yes,Opponent takes every kick off,
+Hospital Pass FC,"1,2,3,4",Medium,Medium,Medium,Yes,Opponent takes every kick off,every_kick_off
 Put a Shift In Rovers,"2,3,4,5",Medium,Medium,High,,,
 Clear It Long City,"5,6,7,8",Low,High,Very Low,Yes,Must win by 2 clear goals to win,
 Squeaky Bum Time United,"5,6,7,8",Very High,Medium,Medium,,,
 Game of Two Halves FC,"1,3,5,7",Low,High,Very High,,,
-Magic of the Cup Athletic,"1,2,3,4,5,6,7,8",Very Low,Very Low,Very High,Yes,Opponent starts 1-0 up,
+Magic of the Cup Athletic,"1,2,3,4,5,6,7,8",Very Low,Very Low,Very High,Yes,Opponent starts 1-0 up,one_goal_down
 Early Doors FC,"1,2,3",High,Very Low,High,,,
 New Manager Bounce Town,"7,8",Very High,Very High,Very High,,,
 Top Corner Wanderers,"7,8",Very High,Very High,Very High,Yes,Opponent shot success increases by 50%,

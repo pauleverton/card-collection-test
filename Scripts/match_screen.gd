@@ -95,6 +95,8 @@ func _ready() -> void:
 	var them := LeagueState.next_opponent()
 	if pitch.boss != null:
 		_say("★ Boss effect: %s" % _boss_text())
+		if not pitch.has_ball:
+			_say("They kick off. Win the ball back.")
 	_build_squad()
 	_build_layout()
 	_kick_off()
@@ -829,6 +831,8 @@ func describe(events: Array) -> String:
 				lines.append("Won the ball in %s!" % e["zone"])
 			"kick_off":
 				lines.append("Your kick-off.")
+			"kick_off_theirs":
+				lines.append("Their kick-off again. ★ %s" % _boss_text())
 			# --- General ---
 			"retain":
 				lines.append("Kept the ball: +%d energy, drew %d." % [e["energy"], e["drew"]])

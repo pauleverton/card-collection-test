@@ -24,3 +24,19 @@ static func from_id(id: String) -> BossEffect:
 ## Can this card be played at all?
 func allows_card(_m: MatchRules, _card: ActionCard) -> bool:
 	return true
+	
+## The most energy you can have (0 = no limit).
+func max_energy(_m: MatchRules) -> int:
+	return 0
+
+## Minutes each action takes (0 = normal).
+func minutes_per_action(_m: MatchRules) -> int:
+	return 0
+
+## Do they take every kick-off?
+func they_kick_off(_m: MatchRules) -> bool:
+	return false
+
+## Goals they start the match with.
+func their_starting_goals(_m: MatchRules) -> int:
+	return 0

@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="ActionCard" format=3 uid="uid://tk5ao42nct3j"]
 
-[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_qxgv8"]
+[ext_resource type="Script" uid="uid://c7aob23hi7te0" path="res://Scripts/action_card.gd" id="1_mq5iq"]
 
 [resource]
-script = ExtResource("1_qxgv8")
-display_name = "Cryuff Turn"
+script = ExtResource("1_mq5iq")
+display_name = "Cruyff Turn"
 description = "Turn the defender inside out and progress to the next zone"
 card_type = "skills"
 tag = "cruyff_turn"

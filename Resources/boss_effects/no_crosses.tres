@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="BanCardTag" format=3 uid="uid://cjpa4ktlx2c0d"]
+[gd_resource type="Resource" script_class="BossRules" format=3 uid="uid://cjpa4ktlx2c0d"]
 
-[ext_resource type="Script" uid="uid://c3lv1n8l4mtaj" path="res://Scripts/boss_effects/ban_card_tag.gd" id="1_kvemn"]
+[ext_resource type="Script" uid="uid://haw1djk8jn7y" path="res://Scripts/boss_effects/boss_rules.gd" id="1_kvemn"]
 
 [resource]
 script = ExtResource("1_kvemn")
-metadata/_custom_type_script = "uid://c3lv1n8l4mtaj"
+banned_tag = "cross"
+metadata/_custom_type_script = "uid://haw1djk8jn7y"
