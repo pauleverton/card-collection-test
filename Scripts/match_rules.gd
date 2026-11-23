@@ -129,8 +129,8 @@ var match_over := false
 var stoppage := false       ## true = stoppage time: shots only (see STOPPAGE_MAX)
 ## EDITOR ONLY: try a boss effect in every match without hunting for the boss team.
 ## Put an Effect ID here (e.g. "no_crosses"); "" = off. Ignored in a finished build.
-const TEST_BOSS_EFFECT := "team_of_two"
-var boss: BossEffect = null  ## this match's boss effect (null = none)
+const TEST_BOSS_EFFECT := "slow_clock"
+var boss: Ability = null  ## this match's boss effect (null = none): always on, like a player's ability
 var dropped: Array = []      ## players a boss dropped at kick-off (Stoke); the screen shows the spin
 
 func start() -> void:
@@ -148,15 +148,14 @@ func start() -> void:
 	their_attack = opponent.attack if opponent != null else 1.0
 	level = float(strength) / LeagueState.BASE_STRENGTH
 	their_keeper = opponent.keeper if opponent != null else 1.0
-	boss = BossEffect.from_id(opponent.effect_id) if opponent != null else null
+	boss = _load_boss(opponent.effect_id) if opponent != null else null
 	if TEST_BOSS_EFFECT != "" and OS.has_feature("editor"):
-		boss = BossEffect.from_id(TEST_BOSS_EFFECT)	
-	energy = _fresh_energy()                ## a boss can lower your energy
+		boss = _load_boss(TEST_BOSS_EFFECT)
 	if boss != null:
 		conceded = boss.their_starting_goals(self)   ## e.g. they start 1-0 up
 	## Staff the boss switches off for this match (Tiki-Taka, Overlapping Backs...).
 	RunState.switched_off = RunState.match_squad().filter(
-			func(s): return boss != null and not boss.staff_counts(self, s))	
+			func(s): return boss != null and not boss.staff_counts(self, s))
 	## A boss that limits your players (Stoke): drop extras at random now. The match's dice are
 	## seeded before this, so replaying a quit match drops the same player.
 	dropped.clear()
@@ -167,6 +166,7 @@ func start() -> void:
 		while candidates.size() > allowed:
 			dropped.append(candidates.pop_back())
 	RunState.switched_off.append_array(dropped)
+	energy = _fresh_energy()     ## last: the boss AND who's playing both change your energy
 	keeper_scale = level * (1.0 + (their_keeper - 1.0) * KEEPER_STRETCH)
 	if they_kick_off():
 		has_ball = false
@@ -309,19 +309,20 @@ func their_goal_odds() -> int:
 func their_goal_odds_at(q: int) -> int:
 	return _odds_to_beat(_their_shot_chance(q), _our_keeper_pile, OUR_KEEPER_DECK)
 
-## Their chance as it counts when they actually shoot (a boss can boost it).
+## Their chance as it counts when they actually shoot (bosses and your staff can change it).
 func _their_shot_chance(q: int) -> int:
-	if boss == null:
-		return q
-	return roundi(q * boss.their_shot_multiplier(self))
+	var mult := 1.0
+	for e in _active_abilities():
+		mult *= e.their_shot_multiplier(self)
+	return roundi(q * mult)
 
 func power_of(card: ActionCard) -> int:
 	var triggers := 1 + RunState.retriggers_for_card(card)
 	var flat := (card.base_value + RunState.squad_bonus(card)) * triggers + next_bonus
-	var power := roundi(flat * pow(RunState.squad_multiplier(card), triggers))
-	if boss != null:
-		power = roundi(power * boss.power_multiplier(self, card))   ## e.g. Gegenpress
-	return power
+	var mult := pow(RunState.squad_multiplier(card), triggers)
+	for e in _active_abilities():
+		mult *= e.power_multiplier(self, card)      ## e.g. Gegenpress
+	return roundi(flat * mult)
 	
 ## Can this card be played in the current possession?
 func is_right_phase(card: ActionCard) -> bool:
@@ -943,17 +944,30 @@ func _play_on() -> bool:
 	return DeckState.hand.any(func(c): return c.tag == "long_shot" \
 			and c.energy_cost <= energy and can_play_here(c))
 
+## The result as it COUNTS: "win", "draw" or "loss". Everything (points, coins, reward, the
+## full-time banner) asks this rather than comparing the scores itself, so they always agree.
+## A must-win boss (Clear It Long: win by 2) turns anything less, draws included, into a loss.
+func result() -> String:
+	var diff := goals - conceded
+	var margin := boss.win_margin(self) if boss != null else 1
+	if diff >= margin:
+		return "win"
+	if margin > 1:
+		return "loss"           ## a must-win boss: no draws
+	return "draw" if diff == 0 else "loss"
+
 ## Where this match's coins come from, one row each (zero amounts left out):
 ## {"count": "3" or "", "label": "Goals (10 each)", "amount": 30}.
 ## coins_earned() adds these up, so the rows and the total always match.
 func coins_parts() -> Array:
 	var parts := []
-	if goals > conceded:
-		parts.append({"count": "", "label": "Win", "amount": COINS_WIN})
-	elif goals == conceded:
-		parts.append({"count": "", "label": "Draw", "amount": COINS_DRAW})
-	else:
-		parts.append({"count": "", "label": "Loss", "amount": COINS_LOSS})
+	match result():
+		"win":
+			parts.append({"count": "", "label": "Win", "amount": COINS_WIN})
+		"draw":
+			parts.append({"count": "", "label": "Draw", "amount": COINS_DRAW})
+		_:
+			parts.append({"count": "", "label": "Loss", "amount": COINS_LOSS})
 	if goals > 0:
 		parts.append({"count": str(goals), "label": "Goals (%d each)" % COINS_PER_GOAL,
 				"amount": goals * COINS_PER_GOAL})
@@ -976,10 +990,12 @@ func fire_coaches(when: String, events: Array) -> void:
 				"coins": c.coins * times, "times": times})
 
 # ---------- Abilities ----------
-
-## The abilities switched on right now. Checked live, so a goal can switch one off mid-action.
+## Every effect switched on right now: the boss (always on) plus your staff's active abilities.
+## Checked live, so a goal or a zone change can switch one off mid-action.
 func _active_abilities() -> Array:
 	var list: Array = []
+	if boss != null and boss.is_active(self):
+		list.append(boss)
 	for s in RunState.active_squad():
 		if s.ability != null and s.ability.is_active(self):
 			list.append(s.ability)
@@ -1040,25 +1056,45 @@ func _penalty_save_bonus() -> int:
 func boss_bans(card: ActionCard) -> bool:
 	return boss != null and not boss.allows_card(self, card)
 
-## Energy at the start of each possession: START_ENERGY, unless a boss lowers it.
+## Energy at the start of each possession: START_ENERGY plus any bonuses, within any limit.
 func _fresh_energy() -> int:
-	return mini(START_ENERGY, max_energy())
+	var bonus := 0
+	for e in _active_abilities():
+		bonus += e.energy_bonus(self)
+	return mini(START_ENERGY + bonus, max_energy())
 
-## The most energy you can ever have (a boss can set a limit).
+## The most energy you can ever have (the lowest limit set by anyone; 999 = no limit).
 func max_energy() -> int:
-	if boss != null and boss.max_energy(self) > 0:
-		return boss.max_energy(self)
-	return 999
+	var limit := 999
+	for e in _active_abilities():
+		if e.max_energy(self) > 0:
+			limit = mini(limit, e.max_energy(self))
+	return limit
 
-## Minutes each action takes (a boss can change it).
+## Minutes each action takes: normal (or a boss's), times every multiplier (Time Twister).
 func _minutes_per_action() -> int:
-	if boss != null and boss.minutes_per_action(self) > 0:
-		return boss.minutes_per_action(self)
-	return MINUTES_PER_ACTION
+	var minutes := MINUTES_PER_ACTION
+	var mult := 1.0
+	for e in _active_abilities():
+		if e.minutes_per_action(self) > 0:
+			minutes = e.minutes_per_action(self)
+		mult *= e.minutes_multiplier(self)
+	return maxi(1, roundi(minutes * mult))
 
 ## Do they take every kick-off?
 func they_kick_off() -> bool:
-	return boss != null and boss.they_kick_off(self)
+	return _active_abilities().any(func(e): return e.they_kick_off(self))
+
+## Load the boss effect named in the sheet's Effect ID column ("" or a missing file = none).
+const BOSS_FOLDER := "res://Resources/boss_effects/"
+func _load_boss(id: String) -> Ability:
+	if id == "":
+		return null
+	var path := BOSS_FOLDER + id + ".tres"
+	if not ResourceLoader.exists(path):
+		push_warning("No boss effect file %s (check the Effect ID column)" % path)
+		return null
+	return load(path)
 
 ## Can this card be played, as far as the boss effect and your active abilities are concerned?
 func _abilities_allow(card: ActionCard) -> bool:

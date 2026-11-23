@@ -87,6 +87,8 @@ func show_state(m: MatchRules) -> void:
 		_chip.text = "ON"
 	elif m.minute < ability.active_from_minute:
 		_chip.text = "FROM %d'" % ability.active_from_minute
+	elif ability.active_zones & (1 << m.zone) == 0:
+		_chip.text = "IN " + ability.zones_text()     ## e.g. IN MIDFIELD
 	else:
 		_chip.text = "WHEN " + ability.when_score.replace("_", " ").to_upper()
 	_chip.add_theme_color_override("font_color", Color.WHITE if on else CHIP_OFF_TEXT)

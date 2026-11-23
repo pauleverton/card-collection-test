@@ -177,13 +177,15 @@ func your_fixtures() -> Array:
 	for r in fixtures.size():
 		var i := _your_opponent_index(r)
 		var f := {"round": r + 1, "opponent": _label(i), "team": table[i]["team"],
-				"played": r < round_results.size(), "scored": 0, "conceded": 0}
+								"played": r < round_results.size(), "scored": 0, "conceded": 0, "result": ""}
 		if f["played"]:
 			for res in round_results[r]:
 				if res["yours"]:
 					var you_home: bool = res["home_i"] == YOU
 					f["scored"] = res["home_goals"] if you_home else res["away_goals"]
 					f["conceded"] = res["away_goals"] if you_home else res["home_goals"]
+					var home_result: String = res.get("home_result", "")   ## "" in older saves
+					f["result"] = home_result if you_home else _opposite(home_result)
 		list.append(f)
 	return list
 
@@ -258,15 +260,15 @@ func opponent_strength() -> int:
 ##          "standings" (the table, sorted), "results" (this round's scores),
 ##          "fixtures" (your season so far, see your_fixtures)}.
 ## standings/results/fixtures are copied BEFORE a promotion starts the next season.
-func record_match_result(player_goals: int, opponent_goals: int) -> Dictionary:
+func record_match_result(player_goals: int, opponent_goals: int, your_result: String = "") -> Dictionary:
 	var results := []
 	for pair in fixtures[matches_played]:
 		var home: int = pair[0]
 		var away: int = pair[1]
 		if home == YOU:
-			results.append(_record(home, away, player_goals, opponent_goals))
+			results.append(_record(home, away, player_goals, opponent_goals, your_result))
 		elif away == YOU:
-			results.append(_record(home, away, opponent_goals, player_goals))
+			results.append(_record(home, away, opponent_goals, player_goals, _opposite(your_result)))
 		else:
 			results.append(_record(home, away, _sim_goals(home, away), _sim_goals(away, home)))
 	round_results.append(results)
@@ -286,27 +288,42 @@ func debug_skip_to_last_round() -> void:
 		record_match_result(1, 0)
 
 ## Add one match to both teams' rows; returns it as a line for the results list.
-func _record(home: int, away: int, home_goals: int, away_goals: int) -> Dictionary:
-	_add_result(table[home], home_goals, away_goals)
-	_add_result(table[away], away_goals, home_goals)
+## home_result forces the home side's result ("" = decided by the score); away gets the opposite.
+func _record(home: int, away: int, home_goals: int, away_goals: int, home_result: String = "") -> Dictionary:
+	home_result = _add_result(table[home], home_goals, away_goals, home_result)
+	_add_result(table[away], away_goals, home_goals, _opposite(home_result))
 	return {"home": table[home]["name"], "away": table[away]["name"],
 			"home_i": home, "away_i": away,
-			"home_goals": home_goals, "away_goals": away_goals,
+			"home_goals": home_goals, "away_goals": away_goals, "home_result": home_result,
 			"yours": home == YOU or away == YOU}
 
-func _add_result(row: Dictionary, scored: int, let_in: int) -> void:
+## Adds the match to a row. `result` "" = decided by the score. Returns the result it used.
+func _add_result(row: Dictionary, scored: int, let_in: int, result: String = "") -> String:
+	if result == "":
+		result = "win" if scored > let_in else ("draw" if scored == let_in else "loss")
 	row["played"] += 1
 	row["for"] += scored
 	row["against"] += let_in
-	if scored > let_in:
-		row["won"] += 1
-		row["points"] += POINTS_WIN
-	elif scored == let_in:
-		row["drawn"] += 1
-		row["points"] += POINTS_DRAW
-	else:
-		row["lost"] += 1
-		row["points"] += POINTS_LOSS
+	match result:
+		"win":
+			row["won"] += 1
+			row["points"] += POINTS_WIN
+		"draw":
+			row["drawn"] += 1
+			row["points"] += POINTS_DRAW
+		_:
+			row["lost"] += 1
+			row["points"] += POINTS_LOSS
+	return result
+
+## The other side's result: a win for one is a loss for the other.
+func _opposite(result: String) -> String:
+	match result:
+		"win":
+			return "loss"
+		"loss":
+			return "win"
+	return result
 
 ## Goals `attacker` scores against `defender` in a simulated match.
 func _sim_goals(attacker: int, defender: int) -> int:

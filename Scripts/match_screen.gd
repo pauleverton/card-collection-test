@@ -370,14 +370,12 @@ func _show_full_time() -> void:
 	## Read these BEFORE recording the result: promotion moves you to the next tournament.
 	var tournament := LeagueState.current_tournament_name()
 	was_final_tournament = LeagueState.is_final_tournament()
-	league_result = LeagueState.record_match_result(pitch.goals, pitch.conceded)
+	league_result = LeagueState.record_match_result(pitch.goals, pitch.conceded, pitch.result())	
 	_after_the_match()
 
-	var result := "LOSS"
-	if pitch.goals > pitch.conceded:
-		result = "WIN"
-	elif pitch.goals == pitch.conceded:
-		result = "DRAW"
+	var result := pitch.result().to_upper()
+	if result == "LOSS" and pitch.goals >= pitch.conceded:
+		result = "LOSS (needed to win by %d)" % pitch.boss.win_margin(pitch)
 
 	full_time_background.visible = true
 	hand.visible = false      
@@ -460,7 +458,7 @@ func _after_the_match() -> void:
 	RunState.roll_training()                 ## a new week: this week's training activity
 	if season_ended:
 		RunState.start_preseason()           ## promoted: the transfer window opens before the new season
-	if pitch.goals > pitch.conceded:
+	if pitch.result() == "win":
 		RunState.reward_offers = RunState.reward_options()   ## rolled now and saved: no re-rolling
 		next_screen = "res://Scenes/reward_screen.tscn"
 	else:

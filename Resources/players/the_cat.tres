@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="PlayerCard" format=3 uid="uid://dlyb5i3mebgui"]
+
+[ext_resource type="Script" uid="uid://haw1djk8jn7y" path="res://Scripts/abilities/effect_rules.gd" id="1_0q30d"]
+[ext_resource type="Script" uid="uid://b8dxl7yvw3hj" path="res://Scripts/player_card.gd" id="1_602mr"]
+
+[sub_resource type="Resource" id="Resource_602mr"]
+script = ExtResource("1_0q30d")
+their_shot_boost = 0.9
+metadata/_custom_type_script = "uid://haw1djk8jn7y"
+
+[resource]
+script = ExtResource("1_602mr")
+display_name = "The Cat"
+description = "Their shots 10% less likely to go in"
+boosts_type = "goalkeeper"
+ability = SubResource("Resource_602mr")
+metadata/_custom_type_script = "uid://b8dxl7yvw3hj"

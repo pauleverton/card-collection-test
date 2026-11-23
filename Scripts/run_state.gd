@@ -10,7 +10,7 @@ const REWARD_FOLDERS := [
 	"res://Resources/cards/cards_to_buy/"]
 const REWARD_CHOICES := 3
 const PLAYER_FOLDER := "res://Resources/players/"
-const COACH_FOLDER := "res://Resources/coaches/"
+const COACH_FOLDER := "res://Resources/management/"
 
 ## Chance of each rarity when generating a card or player (Balatro-style:
 ## roll the rarity first, then pick something of that rarity).

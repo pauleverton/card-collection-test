@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="BossRules" format=3 uid="uid://dktn3oxmh1sbu"]
 
-[ext_resource type="Script" uid="uid://haw1djk8jn7y" path="res://Scripts/boss_effects/boss_rules.gd" id="1_ehdi3"]
+[ext_resource type="Script" uid="uid://haw1djk8jn7y" path="res://Scripts/abilities/effect_rules.gd" id="1_ehdi3"]
 
 [resource]
 script = ExtResource("1_ehdi3")

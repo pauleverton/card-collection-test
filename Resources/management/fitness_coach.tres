@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CoachCard" format=3 uid="uid://cs88pjrt5jajo"]
+
+[ext_resource type="Script" uid="uid://haw1djk8jn7y" path="res://Scripts/abilities/effect_rules.gd" id="1_mugtg"]
+[ext_resource type="Script" uid="uid://sjnhfn1ce2g3" path="res://Scripts/coach_card.gd" id="1_umdue"]
+
+[sub_resource type="Resource" id="Resource_mugtg"]
+script = ExtResource("1_mugtg")
+energy_boost = 1
+metadata/_custom_type_script = "uid://haw1djk8jn7y"
+
+[resource]
+script = ExtResource("1_umdue")
+category = "utility"
+display_name = "Fitness Coach"
+description = "+1 energy"
+boosts_type = "utility"
+ability = SubResource("Resource_mugtg")
+badge_type = "utility"
+metadata/_custom_type_script = "uid://sjnhfn1ce2g3"

@@ -47,10 +47,13 @@ func refresh(list: Array = []) -> void:
 		if f["played"]:
 			var letter := "D"
 			var colour := DRAW_COLOUR
-			if f["scored"] > f["conceded"]:
+			var result: String = f["result"]
+			if result == "":                       ## older saves: decide by the score
+				result = "win" if f["scored"] > f["conceded"] else ("draw" if f["scored"] == f["conceded"] else "loss")
+			if result == "win":
 				letter = "W"
 				colour = WIN_COLOUR
-			elif f["scored"] < f["conceded"]:
+			elif result == "loss":
 				letter = "L"
 				colour = LOSS_COLOUR
 			_add_row(grid, ["R%d" % f["round"], letter,
